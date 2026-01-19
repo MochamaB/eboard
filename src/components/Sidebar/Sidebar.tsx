@@ -12,7 +12,7 @@ import {
   SafetyCertificateOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { colors } from '../../theme';
+import { useOrgTheme } from '../../contexts';
 
 const { Sider } = Layout;
 
@@ -32,54 +32,43 @@ function getItem(
   } as MenuItem;
 }
 
+// Menu section header component
+function getItemGroup(
+  label: React.ReactNode,
+  children: MenuItem[],
+): MenuItem {
+  return {
+    type: 'group',
+    label,
+    children,
+  } as MenuItem;
+}
+
 const menuItems: MenuItem[] = [
-  getItem('Dashboard', '/', <DashboardOutlined />),
+  getItemGroup(
+    <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: 0.5, opacity: 0.6 }}>MAIN MENU</span>,
+    [
+      getItem('Dashboard', '/', <DashboardOutlined />),
+      getItem('Meetings', '/meetings', <CalendarOutlined />),
+      getItem('Approvals', '/approvals', <SafetyCertificateOutlined />),
+      getItem('Documents', '/documents', <FileTextOutlined />),
+      getItem('Notifications', '/notifications', <BellOutlined />),
+      getItem('Reports', '/reports', <BarChartOutlined />),
+    ]
+  ),
   
-  { type: 'divider' },
+  { type: 'divider', style: { margin: '16px 0', opacity: 0.2 } },
   
-  getItem('Meetings', '/meetings', <CalendarOutlined />, [
-    getItem('All Meetings', '/meetings'),
-    getItem('Calendar', '/meetings/calendar'),
-    getItem('Create Meeting', '/meetings/create'),
-  ]),
-  
-  getItem('Documents', '/documents', <FileTextOutlined />, [
-    getItem('All Documents', '/documents'),
-    getItem('Board Packs', '/documents/board-packs'),
-    getItem('Templates', '/documents/templates'),
-  ]),
-  
-  getItem('Notifications', '/notifications', <BellOutlined />),
-  
-  getItem('Reports', '/reports', <BarChartOutlined />, [
-    getItem('Meeting Reports', '/reports/meetings'),
-    getItem('Attendance', '/reports/attendance'),
-    getItem('Compliance', '/reports/compliance'),
-  ]),
-  
-  { type: 'divider' },
-  
-  getItem('Users', '/users', <TeamOutlined />, [
-    getItem('All Users', '/users'),
-    getItem('Roles & Permissions', '/users/roles'),
-  ]),
-  
-  getItem('Boards', '/boards', <ApartmentOutlined />, [
-    getItem('All Boards', '/boards'),
-    getItem('Committees', '/boards/committees'),
-  ]),
-  
-  getItem('Settings', '/settings', <SettingOutlined />, [
-    getItem('General', '/settings/general'),
-    getItem('Notifications', '/settings/notifications'),
-    getItem('Integrations', '/settings/integrations'),
-  ]),
-  
-  getItem('Admin', '/admin', <SafetyCertificateOutlined />, [
-    getItem('System Settings', '/admin/system'),
-    getItem('Audit Logs', '/admin/audit-logs'),
-    getItem('Backup', '/admin/backup'),
-  ]),
+  getItemGroup(
+    <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: 0.5, opacity: 0.6 }}>ADMINISTRATION</span>,
+    [
+      getItem('Boards', '/boards', <ApartmentOutlined />),
+      getItem('Committees', '/committees', <ApartmentOutlined />),
+      getItem('Users', '/users', <TeamOutlined />),
+      getItem('Roles', '/roles', <SafetyCertificateOutlined />),
+      getItem('Permissions', '/permissions', <SettingOutlined />),
+    ]
+  ),
 ];
 
 interface SidebarProps {
@@ -90,6 +79,7 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { theme, logoSidebar, logoSmall, currentOrg } = useOrgTheme();
 
   const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
     navigate(key);
@@ -138,28 +128,53 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
         left: 0,
         top: 0,
         bottom: 0,
-        background: `linear-gradient(to bottom, ${colors.sidebarBg} 0%, ${colors.sidebarBgDark} 100%)`,
+        background: theme.sidebarBgGradient || theme.sidebarBg,
       }}
       theme="dark"
     >
-      {/* Logo */}
+      {/* Logo Area */}
       <div
         style={{
-          height: 64,
+          height: collapsed ? 80 : 180,
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
-          justifyContent: collapsed ? 'center' : 'flex-start',
-          padding: collapsed ? '0' : '0 24px',
-          background: 'rgba(30, 43, 20, 0.3)',
+          justifyContent: 'center',
+          padding: '16px',
+          background: 'rgba(0, 0, 0, 0.2)',
           borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          transition: 'height 0.2s',
         }}
       >
         {collapsed ? (
-          <span style={{ color: colors.secondary, fontSize: 24, fontWeight: 700 }}>K</span>
+          <img 
+            src={logoSmall} 
+            alt={currentOrg.shortName}
+            style={{ height: 40, width: 'auto', objectFit: 'contain' }}
+          />
         ) : (
-          <span style={{ color: colors.white, fontSize: 20, fontWeight: 600 }}>
-            <span style={{ color: colors.secondary }}>KTDA</span> eBoard
-          </span>
+          <>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <img 
+                src={logoSidebar} 
+                alt={currentOrg.shortName}
+                style={{ maxHeight: 60, width: 'auto', objectFit: 'contain' }}
+              />
+            </div>
+            <div
+              style={{
+                marginTop: 12,
+                paddingTop: 8,
+                borderTop: '1px solid rgba(255, 255, 255, 0.15)',
+                width: '100%',
+                textAlign: 'center',
+              }}
+            >
+              <span style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: 13, fontWeight: 500, letterSpacing: 1 }}>
+                eBOARD
+              </span>
+            </div>
+          </>
         )}
       </div>
 

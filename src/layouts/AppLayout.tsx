@@ -3,6 +3,7 @@ import { Layout } from 'antd';
 import { Outlet } from 'react-router-dom';
 import { Header } from '../components/Header/Header';
 import { Sidebar } from '../components/Sidebar/Sidebar';
+import { CommitteeTabs } from '../components/CommitteeTabs';
 import { colors } from '../theme';
 
 const { Content } = Layout;
@@ -25,6 +26,10 @@ export const AppLayout: React.FC = () => {
         }}
       >
         <Header collapsed={collapsed} onToggleCollapse={() => setCollapsed(!collapsed)} />
+        
+        {/* Committee Tabs - sticky below header, full width */}
+        <CommitteeTabs />
+        
         <Content
           style={{
             margin: '24px',

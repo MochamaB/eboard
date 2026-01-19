@@ -94,6 +94,7 @@
 - **Components**:
   - Filter tabs (segmented control)
   - Search bar with instant filter
+  - Dropdown and input filters to aid in filtering
   - Data table with row selection
   - Bulk action bar (sticky bottom, appears on selection)
   - Pagination
@@ -149,7 +150,7 @@
 
 ### UI Pattern
 
-- **Page Type**: Multi-Step Wizard
+- **Page Type**: Multi-Step Wizard - vertical
 - **Layout**: Full page with step indicator
 - **Steps**:
   1. **Basic Information** (always visible)
@@ -311,7 +312,7 @@
 
 ### UI Pattern
 
-- **Page Type**: Setup Wizard (3 steps)
+- **Page Type**: Setup Wizard (3 steps) - Vertical
 - **Layout**: Centered card, no sidebar (part of onboarding)
 - **Step 1 - QR Code**:
   - Large QR code display

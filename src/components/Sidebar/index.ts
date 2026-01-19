@@ -1,2 +1,1 @@
-export { Sidebar } from './Sidebar';
-export default Sidebar;
+export { Sidebar, Sidebar as default } from './Sidebar';

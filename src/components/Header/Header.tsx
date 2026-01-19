@@ -1,4 +1,4 @@
-import { Layout, Space, Input, Badge, Avatar, Dropdown, Button, Select } from 'antd';
+import { Layout, Space, Input, Badge, Avatar, Dropdown, Button } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   MenuFoldOutlined,
@@ -8,9 +8,10 @@ import {
   UserOutlined,
   SettingOutlined,
   LogoutOutlined,
-  SwapOutlined,
 } from '@ant-design/icons';
 import { colors } from '../../theme';
+import { useOrgTheme } from '../../contexts';
+import { OrganizationSelector } from './OrganizationSelector';
 
 const { Header: AntHeader } = Layout;
 
@@ -18,14 +19,6 @@ interface HeaderProps {
   collapsed: boolean;
   onToggleCollapse: () => void;
 }
-
-// Mock data for board selector
-const boards = [
-  { value: 'ktda-main', label: 'KTDA Main Board' },
-  { value: 'audit-committee', label: 'Audit Committee' },
-  { value: 'hr-committee', label: 'HR Committee' },
-  { value: 'finance-committee', label: 'Finance Committee' },
-];
 
 // User dropdown menu items
 const userMenuItems: MenuProps['items'] = [
@@ -114,6 +107,8 @@ const notificationItems: MenuProps['items'] = [
 ];
 
 export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) => {
+  const { theme } = useOrgTheme();
+
   const handleUserMenuClick: MenuProps['onClick'] = ({ key }) => {
     if (key === 'logout') {
       console.log('Logout clicked');
@@ -138,8 +133,8 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) =
         zIndex: 100,
       }}
     >
-      {/* Left section */}
-      <Space size="middle">
+      {/* Left section - Logo + Organization Selector */}
+      <Space size="middle" align="center">
         <Button
           type="text"
           icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
@@ -147,15 +142,8 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) =
           style={{ fontSize: 16, width: 40, height: 40 }}
         />
 
-        {/* Board Selector */}
-        <Select
-          defaultValue="ktda-main"
-          style={{ width: 200 }}
-          options={boards}
-          suffixIcon={<SwapOutlined />}
-          variant="borderless"
-          dropdownStyle={{ minWidth: 220 }}
-        />
+        {/* Organization Selector (includes logo) */}
+        <OrganizationSelector collapsed={false} />
       </Space>
 
       {/* Center - Search */}
@@ -195,7 +183,7 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) =
         >
           <Space style={{ cursor: 'pointer' }}>
             <Avatar
-              style={{ backgroundColor: colors.primary }}
+              style={{ backgroundColor: theme.primaryColor }}
               icon={<UserOutlined />}
             />
             <span style={{ color: colors.textPrimary, fontWeight: 500 }}>
