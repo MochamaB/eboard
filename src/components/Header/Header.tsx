@@ -11,7 +11,6 @@ import {
 } from '@ant-design/icons';
 import { colors } from '../../theme';
 import { useOrgTheme } from '../../contexts';
-import { OrganizationSelector } from './OrganizationSelector';
 
 const { Header: AntHeader } = Layout;
 
@@ -133,7 +132,7 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) =
         zIndex: 100,
       }}
     >
-      {/* Left section - Logo + Organization Selector */}
+      {/* Left section - Menu toggle */}
       <Space size="middle" align="center">
         <Button
           type="text"
@@ -141,9 +140,6 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) =
           onClick={onToggleCollapse}
           style={{ fontSize: 16, width: 40, height: 40 }}
         />
-
-        {/* Organization Selector (includes logo) */}
-        <OrganizationSelector collapsed={false} />
       </Space>
 
       {/* Center - Search */}

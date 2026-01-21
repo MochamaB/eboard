@@ -392,6 +392,10 @@ export const organizations: Organization[] = [
       main: chaitradingLogo,
     },
     theme: subsidiaryTheme,
+    committees: [
+      { id: 'chai-trading-committee-1', name: 'Committee One', shortName: 'Committee 1' },
+      { id: 'chai-trading-committee-2', name: 'Committee Two', shortName: 'Committee 2' },
+    ],
   },
   {
     id: 'chai-logistics',
@@ -402,6 +406,10 @@ export const organizations: Organization[] = [
       main: chailogisticsLogo,
     },
     theme: subsidiaryTheme,
+    committees: [
+      { id: 'chai-logistics-committee-1', name: 'Committee One', shortName: 'Committee 1' },
+      { id: 'chai-logistics-committee-2', name: 'Committee Two', shortName: 'Committee 2' },
+    ],
   },
   {
     id: 'greenland-fedha',
@@ -412,6 +420,10 @@ export const organizations: Organization[] = [
       main: greenlandfedhaLogo,
     },
     theme: subsidiaryTheme,
+    committees: [
+      { id: 'greenland-fedha-committee-1', name: 'Committee One', shortName: 'Committee 1' },
+      { id: 'greenland-fedha-committee-2', name: 'Committee Two', shortName: 'Committee 2' },
+    ],
   },
   {
     id: 'majani-insurance',
@@ -423,6 +435,10 @@ export const organizations: Organization[] = [
       dark: majaniLogoDark,
     },
     theme: subsidiaryTheme,
+    committees: [
+      { id: 'majani-insurance-committee-1', name: 'Committee One', shortName: 'Committee 1' },
+      { id: 'majani-insurance-committee-2', name: 'Committee Two', shortName: 'Committee 2' },
+    ],
   },
   {
     id: 'ktda-power',
@@ -435,6 +451,10 @@ export const organizations: Organization[] = [
       light: ktdaLogoLight,
     },
     theme: subsidiaryTheme,
+    committees: [
+      { id: 'ktda-power-committee-1', name: 'Committee One', shortName: 'Committee 1' },
+      { id: 'ktda-power-committee-2', name: 'Committee Two', shortName: 'Committee 2' },
+    ],
   },
   {
     id: 'temec',
@@ -445,6 +465,10 @@ export const organizations: Organization[] = [
       main: temecLogo,
     },
     theme: temecTheme,
+    committees: [
+      { id: 'temec-committee-1', name: 'Committee One', shortName: 'Committee 1' },
+      { id: 'temec-committee-2', name: 'Committee Two', shortName: 'Committee 2' },
+    ],
   },
   {
     id: 'ktda-foundation',
@@ -455,6 +479,10 @@ export const organizations: Organization[] = [
       main: ktdafoundationLogo,
     },
     theme: subsidiaryTheme,
+    committees: [
+      { id: 'ktda-foundation-committee-1', name: 'Committee One', shortName: 'Committee 1' },
+      { id: 'ktda-foundation-committee-2', name: 'Committee Two', shortName: 'Committee 2' },
+    ],
   },
   {
     id: 'dmcc',
@@ -465,6 +493,10 @@ export const organizations: Organization[] = [
       main: dmccLogo,
     },
     theme: subsidiaryTheme,
+    committees: [
+      { id: 'dmcc-committee-1', name: 'Committee One', shortName: 'Committee 1' },
+      { id: 'dmcc-committee-2', name: 'Committee Two', shortName: 'Committee 2' },
+    ],
   },
 
   // Sample Factories (Zone 1)

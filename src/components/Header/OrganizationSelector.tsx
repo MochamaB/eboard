@@ -9,6 +9,7 @@ import {
   GlobalOutlined,
   RightOutlined,
 } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import { useOrgTheme } from '../../contexts';
 import {
   organizations,
@@ -20,28 +21,13 @@ import type { Organization } from '../../data/organizations';
 
 const { Text } = Typography;
 
-// Type badge colors
-const typeBadgeColors: Record<string, string> = {
-  group: '#722ed1',
-  main: '#1890ff',
-  subsidiary: '#52c41a',
-  factory: '#faad14',
-};
-
-// Type icons
-const typeIcons: Record<string, React.ReactNode> = {
-  group: <GlobalOutlined />,
-  main: <BankOutlined />,
-  subsidiary: <ApartmentOutlined />,
-  factory: <HomeOutlined />,
-};
-
 interface OrganizationSelectorProps {
   collapsed?: boolean;
 }
 
 export const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({ collapsed = false }) => {
   const { currentOrg, setCurrentOrg, logo } = useOrgTheme();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [expandedZones, setExpandedZones] = useState<number[]>([]);
@@ -59,6 +45,7 @@ export const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({ coll
 
   const handleSelect = (org: Organization) => {
     setCurrentOrg(org.id);
+    navigate(`/${org.id}/dashboard`);
     setOpen(false);
     setSearchText('');
   };
@@ -89,12 +76,12 @@ export const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({ coll
       key={org.id}
       onClick={() => handleSelect(org)}
       style={{
-        padding: '8px 12px',
-        paddingLeft: 12 + indent * 16,
+        padding: '12px 16px',
+        paddingLeft: 16 + indent * 16,
         cursor: 'pointer',
         display: 'flex',
         alignItems: 'center',
-        gap: 8,
+        gap: 12,
         background: currentOrg.id === org.id ? 'rgba(24, 144, 255, 0.1)' : 'transparent',
         borderLeft: currentOrg.id === org.id ? '3px solid #1890ff' : '3px solid transparent',
       }}
@@ -109,9 +96,16 @@ export const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({ coll
         }
       }}
     >
-      <span style={{ color: typeBadgeColors[org.type], fontSize: 14 }}>
-        {typeIcons[org.type]}
-      </span>
+      <img
+        src={org.logo.small || org.logo.main}
+        alt={org.shortName}
+        style={{
+          width: 24,
+          height: 24,
+          objectFit: 'contain',
+          borderRadius: 4,
+        }}
+      />
       <Text style={{ flex: 1 }}>{org.name}</Text>
       {org.committees && org.committees.length > 0 && (
         <Badge count={org.committees.length} size="small" style={{ backgroundColor: '#722ed1' }} />
@@ -122,7 +116,7 @@ export const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({ coll
   const dropdownContent = (
     <div
       style={{
-        width: 320,
+        width: 450,
         maxHeight: 480,
         overflow: 'auto',
         background: '#fff',

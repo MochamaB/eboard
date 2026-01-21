@@ -23,30 +23,45 @@
 
 ### Base URL Structure
 
+**All application routes are scoped by organization for proper data filtering and context.**
+
 ```
 https://eboard.ktda.co.ke/
-├── /auth/*                    # Public authentication routes
-├── /                          # Dashboard (default after login)
-├── /meetings/*                # Meeting management
-├── /documents/*               # Document library
-├── /notifications/*           # Notifications
-├── /reports/*                 # Reports & analytics
-├── /users/*                   # User management (Admin/Secretary)
-├── /boards/*                  # Board management (Admin/Secretary/Chairman)
-├── /settings/*                # User settings
-└── /admin/*                   # System administration (Admin only)
+├── /                          # Root - redirects to /ktda-main/dashboard
+├── /auth/*                    # Public authentication routes (no org context)
+└── /:orgId/*                  # Organization-scoped routes
+    ├── /dashboard             # Dashboard (org-specific)
+    ├── /meetings/*            # Meeting management (filtered by org)
+    ├── /documents/*           # Document library (filtered by org)
+    ├── /notifications/*       # Notifications (filtered by org)
+    ├── /reports/*             # Reports & analytics (filtered by org)
+    ├── /users/*               # User management (org users only)
+    ├── /boards/*              # Board management (org boards)
+    ├── /settings/*            # User settings
+    └── /admin/*               # System administration
 ```
 
 ### URL Parameters
 
 | Parameter | Description | Example |
 |-----------|-------------|---------|
-| `:id` | Resource ID (UUID) | `/meetings/abc-123-def` |
-| `:boardId` | Board context | `/boards/main-board-id` |
-| `:committeeId` | Committee context | `/boards/main-board-id/committees/audit-id` |
-| `?tab=` | Active tab | `/meetings/abc-123?tab=agenda` |
-| `?filter=` | Filter state | `/users?filter=active` |
-| `?page=` | Pagination | `/notifications?page=2` |
+| `:orgId` | **Organization ID** (required for all app routes) | `/ktda-main/dashboard` |
+| `:id` | Resource ID (UUID) | `/ktda-main/meetings/abc-123-def` |
+| `:boardId` | Board context | `/ktda-main/boards/board-123` |
+| `:committeeId` | Committee context | `/ktda-main/boards/board-123/committees/audit-id` |
+| `?tab=` | Active tab | `/ktda-main/meetings/abc-123?tab=agenda` |
+| `?filter=` | Filter state | `/ktda-main/users?filter=active` |
+| `?page=` | Pagination | `/ktda-main/notifications?page=2` |
+
+### Organization IDs
+
+| Organization | orgId | Example URL |
+|--------------|-------|-------------|
+| KTDA Group (All Entities) | `ktda-group` | `/ktda-group/dashboard` |
+| KTDA Main Board | `ktda-main` | `/ktda-main/dashboard` |
+| KETEPA Limited | `ketepa` | `/ketepa/dashboard` |
+| TEMEC | `temec` | `/temec/dashboard` |
+| Chebut Factory | `factory-chebut` | `/factory-chebut/dashboard` |
 
 ---
 
@@ -83,8 +98,9 @@ All routes below require authentication.
 
 | Route | Page | Module | Access |
 |-------|------|--------|--------|
-| `/` | Dashboard | - | All users |
-| `/dashboard` | Dashboard (alias) | - | All users |
+| `/:orgId/dashboard` | Dashboard | - | All users |
+
+**Note**: Root `/` redirects to `/ktda-main/dashboard` for default organization.
 
 **Dashboard Widgets**:
 - My Boards summary
@@ -99,23 +115,23 @@ All routes below require authentication.
 
 | Route | Page | Access |
 |-------|------|--------|
-| `/meetings` | Meetings Index | All users |
-| `/meetings?view=calendar` | Calendar View | All users |
-| `/meetings?view=list` | List View | All users |
-| `/meetings?tab=upcoming` | Upcoming Tab | All users |
-| `/meetings?tab=past` | Past Meetings Tab | All users |
-| `/meetings/create` | Create Meeting | Secretary |
-| `/meetings/:id` | Meeting Details | Meeting participants |
-| `/meetings/:id?tab=overview` | Overview Tab | Meeting participants |
-| `/meetings/:id?tab=participants` | Participants Tab | Meeting participants |
-| `/meetings/:id?tab=agenda` | Agenda Tab (Module 6) | Meeting participants |
-| `/meetings/:id?tab=documents` | Documents Tab | Meeting participants |
-| `/meetings/:id?tab=votes` | Votes Tab (Module 7) | Meeting participants |
-| `/meetings/:id?tab=minutes` | Minutes Tab (Module 8) | Meeting participants |
-| `/meetings/:id?tab=attendance` | Attendance Tab (Module 9) | Meeting participants |
-| `/meetings/:id/edit` | Edit Meeting | Secretary |
-| `/meetings/:id/live` | Live Meeting (Module 4) | Meeting participants |
-| `/meetings/:id/confirmation` | Meeting Confirmation | Chairman |
+| `/:orgId/meetings` | Meetings Index | All users |
+| `/:orgId/meetings?view=calendar` | Calendar View | All users |
+| `/:orgId/meetings?view=list` | List View | All users |
+| `/:orgId/meetings?tab=upcoming` | Upcoming Tab | All users |
+| `/:orgId/meetings?tab=past` | Past Meetings Tab | All users |
+| `/:orgId/meetings/create` | Create Meeting | Secretary |
+| `/:orgId/meetings/:id` | Meeting Details | Meeting participants |
+| `/:orgId/meetings/:id?tab=overview` | Overview Tab | Meeting participants |
+| `/:orgId/meetings/:id?tab=participants` | Participants Tab | Meeting participants |
+| `/:orgId/meetings/:id?tab=agenda` | Agenda Tab (Module 6) | Meeting participants |
+| `/:orgId/meetings/:id?tab=documents` | Documents Tab | Meeting participants |
+| `/:orgId/meetings/:id?tab=votes` | Votes Tab (Module 7) | Meeting participants |
+| `/:orgId/meetings/:id?tab=minutes` | Minutes Tab (Module 8) | Meeting participants |
+| `/:orgId/meetings/:id?tab=attendance` | Attendance Tab (Module 9) | Meeting participants |
+| `/:orgId/meetings/:id/edit` | Edit Meeting | Secretary |
+| `/:orgId/meetings/:id/live` | Live Meeting (Module 4) | Meeting participants |
+| `/:orgId/meetings/:id/confirmation` | Meeting Confirmation | Chairman |
 
 ---
 
@@ -123,15 +139,15 @@ All routes below require authentication.
 
 | Route | Page | Access |
 |-------|------|--------|
-| `/documents` | Documents Library | All users |
-| `/documents?tab=all` | All Documents | All users |
-| `/documents?tab=board-packs` | Board Packs | All users |
-| `/documents?tab=minutes` | Published Minutes | All users |
-| `/documents?tab=policies` | Policies | All users |
-| `/documents/upload` | Upload Document | Secretary |
-| `/documents/:id` | Document Details | Based on permissions |
-| `/documents/:id/view` | Document Viewer | Based on permissions |
-| `/documents/:id/versions` | Version History | Based on permissions |
+| `/:orgId/documents` | Documents Library | All users |
+| `/:orgId/documents?tab=all` | All Documents | All users |
+| `/:orgId/documents?tab=board-packs` | Board Packs | All users |
+| `/:orgId/documents?tab=minutes` | Published Minutes | All users |
+| `/:orgId/documents?tab=policies` | Policies | All users |
+| `/:orgId/documents/upload` | Upload Document | Secretary |
+| `/:orgId/documents/:id` | Document Details | Based on permissions |
+| `/:orgId/documents/:id/view` | Document Viewer | Based on permissions |
+| `/:orgId/documents/:id/versions` | Version History | Based on permissions |
 
 ---
 
@@ -139,13 +155,13 @@ All routes below require authentication.
 
 | Route | Page | Access |
 |-------|------|--------|
-| `/notifications` | Notifications Index | All users |
-| `/notifications?tab=all` | All Notifications | All users |
-| `/notifications?tab=unread` | Unread Only | All users |
-| `/notifications?tab=meetings` | Meeting Notifications | All users |
-| `/notifications?tab=documents` | Document Notifications | All users |
-| `/notifications?tab=tasks` | Task Notifications | All users |
-| `/notifications?tab=votes` | Vote Notifications | All users |
+| `/:orgId/notifications` | Notifications Index | All users |
+| `/:orgId/notifications?tab=all` | All Notifications | All users |
+| `/:orgId/notifications?tab=unread` | Unread Only | All users |
+| `/:orgId/notifications?tab=meetings` | Meeting Notifications | All users |
+| `/:orgId/notifications?tab=documents` | Document Notifications | All users |
+| `/:orgId/notifications?tab=tasks` | Task Notifications | All users |
+| `/:orgId/notifications?tab=votes` | Vote Notifications | All users |
 
 ---
 
@@ -153,14 +169,14 @@ All routes below require authentication.
 
 | Route | Page | Access |
 |-------|------|--------|
-| `/reports` | Reports Dashboard | All users |
-| `/reports/meetings` | Meeting Summary Report | All users |
-| `/reports/attendance` | Attendance Analytics | All users |
-| `/reports/action-items` | Action Items Report | All users |
-| `/reports/documents` | Document Usage Report | Secretary, Admin |
-| `/reports/compliance` | Compliance Report | Secretary, Admin, Chairman |
-| `/reports/system-usage` | System Usage Report | Admin |
-| `/reports/chairman-dashboard` | Chairman's Dashboard | Chairman |
+| `/:orgId/reports` | Reports Dashboard | All users |
+| `/:orgId/reports/meetings` | Meeting Summary Report | All users |
+| `/:orgId/reports/attendance` | Attendance Analytics | All users |
+| `/:orgId/reports/action-items` | Action Items Report | All users |
+| `/:orgId/reports/documents` | Document Usage Report | Secretary, Admin |
+| `/:orgId/reports/compliance` | Compliance Report | Secretary, Admin, Chairman |
+| `/:orgId/reports/system-usage` | System Usage Report | Admin |
+| `/:orgId/reports/chairman-dashboard` | Chairman's Dashboard | Chairman |
 
 ---
 
@@ -168,19 +184,19 @@ All routes below require authentication.
 
 | Route | Page | Access |
 |-------|------|--------|
-| `/users` | Users Index | Admin, Secretary |
-| `/users?tab=all` | All Users | Admin, Secretary |
-| `/users?tab=active` | Active Users | Admin, Secretary |
-| `/users?tab=inactive` | Inactive Users | Admin, Secretary |
-| `/users?tab=by-board` | Users by Board | Admin, Secretary |
-| `/users?tab=by-role` | Users by Role | Admin, Secretary |
-| `/users/create` | Create User | Admin |
-| `/users/import` | Bulk Import | Admin |
-| `/users/:id` | User Profile | Admin, Secretary, Self |
-| `/users/:id?tab=details` | Details Tab | Admin, Secretary, Self |
-| `/users/:id?tab=boards` | Board Memberships | Admin, Secretary |
-| `/users/:id?tab=activity` | Activity Log | Admin |
-| `/users/:id?tab=security` | Security Settings | Admin, Self |
+| `/:orgId/users` | Users Index | Admin, Secretary |
+| `/:orgId/users?tab=all` | All Users | Admin, Secretary |
+| `/:orgId/users?tab=active` | Active Users | Admin, Secretary |
+| `/:orgId/users?tab=inactive` | Inactive Users | Admin, Secretary |
+| `/:orgId/users?tab=by-board` | Users by Board | Admin, Secretary |
+| `/:orgId/users?tab=by-role` | Users by Role | Admin, Secretary |
+| `/:orgId/users/create` | Create User | Admin |
+| `/:orgId/users/import` | Bulk Import | Admin |
+| `/:orgId/users/:id` | User Profile | Admin, Secretary, Self |
+| `/:orgId/users/:id?tab=details` | Details Tab | Admin, Secretary, Self |
+| `/:orgId/users/:id?tab=boards` | Board Memberships | Admin, Secretary |
+| `/:orgId/users/:id?tab=activity` | Activity Log | Admin |
+| `/:orgId/users/:id?tab=security` | Security Settings | Admin, Self |
 | `/users/:id/edit` | Edit User | Admin |
 | `/users/roles` | Roles & Permissions | Admin |
 | `/users/roles/:id` | Role Details | Admin |

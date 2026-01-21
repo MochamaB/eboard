@@ -2,28 +2,118 @@
 
 ## Document Information
 - **Project Name**: eBoard Meeting System
-- **Version**: 1.0
-- **Date**: January 15, 2026
-- **Technology Stack**: ASP.NET Core 8, SQL Server
+- **Version**: 1.1
+- **Date**: January 19, 2026
+- **Technology Stack**: React 18, TypeScript, ASP.NET Core 8, SQL Server
 - **Document Type**: Technical Architecture & Design Specification
 
 ---
 
 ## Table of Contents
 1. [System Architecture Overview](#1-system-architecture-overview)
-2. [Technology Stack](#2-technology-stack)
-3. [Module Breakdown](#3-module-breakdown)
-4. [Database Design](#4-database-design)
-5. [API Design](#5-api-design)
-6. [Business Logic Flows](#6-business-logic-flows)
-7. [Integration Architecture](#7-integration-architecture)
-8. [Security Implementation](#8-security-implementation)
+2. [Organization-Based Routing](#2-organization-based-routing)
+3. [Technology Stack](#3-technology-stack)
+4. [Module Breakdown](#4-module-breakdown)
+5. [Database Design](#5-database-design)
+6. [API Design](#6-api-design)
+7. [Business Logic Flows](#7-business-logic-flows)
+8. [Integration Architecture](#8-integration-architecture)
+9. [Security Implementation](#9-security-implementation)
 
 ---
 
 ## 1. System Architecture Overview
 
 ### 1.1 Architecture Pattern
+**Layered N-Tier Architecture with Clean Architecture Principles**
+
+---
+
+## 2. Organization-Based Routing
+
+### 2.1 Overview
+All application routes are scoped by organization ID to ensure proper data isolation and context management. Every authenticated route includes `/:orgId` as a URL parameter.
+
+### 2.2 URL Structure
+```
+/:orgId/{module}/{resource}
+
+Examples:
+/ktda-main/dashboard
+/ketepa/meetings/123
+/temec/users
+/factory-chebut/reports/attendance
+```
+
+### 2.3 Implementation Details
+
+**Frontend Routing (React Router v6):**
+- Root route (`/`) redirects to default organization: `/ktda-main/dashboard`
+- All protected routes are nested under `/:orgId` parent route
+- `AppLayout` component extracts `orgId` from URL and syncs with context
+- Invalid `orgId` redirects to default organization
+
+**Organization Context Sync:**
+```typescript
+// AppLayout extracts orgId from URL
+const { orgId } = useParams<{ orgId: string }>();
+
+// Validates and syncs with OrgThemeContext
+useEffect(() => {
+  if (orgId) {
+    const org = getOrganizationById(orgId);
+    if (org) {
+      setCurrentOrg(orgId); // Updates theme, logo, committees
+    } else {
+      navigate('/ktda-main/dashboard', { replace: true });
+    }
+  }
+}, [orgId]);
+```
+
+**Navigation Behavior:**
+- Organization selector changes URL: `navigate(`/${newOrgId}/dashboard`)`
+- Sidebar menu items include orgId: `navigate(`/${orgId}/meetings`)`
+- Browser back/forward buttons work correctly
+- Bookmarks and shared links include organization context
+
+### 2.4 Data Filtering Logic
+
+All API calls must filter data by organization:
+
+**Backend API Pattern:**
+```csharp
+[HttpGet("{orgId}/meetings")]
+public async Task<IActionResult> GetMeetings(string orgId)
+{
+    // Validate user has access to organization
+    if (!await _authService.CanAccessOrganization(User, orgId))
+        return Forbid();
+    
+    // Filter data by organization
+    var meetings = await _meetingService.GetByOrganizationAsync(orgId);
+    return Ok(meetings);
+}
+```
+
+**Frontend API Call:**
+```typescript
+// Always include orgId in API requests
+const meetings = await api.get(`/${orgId}/meetings`);
+const users = await api.get(`/${orgId}/users`);
+```
+
+### 2.5 Security Considerations
+- Organization access validated on every API request
+- User permissions checked per organization
+- Cross-organization data leakage prevented
+- Audit trails include organization context
+
+---
+
+## 3. System Architecture Overview (continued)
+
+### 3.1 Architecture Pattern (continued)
 **Layered N-Tier Architecture with Clean Architecture Principles**
 
 ```

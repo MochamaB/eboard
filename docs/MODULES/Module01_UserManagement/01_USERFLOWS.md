@@ -842,17 +842,20 @@
 ## Summary: Pages Required for Module 1
 
 | Page | Route | Purpose |
-|------|-------|---------|  
+|------|-------|---------|
 | Users Index | `/users` | Browse all users |
-| User Create | `/users/create` | Create new user |
+| User Create | `/users/create` | Create new user (5-step vertical wizard) |
 | User Details | `/users/:id` | View user profile |
 | User Edit | `/users/:id/edit` | Edit user details |
 | Roles List | `/admin/roles` | View all roles |
 | Role Create | `/admin/roles/create` | Create custom role |
 | Role Edit | `/admin/roles/:id/edit` | Edit role permissions |
-| Login | `/login` | User authentication |
-| Password Reset | `/reset-password` | Reset password flow |
-| MFA Setup | `/mfa-setup` | Configure MFA |
+| Login | `/auth/login` | User authentication |
+| Change Password | `/auth/change-password` | First-time password change |
+| MFA Verify | `/auth/mfa` | MFA code verification |
+| Forgot Password | `/auth/forgot-password` | Request password reset |
+| Reset Password | `/auth/reset-password/:token` | Set new password from email link |
+| MFA Setup | `/auth/mfa-setup` | Configure MFA (3-step vertical wizard) |
 
 ---
 

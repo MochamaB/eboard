@@ -1,4 +1,5 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { RootLayout } from '../layouts/RootLayout';
 import { AppLayout } from '../layouts/AppLayout';
 import { AuthLayout } from '../layouts/AuthLayout';
 import { Dashboard } from '../pages/Dashboard';
@@ -41,125 +42,133 @@ const SettingsPage = () => <PlaceholderPage title="Settings" />;
 const AdminPage = () => <PlaceholderPage title="Admin" />;
 
 export const router = createBrowserRouter([
-  // Auth routes (no sidebar)
   {
-    element: <AuthLayout />,
+    element: <RootLayout />,
     children: [
-      {
-        path: '/auth/login',
-        element: <LoginPage />,
-      },
-      {
-        path: '/auth/forgot-password',
-        element: <ForgotPasswordPage />,
-      },
-    ],
-  },
-
-  // Main app routes (with sidebar)
-  {
-    element: <AppLayout />,
-    children: [
+      // Root redirect to default organization
       {
         path: '/',
-        element: <Dashboard />,
+        element: <Navigate to="/ktda-main/dashboard" replace />,
       },
+
+      // Auth routes (no sidebar)
       {
-        path: '/dashboard',
-        element: <Navigate to="/" replace />,
+        element: <AuthLayout />,
+        children: [
+          {
+            path: '/auth/login',
+            element: <LoginPage />,
+          },
+          {
+            path: '/auth/forgot-password',
+            element: <ForgotPasswordPage />,
+          },
+        ],
+      },
+
+      // Main app routes (with sidebar) - all under /:orgId
+      {
+        path: '/:orgId',
+        element: <AppLayout />,
+    children: [
+      {
+        path: 'dashboard',
+        element: <Dashboard />,
       },
 
       // Meetings
       {
-        path: '/meetings',
+        path: 'meetings',
         element: <MeetingsPage />,
       },
       {
-        path: '/meetings/calendar',
+        path: 'meetings/calendar',
         element: <MeetingsCalendarPage />,
       },
       {
-        path: '/meetings/create',
+        path: 'meetings/create',
         element: <CreateMeetingPage />,
       },
 
       // Documents
       {
-        path: '/documents',
+        path: 'documents',
         element: <DocumentsPage />,
       },
       {
-        path: '/documents/board-packs',
+        path: 'documents/board-packs',
         element: <BoardPacksPage />,
       },
       {
-        path: '/documents/templates',
+        path: 'documents/templates',
         element: <TemplatesPage />,
       },
 
       // Notifications
       {
-        path: '/notifications',
+        path: 'notifications',
         element: <NotificationsPage />,
       },
 
       // Reports
       {
-        path: '/reports',
+        path: 'reports',
         element: <ReportsPage />,
       },
       {
-        path: '/reports/meetings',
+        path: 'reports/meetings',
         element: <MeetingReportsPage />,
       },
       {
-        path: '/reports/attendance',
+        path: 'reports/attendance',
         element: <AttendanceReportsPage />,
       },
       {
-        path: '/reports/compliance',
+        path: 'reports/compliance',
         element: <ComplianceReportsPage />,
       },
 
       // Users
       {
-        path: '/users',
+        path: 'users',
         element: <UsersPage />,
       },
       {
-        path: '/users/roles',
+        path: 'users/roles',
         element: <RolesPage />,
       },
 
       // Boards
       {
-        path: '/boards',
+        path: 'boards',
         element: <BoardsPage />,
       },
       {
-        path: '/boards/committees',
+        path: 'boards/committees',
         element: <CommitteesPage />,
       },
 
       // Settings
       {
-        path: '/settings',
+        path: 'settings',
         element: <SettingsPage />,
       },
       {
-        path: '/settings/*',
+        path: 'settings/*',
         element: <SettingsPage />,
       },
 
       // Admin
       {
-        path: '/admin',
+        path: 'admin',
         element: <AdminPage />,
       },
       {
-        path: '/admin/*',
+        path: 'admin/*',
         element: <AdminPage />,
       },
+    ],
+  },
     ],
   },
 ]);

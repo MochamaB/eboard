@@ -1,20 +1,21 @@
-import { Layout, Menu } from 'antd';
+import { Layout, Menu, Drawer, Grid } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   DashboardOutlined,
   CalendarOutlined,
+  SafetyCertificateOutlined,
   FileTextOutlined,
   BellOutlined,
   BarChartOutlined,
-  TeamOutlined,
   ApartmentOutlined,
+  TeamOutlined,
   SettingOutlined,
-  SafetyCertificateOutlined,
 } from '@ant-design/icons';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { useOrgTheme } from '../../contexts';
 
 const { Sider } = Layout;
+const { useBreakpoint } = Grid;
 
 type MenuItem = Required<MenuProps>['items'][number];
 
@@ -79,29 +80,42 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { orgId } = useParams<{ orgId: string }>();
   const { theme, logoSidebar, logoSmall, currentOrg } = useOrgTheme();
+  const screens = useBreakpoint();
+  const isMobile = !screens.md; // md breakpoint = 768px
 
   const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
-    navigate(key);
+    // Navigate with orgId prefix
+    if (orgId) {
+      navigate(`/${orgId}${key}`);
+    }
   };
 
   // Find the selected key based on current path
   const getSelectedKeys = () => {
     const path = location.pathname;
-    // For nested routes, find the matching menu item
-    if (path === '/') return ['/'];
+    // Remove orgId prefix to match menu keys
+    const segments = path.split('/').filter(Boolean);
+    if (segments.length === 0) return ['/'];
     
-    // Check for exact match first
-    const exactMatch = menuItems.find(item => item && 'key' in item && item.key === path);
-    if (exactMatch) return [path];
+    // Skip first segment (orgId) and reconstruct path
+    if (segments.length === 1) return ['/'];
+    const menuPath = `/${segments.slice(1).join('/')}`;
+    
+    // Dashboard is special case
+    if (segments[1] === 'dashboard') return ['/'];
+    
+    // Check for exact match
+    const exactMatch = menuItems.find(item => item && 'key' in item && item.key === menuPath);
+    if (exactMatch) return [menuPath];
     
     // Check for parent match (e.g., /users/123 should highlight /users)
-    const segments = path.split('/').filter(Boolean);
-    if (segments.length > 0) {
-      return [`/${segments[0]}`];
+    if (segments.length > 2) {
+      return [`/${segments[1]}`];
     }
     
-    return ['/'];
+    return [menuPath];
   };
 
   // Find open keys for submenus
@@ -114,6 +128,79 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
     return [];
   };
 
+  // Shared menu content component
+  const menuContent = (
+    <>
+      {/* Logo Area */}
+      <div
+        style={{
+          height: collapsed && !isMobile ? 80 : 160,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '26px',
+          background: 'rgba(0, 0, 0, 0.2)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          transition: 'height 0.2s',
+        }}
+      >
+        {collapsed && !isMobile ? (
+          <img 
+            src={logoSmall} 
+            alt={currentOrg.shortName}
+            style={{ height: 40, width: 'auto', objectFit: 'contain' }}
+          />
+        ) : (
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <img 
+              src={logoSidebar} 
+              alt={currentOrg.shortName}
+              style={{ height: '100%', width: '100%', objectFit: 'contain' }}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Menu */}
+      <Menu
+        theme="dark"
+        mode="inline"
+        selectedKeys={getSelectedKeys()}
+        defaultOpenKeys={collapsed && !isMobile ? [] : getOpenKeys()}
+        items={menuItems}
+        onClick={handleMenuClick}
+        style={{
+          background: 'transparent',
+          borderRight: 0,
+          marginTop: 8,
+        }}
+      />
+    </>
+  );
+
+  // Mobile: Use Drawer
+  if (isMobile) {
+    return (
+      <Drawer
+        placement="left"
+        onClose={() => onCollapse(true)}
+        open={!collapsed}
+        closable={false}
+        width={250}
+        styles={{
+          body: {
+            padding: 0,
+            background: theme.sidebarBgGradient || theme.sidebarBg,
+          },
+        }}
+      >
+        {menuContent}
+      </Drawer>
+    );
+  }
+
+  // Desktop: Use Sider
   return (
     <Sider
       collapsible
@@ -132,66 +219,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
       }}
       theme="dark"
     >
-      {/* Logo Area */}
-      <div
-        style={{
-          height: collapsed ? 80 : 180,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '16px',
-          background: 'rgba(0, 0, 0, 0.2)',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-          transition: 'height 0.2s',
-        }}
-      >
-        {collapsed ? (
-          <img 
-            src={logoSmall} 
-            alt={currentOrg.shortName}
-            style={{ height: 40, width: 'auto', objectFit: 'contain' }}
-          />
-        ) : (
-          <>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <img 
-                src={logoSidebar} 
-                alt={currentOrg.shortName}
-                style={{ maxHeight: 60, width: 'auto', objectFit: 'contain' }}
-              />
-            </div>
-            <div
-              style={{
-                marginTop: 12,
-                paddingTop: 8,
-                borderTop: '1px solid rgba(255, 255, 255, 0.15)',
-                width: '100%',
-                textAlign: 'center',
-              }}
-            >
-              <span style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: 13, fontWeight: 500, letterSpacing: 1 }}>
-                eBOARD
-              </span>
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Menu */}
-      <Menu
-        theme="dark"
-        mode="inline"
-        selectedKeys={getSelectedKeys()}
-        defaultOpenKeys={collapsed ? [] : getOpenKeys()}
-        items={menuItems}
-        onClick={handleMenuClick}
-        style={{
-          background: 'transparent',
-          borderRight: 0,
-          marginTop: 8,
-        }}
-      />
+      {menuContent}
     </Sider>
   );
 };

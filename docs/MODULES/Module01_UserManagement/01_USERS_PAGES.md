@@ -205,10 +205,10 @@ interface UsersIndexState {
 
 ## 2. Create User Wizard
 
-**Route**: `/users/create`  
-**Access**: System Admin  
+**Route**: `/users/create`
+**Access**: System Admin
 **Purpose**: Create new user account using multi-step wizard
-**UI Pattern**: Multi-Step Wizard (5 steps)
+**UI Pattern**: Multi-Step Wizard (5 steps) - **Vertical Layout**
 
 ### 2.1 Wizard Overview
 
@@ -222,33 +222,38 @@ interface UsersIndexState {
 │            │  CREATE NEW USER                                               │
 │            │  ───────────────────────────────────────────────────────────   │
 │            │                                                                │
-│            │  ┌─────────────────────────────────────────────────────────┐  │
-│            │  │  ● Basic Info  ○ Role  ○ Boards  ○ Security  ○ Review  │  │
-│            │  │  ════════════════════════════════════════════════════   │  │
-│            │  │  Step 1 of 5                                            │  │
-│            │  └─────────────────────────────────────────────────────────┘  │
-│            │                                                                │
-│            │  ┌─ BASIC INFORMATION ─────────────────────────────────────┐  │
-│            │  │                                                         │  │
-│            │  │  Full Name *                                            │  │
-│            │  │  [_________________________________________________]   │  │
-│            │  │                                                         │  │
-│            │  │  Email Address *                                        │  │
-│            │  │  [_________________________________________________]   │  │
-│            │  │  ✓ Email is available                                   │  │
-│            │  │                                                         │  │
-│            │  │  Phone Number                                           │  │
-│            │  │  [_________________________________________________]   │  │
-│            │  │                                                         │  │
-│            │  │  Employee ID                                            │  │
-│            │  │  [_________________________________________________]   │  │
-│            │  │                                                         │  │
-│            │  └─────────────────────────────────────────────────────────┘  │
-│            │                                                                │
-│            │                                    [Cancel]  [Next →]         │
+│            │  ┌───────────────┬─────────────────────────────────────────┐  │
+│            │  │               │                                         │  │
+│            │  │  STEPS        │  BASIC INFORMATION                      │  │
+│            │  │  ───────────  │  ─────────────────────────────────────  │  │
+│            │  │               │                                         │  │
+│            │  │  ● Basic Info │  Full Name *                            │  │
+│            │  │               │  [_____________________________________]│  │
+│            │  │  ○ Role       │                                         │  │
+│            │  │               │  Email Address *                        │  │
+│            │  │  ○ Boards     │  [_____________________________________]│  │
+│            │  │               │  ✓ Email is available                   │  │
+│            │  │  ○ Security   │                                         │  │
+│            │  │               │  Phone Number                           │  │
+│            │  │  ○ Review     │  [_____________________________________]│  │
+│            │  │               │                                         │  │
+│            │  │               │  Employee ID                            │  │
+│            │  │               │  [_____________________________________]│  │
+│            │  │               │                                         │  │
+│            │  │               │                                         │  │
+│            │  │               │                  [Cancel]  [Next →]     │  │
+│            │  │               │                                         │  │
+│            │  └───────────────┴─────────────────────────────────────────┘  │
 │            │                                                                │
 └────────────┴────────────────────────────────────────────────────────────────┘
 ```
+
+**Vertical Steps Sidebar:**
+- Steps displayed vertically on the left side
+- Current step highlighted with filled circle (●)
+- Completed steps show checkmark (✓)
+- Future steps show empty circle (○)
+- Clicking completed steps navigates back to that step
 
 ### 2.2 Step 1: Basic Information (Always Visible)
 
@@ -480,7 +485,7 @@ const wizardSteps = [
 
 | Component | Ant Design | Purpose |
 |-----------|------------|---------|
-| Steps Indicator | `Steps` | Show wizard progress |
+| Steps Indicator | `Steps` direction="vertical" | Show wizard progress (vertical sidebar) |
 | Step Content | `Card` | Current step content |
 | Back Link | `Button` type="link" | Navigate back to list |
 | Form | `Form` | Form container |
@@ -729,12 +734,19 @@ interface UserDetailsState {
 │  • Audit Committee                                              │
 │  • HR Committee                                                 │
 │                                                                 │
-│  Removing from KTDA Main Board will also remove from these      │
-│  committees.                                                    │
+│  What would you like to do?                                     │
 │                                                                 │
-│                    [Cancel]  [Remove from All]                  │
+│  ───────────────────────────────────────────────────────────    │
+│                                                                 │
+│  [Cancel]  [Remove from Board Only]  [Remove from All]          │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+**Button Actions:**
+- **Cancel**: Close modal, no changes
+- **Remove from Board Only**: Remove from parent board, keep committee memberships (note: this may cause data inconsistency warnings)
+- **Remove from All**: Remove from parent board AND all child committees (recommended)
 
 ### 3.7 Edit Role Popover
 
@@ -876,8 +888,8 @@ interface EditUserForm {
 
 ## 5. Roles & Permissions Page
 
-**Route**: `/users/roles`  
-**Access**: System Admin  
+**Route**: `/admin/roles`
+**Access**: System Admin
 **Purpose**: View and manage system roles
 
 ### 5.1 Page Layout
@@ -976,8 +988,8 @@ When clicking "View" on any role:
 
 ## 6. Create/Edit Role Page
 
-**Route**: `/users/roles/create` or `/users/roles/:id/edit`  
-**Access**: System Admin  
+**Route**: `/admin/roles/create` or `/admin/roles/:id/edit`
+**Access**: System Admin
 **Purpose**: Create or edit custom roles
 
 ### 6.1 Page Layout
@@ -1418,9 +1430,9 @@ const permissionGroups = {
 
 ## 11. MFA Setup Wizard
 
-**Route**: `/auth/mfa-setup`  
-**Access**: After first login (if MFA required)  
-**UI Pattern**: Setup Wizard (3 steps)
+**Route**: `/auth/mfa-setup`
+**Access**: After first login (if MFA required)
+**UI Pattern**: Setup Wizard (3 steps) - **Vertical Layout**
 
 ### 11.1 Step 1: Scan QR Code
 
@@ -1431,35 +1443,45 @@ const permissionGroups = {
 │                                                                 │
 │              Set Up Two-Factor Authentication                   │
 │                                                                 │
-│              ● Scan  ○ Verify  ○ Backup Codes                   │
-│              ═══════════════════════════════                    │
-│                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐   │
 │  │                                                         │   │
-│  │  1. Download an authenticator app:                      │   │
-│  │     • Google Authenticator                              │   │
-│  │     • Microsoft Authenticator                           │   │
-│  │     • Authy                                             │   │
-│  │                                                         │   │
-│  │  2. Scan this QR code with your app:                    │   │
-│  │                                                         │   │
-│  │              ┌─────────────────┐                        │   │
-│  │              │                 │                        │   │
-│  │              │    [QR CODE]    │                        │   │
-│  │              │                 │                        │   │
-│  │              └─────────────────┘                        │   │
-│  │                                                         │   │
-│  │  Can't scan? Enter this code manually:                  │   │
-│  │  ┌─────────────────────────────────────────────────┐   │   │
-│  │  │  ABCD-EFGH-IJKL-MNOP                   [Copy]   │   │   │
-│  │  └─────────────────────────────────────────────────┘   │   │
-│  │                                                         │   │
-│  │                                          [Next →]       │   │
+│  │  ┌─────────────┬───────────────────────────────────┐   │   │
+│  │  │             │                                   │   │   │
+│  │  │  STEPS      │  SCAN QR CODE                     │   │   │
+│  │  │  ─────────  │  ─────────────────────────────    │   │   │
+│  │  │             │                                   │   │   │
+│  │  │  ● Scan     │  1. Download an authenticator app:│   │   │
+│  │  │             │     • Google Authenticator        │   │   │
+│  │  │  ○ Verify   │     • Microsoft Authenticator     │   │   │
+│  │  │             │     • Authy                       │   │   │
+│  │  │  ○ Backup   │                                   │   │   │
+│  │  │    Codes    │  2. Scan this QR code:            │   │   │
+│  │  │             │                                   │   │   │
+│  │  │             │      ┌─────────────────┐          │   │   │
+│  │  │             │      │                 │          │   │   │
+│  │  │             │      │    [QR CODE]    │          │   │   │
+│  │  │             │      │                 │          │   │   │
+│  │  │             │      └─────────────────┘          │   │   │
+│  │  │             │                                   │   │   │
+│  │  │             │  Can't scan? Enter manually:      │   │   │
+│  │  │             │  ┌─────────────────────────────┐  │   │   │
+│  │  │             │  │ ABCD-EFGH-IJKL-MNOP [Copy] │  │   │   │
+│  │  │             │  └─────────────────────────────┘  │   │   │
+│  │  │             │                                   │   │   │
+│  │  │             │                       [Next →]    │   │   │
+│  │  │             │                                   │   │   │
+│  │  └─────────────┴───────────────────────────────────┘   │   │
 │  │                                                         │   │
 │  └─────────────────────────────────────────────────────────┘   │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+**Vertical Steps Sidebar:**
+- Steps displayed vertically on the left side
+- Current step highlighted with filled circle (●)
+- Completed steps show checkmark (✓)
+- Future steps show empty circle (○)
 
 ### 11.2 Step 2: Verify Code
 
@@ -1470,17 +1492,24 @@ const permissionGroups = {
 │                                                                 │
 │              Set Up Two-Factor Authentication                   │
 │                                                                 │
-│              ✓ Scan  ● Verify  ○ Backup Codes                   │
-│              ═══════════════════════════════                    │
-│                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐   │
 │  │                                                         │   │
-│  │  Enter the 6-digit code from your authenticator app     │   │
-│  │  to verify setup:                                       │   │
-│  │                                                         │   │
-│  │           [_] [_] [_] [_] [_] [_]                       │   │
-│  │                                                         │   │
-│  │                              [← Back]  [Verify]         │   │
+│  │  ┌─────────────┬───────────────────────────────────┐   │   │
+│  │  │             │                                   │   │   │
+│  │  │  STEPS      │  VERIFY CODE                      │   │   │
+│  │  │  ─────────  │  ─────────────────────────────    │   │   │
+│  │  │             │                                   │   │   │
+│  │  │  ✓ Scan     │  Enter the 6-digit code from      │   │   │
+│  │  │             │  your authenticator app:          │   │   │
+│  │  │  ● Verify   │                                   │   │   │
+│  │  │             │                                   │   │   │
+│  │  │  ○ Backup   │     [_] [_] [_] [_] [_] [_]       │   │   │
+│  │  │    Codes    │                                   │   │   │
+│  │  │             │                                   │   │   │
+│  │  │             │                                   │   │   │
+│  │  │             │              [← Back]  [Verify]   │   │   │
+│  │  │             │                                   │   │   │
+│  │  └─────────────┴───────────────────────────────────┘   │   │
 │  │                                                         │   │
 │  └─────────────────────────────────────────────────────────┘   │
 │                                                                 │
@@ -1496,28 +1525,32 @@ const permissionGroups = {
 │                                                                 │
 │              Set Up Two-Factor Authentication                   │
 │                                                                 │
-│              ✓ Scan  ✓ Verify  ● Backup Codes                   │
-│              ═══════════════════════════════                    │
-│                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐   │
 │  │                                                         │   │
-│  │  Save these backup codes in a safe place.               │   │
-│  │  You can use them if you lose access to your app.       │   │
-│  │                                                         │   │
-│  │  ┌─────────────────────────────────────────────────┐   │   │
-│  │  │  1. XXXX-XXXX-XXXX    6. XXXX-XXXX-XXXX        │   │   │
-│  │  │  2. XXXX-XXXX-XXXX    7. XXXX-XXXX-XXXX        │   │   │
-│  │  │  3. XXXX-XXXX-XXXX    8. XXXX-XXXX-XXXX        │   │   │
-│  │  │  4. XXXX-XXXX-XXXX    9. XXXX-XXXX-XXXX        │   │   │
-│  │  │  5. XXXX-XXXX-XXXX   10. XXXX-XXXX-XXXX        │   │   │
-│  │  └─────────────────────────────────────────────────┘   │   │
-│  │                                                         │   │
-│  │  [📥 Download]  [📋 Copy All]                          │   │
-│  │                                                         │   │
-│  │  ☐ I have saved these backup codes                      │   │
-│  │                                                         │   │
-│  │                                    [Complete Setup]     │   │
-│  │                                    (disabled until ☑)   │   │
+│  │  ┌─────────────┬───────────────────────────────────┐   │   │
+│  │  │             │                                   │   │   │
+│  │  │  STEPS      │  SAVE BACKUP CODES                │   │   │
+│  │  │  ─────────  │  ─────────────────────────────    │   │   │
+│  │  │             │                                   │   │   │
+│  │  │  ✓ Scan     │  Save these codes in a safe place.│   │   │
+│  │  │             │  Use them if you lose your app.   │   │   │
+│  │  │  ✓ Verify   │                                   │   │   │
+│  │  │             │  ┌─────────────────────────────┐  │   │   │
+│  │  │  ● Backup   │  │ 1. XXXX-XXXX  6. XXXX-XXXX │  │   │   │
+│  │  │    Codes    │  │ 2. XXXX-XXXX  7. XXXX-XXXX │  │   │   │
+│  │  │             │  │ 3. XXXX-XXXX  8. XXXX-XXXX │  │   │   │
+│  │  │             │  │ 4. XXXX-XXXX  9. XXXX-XXXX │  │   │   │
+│  │  │             │  │ 5. XXXX-XXXX 10. XXXX-XXXX │  │   │   │
+│  │  │             │  └─────────────────────────────┘  │   │   │
+│  │  │             │                                   │   │   │
+│  │  │             │  [📥 Download]  [📋 Copy All]     │   │   │
+│  │  │             │                                   │   │   │
+│  │  │             │  ☐ I have saved these codes       │   │   │
+│  │  │             │                                   │   │   │
+│  │  │             │              [Complete Setup]     │   │   │
+│  │  │             │              (disabled until ☑)   │   │   │
+│  │  │             │                                   │   │   │
+│  │  └─────────────┴───────────────────────────────────┘   │   │
 │  │                                                         │   │
 │  └─────────────────────────────────────────────────────────┘   │
 │                                                                 │
@@ -1528,7 +1561,7 @@ const permissionGroups = {
 
 | Component | Ant Design | Purpose |
 |-----------|------------|---------|
-| Steps | `Steps` | Progress indicator |
+| Steps | `Steps` direction="vertical" | Progress indicator (vertical sidebar) |
 | QR Code | `QRCode` (antd v5) | Authenticator setup |
 | Manual Key | `Typography.Text` copyable | Alternative to QR |
 | Code Input | Custom (6 inputs) | Verification code |
@@ -1689,24 +1722,24 @@ src/
 | Page | Route | UI Pattern | Access |
 |------|-------|------------|--------|
 | Users Index | `/users` | Index/List with bulk actions | Admin, Secretary |
-| Create User Wizard | `/users/create` | **Multi-Step Wizard (5 steps)** | Admin |
+| Create User Wizard | `/users/create` | **Multi-Step Wizard (5 steps) - Vertical** | Admin |
 | User Details | `/users/:id` | Detail Page with Tabs | Admin, Secretary, Self |
 | Edit User | `/users/:id/edit` | Form Page | Admin |
-| Roles Index | `/users/roles` | Index with Modal Details | Admin |
-| Create Role | `/users/roles/create` | Form with Accordion | Admin |
-| Edit Role | `/users/roles/:id/edit` | Form with Impact Preview | Admin |
+| Roles Index | `/admin/roles` | Index with Modal Details | Admin |
+| Create Role | `/admin/roles/create` | Form with Accordion | Admin |
+| Edit Role | `/admin/roles/:id/edit` | Form with Impact Preview | Admin |
 | Login | `/auth/login` | Auth Flow (1-2 steps) | Public |
 | Change Password | `/auth/change-password` | Auth Flow (forced) | First login |
 | MFA Verify | `/auth/mfa` | Auth Flow (step 2) | After login |
 | Forgot Password | `/auth/forgot-password` | Auth Flow (step 1) | Public |
 | Reset Password | `/auth/reset-password/:token` | Auth Flow (step 3) | Public |
-| MFA Setup | `/auth/mfa-setup` | **Setup Wizard (3 steps)** | First login |
+| MFA Setup | `/auth/mfa-setup` | **Setup Wizard (3 steps) - Vertical** | First login |
 
 ### Key UI Patterns Used
 
 | Pattern | Pages | Description |
 |---------|-------|-------------|
-| Multi-Step Wizard | Create User, MFA Setup | Step indicator, Previous/Next, Review step |
+| Multi-Step Wizard (Vertical) | Create User, MFA Setup | Vertical step sidebar on left, content on right, Previous/Next, Review step |
 | Index/List Page | Users Index, Roles Index | Table, filters, bulk actions |
 | Detail Page with Tabs | User Details | Header card, tabbed content |
 | Modal Form | Add to Board, Upload Certificate | Centered modal with form |

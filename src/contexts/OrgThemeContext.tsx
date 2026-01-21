@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, useMemo, useCallback, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type { ThemeConfig } from 'antd';
 import type { Organization, OrgThemeConfig, Committee } from '../data/organizations';
 import { defaultOrganization, getOrganizationById } from '../data/organizations';
@@ -9,8 +10,8 @@ interface OrgThemeContextValue {
   setCurrentOrg: (orgId: string) => void;
   
   // Current committee (if any)
-  activeCommittee: string | null; // 'board' or committee id
-  setActiveCommittee: (committeeId: string | null) => void;
+  activeCommittee: string; // 'all' | 'board' | committee id
+  setActiveCommittee: (committeeId: string) => void;
   
   // Theme values
   theme: OrgThemeConfig;
@@ -33,17 +34,38 @@ interface OrgThemeProviderProps {
 }
 
 export const OrgThemeProvider: React.FC<OrgThemeProviderProps> = ({ children }) => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [currentOrg, setCurrentOrgState] = useState<Organization>(defaultOrganization);
-  const [activeCommittee, setActiveCommittee] = useState<string | null>('board');
+  const [activeCommittee, setActiveCommitteeState] = useState<string>('all');
+
+  // Sync activeCommittee with URL query parameter
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const committee = params.get('committee') || 'all';
+    setActiveCommitteeState(committee);
+  }, [location.search]);
 
   const setCurrentOrg = useCallback((orgId: string) => {
     const org = getOrganizationById(orgId);
     if (org) {
       setCurrentOrgState(org);
-      // Reset to 'board' tab when switching organizations
-      setActiveCommittee(org.committees?.length ? 'board' : null);
     }
   }, []);
+
+  // Helper function to change committee and update URL
+  const setActiveCommittee = useCallback((committeeId: string) => {
+    const params = new URLSearchParams(location.search);
+    
+    if (committeeId === 'all') {
+      params.delete('committee'); // Remove param for default 'all'
+    } else {
+      params.set('committee', committeeId);
+    }
+    
+    const newSearch = params.toString();
+    navigate(`${location.pathname}${newSearch ? `?${newSearch}` : ''}`, { replace: true });
+  }, [location.pathname, location.search, navigate]);
 
   const theme = currentOrg.theme;
 
@@ -88,7 +110,7 @@ export const OrgThemeProvider: React.FC<OrgThemeProviderProps> = ({ children }) 
       
       // Typography
       borderRadius: 4,
-      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+      fontFamily: "'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     },
     components: {
       Layout: {
@@ -152,7 +174,7 @@ export const OrgThemeProvider: React.FC<OrgThemeProviderProps> = ({ children }) 
   const committees = currentOrg.committees || [];
   const hasCommittees = committees.length > 0;
 
-  const value: OrgThemeContextValue = {
+  const value: OrgThemeContextValue = useMemo(() => ({
     currentOrg,
     setCurrentOrg,
     activeCommittee,
@@ -164,7 +186,7 @@ export const OrgThemeProvider: React.FC<OrgThemeProviderProps> = ({ children }) 
     logoSmall,
     committees,
     hasCommittees,
-  };
+  }), [currentOrg, setCurrentOrg, activeCommittee, setActiveCommittee, theme, antdTheme, logo, logoSidebar, logoSmall, committees, hasCommittees]);
 
   return (
     <OrgThemeContext.Provider value={value}>

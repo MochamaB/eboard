@@ -1,4 +1,5 @@
 import { Row, Col, Card, List, Avatar, Tag, Typography, Space, Button } from 'antd';
+import { useParams, useSearchParams } from 'react-router-dom';
 import {
   CalendarOutlined,
   FileTextOutlined,
@@ -10,6 +11,7 @@ import {
   VideoCameraOutlined,
   EnvironmentOutlined,
 } from '@ant-design/icons';
+import { useOrgTheme } from '../../contexts';
 import { colors } from '../../theme';
 
 const { Title, Text } = Typography;
@@ -177,6 +179,24 @@ const getDateColor = (date: string) => {
 };
 
 export const Dashboard: React.FC = () => {
+  const { orgId } = useParams<{ orgId: string }>();
+  const [searchParams] = useSearchParams();
+  const { currentOrg, activeCommittee } = useOrgTheme();
+
+  const committee = searchParams.get('committee') || 'all';
+
+  // TODO: When API integration is added, filter all data by orgId and committee
+  // if (committee === 'all') { /* Fetch board + all committees data */ }
+  // else if (committee === 'board') { /* Fetch only main board data */ }
+  // else { /* Fetch specific committee data by committeeId */ }
+
+  const getCommitteeLabel = () => {
+    if (committee === 'all') return 'All';
+    if (committee === 'board') return currentOrg.shortName;
+    const comm = currentOrg.committees?.find(c => c.id === committee);
+    return comm?.shortName || 'Committee';
+  };
+
   return (
     <div>
       {/* Welcome Header */}
@@ -185,7 +205,10 @@ export const Dashboard: React.FC = () => {
           <Title level={4} style={{ marginBottom: 4 }}>
             Welcome back, John Kamau
           </Title>
-          <Text type="secondary">Last login: Today at 9:30 AM</Text>
+          <Text type="secondary">
+            Last login: Today at 9:30 AM • Viewing {currentOrg.shortName}
+            {committee !== 'all' && ` › ${getCommitteeLabel()}`}
+          </Text>
         </Col>
         <Col>
           <Text type="secondary">Jan 16, 2026</Text>
