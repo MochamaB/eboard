@@ -3,6 +3,7 @@ import { RootLayout } from '../layouts/RootLayout';
 import { AppLayout } from '../layouts/AppLayout';
 import { AuthLayout } from '../layouts/AuthLayout';
 import { Dashboard } from '../pages/Dashboard';
+import { UsersIndexPage } from '../pages/Users';
 
 // Placeholder components for routes
 const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
@@ -32,8 +33,9 @@ const MeetingReportsPage = () => <PlaceholderPage title="Meeting Reports" />;
 const AttendanceReportsPage = () => <PlaceholderPage title="Attendance Reports" />;
 const ComplianceReportsPage = () => <PlaceholderPage title="Compliance Reports" />;
 
-const UsersPage = () => <PlaceholderPage title="Users" />;
 const RolesPage = () => <PlaceholderPage title="Roles & Permissions" />;
+const CreateUserPage = () => <PlaceholderPage title="Create User" />;
+const UserDetailPage = () => <PlaceholderPage title="User Details" />;
 
 const BoardsPage = () => <PlaceholderPage title="Boards" />;
 const CommitteesPage = () => <PlaceholderPage title="Committees" />;
@@ -131,7 +133,19 @@ export const router = createBrowserRouter([
       // Users
       {
         path: 'users',
-        element: <UsersPage />,
+        element: <UsersIndexPage />,
+      },
+      {
+        path: 'users/create',
+        element: <CreateUserPage />,
+      },
+      {
+        path: 'users/:id',
+        element: <UserDetailPage />,
+      },
+      {
+        path: 'users/:id/edit',
+        element: <UserDetailPage />,
       },
       {
         path: 'users/roles',

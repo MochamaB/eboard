@@ -1,6 +1,18 @@
 import { ConfigProvider } from 'antd';
 import { Outlet } from 'react-router-dom';
-import { OrgThemeProvider, useOrgTheme } from '../contexts';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { OrgThemeProvider, useOrgTheme, AuthProvider } from '../contexts';
+
+// Create React Query client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 // Inner component that uses the theme context
 const ThemedRoot: React.FC = () => {
@@ -8,7 +20,9 @@ const ThemedRoot: React.FC = () => {
   
   return (
     <ConfigProvider theme={antdTheme}>
-      <Outlet />
+      <AuthProvider>
+        <Outlet />
+      </AuthProvider>
     </ConfigProvider>
   );
 };
@@ -16,9 +30,11 @@ const ThemedRoot: React.FC = () => {
 // Root layout that provides OrgThemeContext (must be inside Router)
 export const RootLayout: React.FC = () => {
   return (
-    <OrgThemeProvider>
-      <ThemedRoot />
-    </OrgThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <OrgThemeProvider>
+        <ThemedRoot />
+      </OrgThemeProvider>
+    </QueryClientProvider>
   );
 };
 

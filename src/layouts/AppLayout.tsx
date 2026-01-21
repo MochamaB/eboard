@@ -4,7 +4,6 @@ import { Outlet, useParams, useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header/Header';
 import { Sidebar } from '../components/Sidebar/Sidebar';
 import { NavigationBar } from '../components/NavigationBar';
-import { colors } from '../theme';
 import { useOrgTheme } from '../contexts';
 import { getOrganizationById } from '../data/organizations';
 
@@ -67,8 +66,7 @@ export const AppLayout: React.FC = () => {
             margin: isMobile ? '16px' : '24px',
             padding: isMobile ? '16px' : '24px',
             minHeight: 280,
-            background: colors.white,
-            borderRadius: 8,
+            background: 'transparent',
           }}
         >
           <Outlet />

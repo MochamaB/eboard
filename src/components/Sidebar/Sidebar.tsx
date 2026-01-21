@@ -13,6 +13,7 @@ import {
 } from '@ant-design/icons';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { useOrgTheme } from '../../contexts';
+import './Sidebar.css';
 
 const { Sider } = Layout;
 const { useBreakpoint } = Grid;
@@ -81,7 +82,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { orgId } = useParams<{ orgId: string }>();
-  const { theme, logoSidebar, logoSmall, currentOrg } = useOrgTheme();
+  const { theme, currentOrg } = useOrgTheme();
   const screens = useBreakpoint();
   const isMobile = !screens.md; // md breakpoint = 768px
 
@@ -134,29 +135,58 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
       {/* Logo Area */}
       <div
         style={{
-          height: collapsed && !isMobile ? 80 : 160,
+          height: collapsed && !isMobile ? 96 : 160,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '26px',
+          padding: '20px',
           background: 'rgba(0, 0, 0, 0.2)',
           borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
           transition: 'height 0.2s',
         }}
       >
         {collapsed && !isMobile ? (
-          <img 
-            src={logoSmall} 
-            alt={currentOrg.shortName}
-            style={{ height: 40, width: 'auto', objectFit: 'contain' }}
-          />
-        ) : (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <img 
-              src={logoSidebar} 
+          <div
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: '50%',
+              background: '#fff',
+              border: `3px solid ${theme.primaryColor}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            }}
+          >
+            <img
+              src={currentOrg.logo.small || currentOrg.logo.main}
               alt={currentOrg.shortName}
-              style={{ height: '100%', width: '100%', objectFit: 'contain' }}
+              style={{ width: 36, height: 36, objectFit: 'contain' }}
+            />
+          </div>
+        ) : (
+          <div
+            style={{
+              width: 120,
+              height: 120,
+              borderRadius: '50%',
+              background: '#fff',
+              border: `4px solid ${theme.primaryColor}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+              margin: '0 auto',
+            }}
+          >
+            <img
+              src={currentOrg.logo.small || currentOrg.logo.main}
+              alt={currentOrg.shortName}
+              style={{ width: 80, height: 80, objectFit: 'contain' }}
             />
           </div>
         )}
@@ -203,11 +233,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
   // Desktop: Use Sider
   return (
     <Sider
-      collapsible
       collapsed={collapsed}
-      onCollapse={onCollapse}
       width={250}
       collapsedWidth={80}
+      trigger={null}
+      className="sidebar-container"
       style={{
         overflow: 'auto',
         height: '100vh',
@@ -216,6 +246,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
         top: 0,
         bottom: 0,
         background: theme.sidebarBgGradient || theme.sidebarBg,
+        // CSS variables for dynamic primary color
+        ['--sidebar-primary-color' as string]: theme.primaryColor,
+        ['--sidebar-primary-color-hover' as string]: theme.primaryHover || theme.primaryColor,
       }}
       theme="dark"
     >

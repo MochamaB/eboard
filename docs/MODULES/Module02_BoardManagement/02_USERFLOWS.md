@@ -86,12 +86,30 @@
 - Compliance calculated from meeting frequency
 - Default sort: Type (Main → Subsidiaries → Factories)
 
+### UI Pattern
+
+- **Page Type**: Index/List Page
+- **Layout**: Full page with sidebar
+- **Components**:
+  - Filter tabs (segmented control): All, Main Board, Subsidiaries, Factories, Committees
+  - Search bar with instant filter
+  - Zone dropdown filter (for factories)
+  - Data table with expandable rows (committees nested under boards)
+  - Pagination (20 per page default)
+- **Interactions**:
+  - Row click → Navigate to Board Details
+  - Expand icon → Show/hide child committees
+  - Tab click → Filter table data
+  - "+ New Board" → Navigate to Create Board page
+- **Empty State**: Illustration + "No boards match your filters" message
+- **Loading**: Skeleton table rows
+
 ---
 
 ## Flow 2: Create New Board
 
 **Actor**: System Admin  
-**Flow**: Board List → Create Form → Configure Settings → Save
+**Flow**: Board List → Create Form → Board type -> Board Information -> Configure Settings → Save
 
 ### Steps
 
@@ -127,12 +145,51 @@
 - Factory boards must have Zone assigned
 - Default quorum: Main 50%, Subsidiary 60%, Factory 60%
 
+### UI Pattern
+
+- **Page Type**: Multi-Step Wizard (3 steps) - **Vertical Layout**
+- **Layout**: Full page with sidebar, steps on left (30%), content on right (70%)
+- **Steps**:
+  1. **Board Type** - Select Main/Subsidiary/Factory (radio cards)
+  2. **Board Information** - Name, Parent, Zone, Description, Status
+  3. **Settings** - Quorum, Meeting frequency, Voting threshold, Confirmation settings
+- **Navigation**:
+  - Previous/Next buttons at bottom
+  - Step indicator clickable for completed steps
+  - Cancel returns to list with confirmation
+- **Validation**: Per-step validation before Next
+- **Success**:
+  - Toast: "Board created successfully"
+  - Redirect to Board Details page
+- **Error**: Inline field errors, toast for API errors
+
+```
+┌───────────────┬─────────────────────────────────────────┐
+│  STEPS        │  BOARD INFORMATION                      │
+│  ───────────  │  ─────────────────────────────────────  │
+│               │                                         │
+│  ✓ Board Type │  Board Name *                           │
+│               │  [_____________________________________] │
+│  ● Information│                                         │
+│               │  Parent Board                           │
+│  ○ Settings   │  [KTDA Main Board (auto-set)        ▼] │
+│               │                                         │
+│               │  Zone * (for Factory only)              │
+│               │  [Select Zone                        ▼] │
+│               │                                         │
+│               │  Description                            │
+│               │  [_____________________________________] │
+│               │                                         │
+│               │                  [← Back]  [Next →]     │
+└───────────────┴─────────────────────────────────────────┘
+```
+
 ---
 
 ## Flow 3: Create New Committee
 
 **Actor**: System Admin  
-**Flow**: Board Details → Add Committee → Select Members → Save
+**Flow**: Board Details → Add Committee → Commiittee Information -> Committee settings ->  Select Members → Save
 
 ### Steps
 
@@ -171,6 +228,49 @@
 - Committee appears as tab when parent board selected in Organization Selector
 - One Committee Chairman per committee
 
+### UI Pattern
+
+- **Page Type**: Multi-Step Wizard (4 steps) - **Vertical Layout**
+- **Layout**: Full page with sidebar, steps on left (30%), content on right (70%)
+- **Steps**:
+  1. **Committee Information** - Name, Parent Board (read-only), Description, Status
+  2. **Settings** - Quorum, Meeting frequency, Voting threshold, Confirmation settings
+  3. **Members** - Select from parent board members, assign roles
+  4. **Review** - Summary of all entered data
+- **Navigation**:
+  - Previous/Next buttons at bottom
+  - Step indicator clickable for completed steps
+  - Cancel returns to parent board with confirmation
+- **Validation**: Per-step validation before Next
+- **Success**:
+  - Toast: "Committee created successfully"
+  - Redirect to parent board's Committees tab
+- **Error**: Inline field errors, toast for API errors
+
+```
+┌───────────────┬─────────────────────────────────────────┐
+│  STEPS        │  SELECT MEMBERS                         │
+│  ───────────  │  ─────────────────────────────────────  │
+│               │                                         │
+│  ✓ Information│  Add members from KTDA Main Board:      │
+│               │                                         │
+│  ✓ Settings   │  [🔍 Search members...]                 │
+│               │                                         │
+│  ● Members    │  Selected (3):                          │
+│               │  ┌─────────────────────────────────────┐│
+│  ○ Review     │  │ [👤] John Kamau      [Chairman ▼] ×││
+│               │  │ [👤] Mary Wanjiku    [Secretary ▼] ×││
+│               │  │ [👤] Peter Ochieng   [Member ▼]    ×││
+│               │  └─────────────────────────────────────┘│
+│               │                                         │
+│               │  Available (12 more):                   │
+│               │  ☐ [👤] Jane Muthoni - Board Member     │
+│               │  ☐ [👤] James Mwangi - Board Member     │
+│               │                                         │
+│               │                  [← Back]  [Next →]     │
+└───────────────┴─────────────────────────────────────────┘
+```
+
 ---
 
 ## Flow 4: Edit Board/Committee Settings
@@ -182,15 +282,16 @@
 
 1. Navigate to Board/Committee detail page
 2. Click "Settings" tab or "Edit" button
-3. Modify allowed fields:
+3. The information is in tab fields for General details/Info,Settings, and memebers
+4. Modify allowed fields:
    - Name, Description, Status
    - Quorum percentage
    - Meeting frequency
    - Voting threshold
    - Confirmation settings
-4. Click "Save Changes"
-5. Success message displayed
-6. Changes take effect immediately
+5. Click "Save Changes"
+6. Success message displayed
+7. Changes take effect immediately
 
 ### Error Flows
 
@@ -203,6 +304,50 @@
 - Cannot change parent board for committees
 - Cannot delete Main Board
 - Deactivating board hides it from Organization Selector
+
+### UI Pattern
+
+- **Page Type**: Detail Page with Vertical Tabs
+- **Layout**: Full page with sidebar, tabs on left (20%), content on right (80%)
+- **Tabs**:
+  - **General** - Name, Type, Parent, Zone, Description, Status
+  - **Settings** - Quorum, Meeting frequency, Voting threshold, Confirmation
+  - **Members** - Member list with Add/Remove actions (links to Flows 5-7)
+  - **Branding** - Logo and colors (Main Board/Subsidiaries only, links to Flow 9)
+- **Header**: Board name, type badge, status badge, [Deactivate] button
+- **Save**: Per-tab save with "Save Changes" button
+- **Success**: Toast: "Changes saved successfully"
+- **Error**: Inline field errors, toast for API errors
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  ← Back to Boards                                               │
+│                                                                 │
+│  KTDA Main Board                    [Main Board]  [● Active]    │
+│  ─────────────────────────────────────────────────────────────  │
+│                                                                 │
+│  ┌─────────────┬───────────────────────────────────────────┐   │
+│  │             │                                           │   │
+│  │  TABS       │  GENERAL INFORMATION                      │   │
+│  │  ─────────  │  ───────────────────────────────────────  │   │
+│  │             │                                           │   │
+│  │  ● General  │  Board Name *                             │   │
+│  │             │  [KTDA Main Board                      ]  │   │
+│  │  ○ Settings │                                           │   │
+│  │             │  Board Type                               │   │
+│  │  ○ Members  │  [Main Board] (cannot change)             │   │
+│  │             │                                           │   │
+│  │  ○ Branding │  Description                              │   │
+│  │             │  [The main governing board of KTDA...  ]  │   │
+│  │             │                                           │   │
+│  │             │  Status                                   │   │
+│  │             │  ● Active  ○ Inactive                     │   │
+│  │             │                                           │   │
+│  │             │                          [Save Changes]   │   │
+│  └─────────────┴───────────────────────────────────────────┘   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -238,6 +383,44 @@
 - Adding Chairman to Main Board grants access to all 78 boards
 - Member added receives notification email
 
+### UI Pattern
+
+- **Page Type**: Modal Form (Quick Action - 4 fields only)
+- **Trigger**: "+ Add Member" button in Members tab
+- **Layout**: Centered modal (500px width)
+- **Fields**:
+  - User selector (search dropdown, shows users not on board)
+  - Role dropdown (Chairman/Vice Chairman/Member/Secretary/Observer)
+  - Effective date (DatePicker, default: today)
+  - End date (DatePicker, optional)
+- **Validation**:
+  - User required
+  - Role required
+  - If Chairman selected and board has Chairman, show warning
+- **Success**: Close modal, refresh member list, show success toast
+- **Error**: Inline field errors, modal stays open
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  ADD MEMBER TO BOARD                                   [×]  │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Select User *                                              │
+│  [🔍 Search users...                                    ▼]  │
+│                                                             │
+│  Role *                                                     │
+│  [Select role                                           ▼]  │
+│                                                             │
+│  Effective Date                     End Date (Optional)     │
+│  [Jan 21, 2026            📅]      [                   📅]  │
+│                                                             │
+│  ─────────────────────────────────────────────────────────  │
+│                                                             │
+│                              [Cancel]  [Add Member]         │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
 ---
 
 ## Flow 6: Add Member to Committee
@@ -271,6 +454,50 @@
 - User can be on multiple committees of same parent board
 - Committee member added receives notification email
 
+### UI Pattern
+
+- **Page Type**: Modal Form (Quick Action - 4 fields only)
+- **Trigger**: "+ Add Member" button in Committee Members tab
+- **Layout**: Centered modal (500px width)
+- **Fields**:
+  - User selector (search dropdown, **filtered to parent board members only**)
+  - Role dropdown (Committee Chairman/Committee Member/Committee Secretary)
+  - Effective date (DatePicker, default: today)
+  - End date (DatePicker, optional)
+- **Key Difference**: User dropdown shows only parent board members
+- **Validation**:
+  - User required
+  - Role required
+  - If Committee Chairman selected and committee has Chairman, show warning
+- **Success**: Close modal, refresh member list, show success toast
+- **Error**: Inline field errors, modal stays open
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  ADD MEMBER TO AUDIT COMMITTEE                         [×]  │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Select User * (from KTDA Main Board members)               │
+│  [🔍 Search board members...                            ▼]  │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ [👤] John Kamau - Board Member                      │   │
+│  │ [👤] Mary Wanjiku - Board Secretary                 │   │
+│  │ [👤] Peter Ochieng - Board Member                   │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  Committee Role *                                           │
+│  [Select role                                           ▼]  │
+│                                                             │
+│  Effective Date                     End Date (Optional)     │
+│  [Jan 21, 2026            📅]      [                   📅]  │
+│                                                             │
+│  ─────────────────────────────────────────────────────────  │
+│                                                             │
+│                              [Cancel]  [Add Member]         │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
 ---
 
 ## Flow 7: Remove Member from Board
@@ -303,6 +530,41 @@
 - If user chooses "Keep on committees" → user remains on committees but loses parent board access (invalid state - should force removal)
 - Actually: Removing from parent board MUST remove from child committees (enforce rule)
 - Chairman removal requires replacement first
+
+### UI Pattern
+
+- **Page Type**: Confirmation Modal (Cascade Warning)
+- **Trigger**: "Remove" button/icon on member row in Members tab
+- **Layout**: Centered modal (500px width)
+- **Simple Case** (no committee memberships):
+  - Popconfirm: "Remove [Name] from [Board Name]?"
+  - Buttons: [Cancel] [Remove]
+- **Cascade Case** (member on child committees):
+  - Modal with warning icon
+  - List of affected committees
+  - Buttons: [Cancel] [Remove from All]
+- **Success**: Close modal, refresh member list, show success toast
+- **Error**: Toast with error message
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  REMOVE FROM BOARD                                     [×]  │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ⚠️ John Kamau is also a member of these committees:       │
+│                                                             │
+│  • Audit Committee (Member)                                 │
+│  • HR Committee (Chairman)                                  │
+│                                                             │
+│  Removing from KTDA Main Board will also remove             │
+│  membership from all child committees.                      │
+│                                                             │
+│  ─────────────────────────────────────────────────────────  │
+│                                                             │
+│                         [Cancel]  [Remove from All]         │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -350,6 +612,57 @@
 - Compliance status shown: ✓ Green / ⚠ Yellow / ✗ Red
 - Click board → navigates to Board Details page
 
+### UI Pattern
+
+- **Page Type**: Index Page with Tree View
+- **Layout**: Full page with sidebar
+- **Components**:
+  - Search box (filter tree by name)
+  - Filter dropdowns: Type, Zone, Status, Compliance
+  - Tree component with expandable/collapsible nodes
+  - Node info: Name, member count, compliance badge
+- **Interactions**:
+  - Click expand/collapse icons to show/hide children
+  - Click board name → Navigate to Board Details
+  - Hover → Show quick info tooltip
+- **Tree Structure**:
+  - Level 0: KTDA Group
+  - Level 1: Main Board, Subsidiaries (group), Factories by Zone (group)
+  - Level 2: Individual subsidiaries, Zone groups
+  - Level 3: Individual factories, Committees
+- **Empty State**: "No boards match your filters"
+- **Loading**: Skeleton tree nodes
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  BOARD HIERARCHY                                            │
+├─────────────────────────────────────────────────────────────┤
+│  Search: [________________________] [🔍]                    │
+│  Type: [All ▼]  Zone: [All ▼]  Status: [All ▼]             │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ▼ KTDA Group                                               │
+│  │                                                          │
+│  ├─▼ KTDA Main Board (15 members)              ✓ Compliant  │
+│  │   ├── Nomination Committee (4)              ✓            │
+│  │   ├── HR Committee (5)                      ⚠ Warning    │
+│  │   ├── Sales & Marketing Committee (6)       ✓            │
+│  │   └── Audit Committee (5)                   ✓            │
+│  │                                                          │
+│  ├─▼ Subsidiaries (8)                                       │
+│  │   ├─▼ KETEPA Limited (8 members)            ✓ Compliant  │
+│  │   │   └── KETEPA Audit Committee (3)        ✓            │
+│  │   ├── Chai Trading Company (7)              ✓            │
+│  │   └── ... (6 more)                                       │
+│  │                                                          │
+│  └─▼ Factories by Zone (69)                                 │
+│      ├─▶ Zone 1 (12 factories)                              │
+│      ├─▶ Zone 2 (10 factories)                              │
+│      └── ... (more zones)                                   │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
 ---
 
 ## Flow 9: Configure Board Branding
@@ -390,6 +703,59 @@
 - Factories use KTDA parent branding (no branding tab)
 - Committees inherit parent board branding (no branding tab)
 - KTDA Group (All) branding is configurable (can match Main Board)
+
+### UI Pattern
+
+- **Page Type**: Tab Content within Board Details (Branding Tab)
+- **Layout**: Part of Board Details Vertical Tabs page
+- **Visibility**: Only shown for Main Board and Subsidiaries (hidden for Factories/Committees)
+- **Sections**:
+  1. **Logo Configuration** - Upload area, preview, "Use parent logo" option
+  2. **Color Theme** - Color pickers for Primary, Secondary, Sidebar colors
+  3. **Preview Panel** - Live preview of header, sidebar with selected branding
+- **Components**:
+  - FileUpload (drag & drop for logo)
+  - ColorPicker (Ant Design v5+)
+  - Preview mockup (custom component)
+- **Interactions**:
+  - Upload logo → Preview updates
+  - Change color → Preview updates in real-time
+  - "Preview Full Layout" button → Opens modal with full page preview
+- **Success**: Toast: "Branding saved successfully"
+- **Error**: Inline errors for invalid file/color
+
+```
+┌─────────────┬───────────────────────────────────────────────────┐
+│  TABS       │  BRANDING                                         │
+│  ─────────  │  ───────────────────────────────────────────────  │
+│             │                                                   │
+│  ○ General  │  LOGO                                             │
+│             │  ┌─────────────────────────────────────────────┐ │
+│  ○ Settings │  │                                             │ │
+│             │  │    📁 Drag logo here or click to upload     │ │
+│  ○ Members  │  │    PNG or SVG, max 2MB                      │ │
+│             │  │                                             │ │
+│  ● Branding │  └─────────────────────────────────────────────┘ │
+│             │  ☐ Use KTDA Main Board logo                       │
+│             │                                                   │
+│             │  COLOR THEME                                      │
+│             │  Primary Color     Secondary Color                │
+│             │  [#1890ff 🎨]      [#52c41a 🎨]                   │
+│             │                                                   │
+│             │  Sidebar Color     Theme Mode                     │
+│             │  [#001529 🎨]      [Light ▼]                      │
+│             │                                                   │
+│             │  PREVIEW                                          │
+│             │  ┌─────────────────────────────────────────────┐ │
+│             │  │ [Logo] KETEPA Limited         [🔔] [👤]    │ │
+│             │  │ ■■■■■■■│ Dashboard                          │ │
+│             │  │ ■■■■■■■│ Meetings                           │ │
+│             │  │ ■■■■■■■│ Documents                          │ │
+│             │  └─────────────────────────────────────────────┘ │
+│             │                                                   │
+│             │  [Preview Full Layout]            [Save Branding] │
+└─────────────┴───────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -436,6 +802,51 @@
 - Duplicate names rejected
 - Import is atomic (all succeed or all fail)
 
+### UI Pattern
+
+- **Page Type**: Multi-Step Wizard (4 steps) - **Vertical Layout**
+- **Layout**: Full page with sidebar, steps on left (30%), content on right (70%)
+- **Steps**:
+  1. **Upload** - Download template link, File upload (drag & drop CSV)
+  2. **Map Columns** - Table showing CSV headers → System fields mapping
+  3. **Validate** - Validation results table (valid/invalid rows, error details)
+  4. **Import** - Progress bar, success/failure summary
+- **Navigation**:
+  - Previous/Next buttons
+  - Step 3 allows "Proceed with valid rows only" option
+  - Cancel returns to Board List with confirmation
+- **Success**:
+  - Toast: "65 factory boards imported successfully"
+  - Option to view imported boards
+- **Error**: Validation errors shown in table, import errors show rollback message
+
+```
+┌───────────────┬─────────────────────────────────────────────────┐
+│  STEPS        │  VALIDATE DATA                                  │
+│  ───────────  │  ─────────────────────────────────────────────  │
+│               │                                                 │
+│  ✓ Upload     │  Validation Results                             │
+│               │  ───────────────────────────────────────────    │
+│  ✓ Map Columns│                                                 │
+│               │  ✓ Valid rows: 65                               │
+│  ● Validate   │  ✗ Invalid rows: 4                              │
+│               │                                                 │
+│  ○ Import     │  Error Details:                                 │
+│               │  ┌───────────────────────────────────────────┐ │
+│               │  │ Row │ Name           │ Error              │ │
+│               │  ├─────┼────────────────┼────────────────────┤ │
+│               │  │ 5   │ Chebut Factory │ Name already exists│ │
+│               │  │ 12  │ Test Factory   │ Invalid zone       │ │
+│               │  │ 28  │ (empty)        │ Name is required   │ │
+│               │  │ 45  │ Kapkatet       │ Name already exists│ │
+│               │  └───────────────────────────────────────────┘ │
+│               │                                                 │
+│               │  ☐ Skip invalid rows and import valid only      │
+│               │                                                 │
+│               │                     [← Back]  [Import 65 Rows]  │
+└───────────────┴─────────────────────────────────────────────────┘
+```
+
 ---
 
 ## Flow 11: Switch Organization Context
@@ -476,21 +887,86 @@
 - Selection stored in session (persists until logout)
 - User can set default organization in profile settings
 
+### UI Pattern
+
+- **Page Type**: Header Component (not a standalone page)
+- **Layout**: TreeSelect dropdown in Header, Committee Tabs inside Content Area
+- **Components**:
+  1. **Organization Selector** (Header)
+     - TreeSelect dropdown with search
+     - Hierarchical structure (Group → Main → Subsidiaries → Factories by Zone)
+     - Search filters tree
+  2. **Committee Tabs** (Content Area - first element)
+     - Horizontal tabs: [Board] [Committee 1] [Committee 2] ...
+     - Only visible when selected org has committees
+     - Hidden for factories, zone views, KTDA Group
+- **Interactions**:
+  - Select org → Logo changes, sidebar colors change, page content filters
+  - Click committee tab → Content filters to that committee
+- **Persistence**: Selection stored in session/localStorage
+- **Loading**: Brief loading indicator during context switch
+
+```
+HEADER:
+┌─────────────────────────────────────────────────────────────────┐
+│ [Logo] [KTDA Main Board          ▼] [🔍]         [🔔] [👤]     │
+└─────────────────────────────────────────────────────────────────┘
+                    │
+                    ▼ (dropdown open)
+         ┌─────────────────────────────────────┐
+         │ 🔍 Search boards...                 │
+         ├─────────────────────────────────────┤
+         │ ⭐ KTDA Group (All)                 │
+         │ 🏛️ KTDA Main Board                  │
+         ├─────────────────────────────────────┤
+         │ 🏢 Subsidiaries                     │
+         │   ├─ KETEPA Limited                 │
+         │   ├─ Chai Trading Company           │
+         │   └─ ... (6 more)                   │
+         ├─────────────────────────────────────┤
+         │ 🏭 Factories                        │
+         │   ├─▶ Zone 1 (12)                   │
+         │   ├─▶ Zone 2 (10)                   │
+         │   └─ ...                            │
+         └─────────────────────────────────────┘
+
+CONTENT AREA (when board with committees selected):
+┌─────────────────────────────────────────────────────────────────┐
+│ [Board] [Audit Committee] [HR Committee] [Nomination Committee] │
+│    ▲                                                            │
+│  active                                                         │
+├─────────────────────────────────────────────────────────────────┤
+│ Breadcrumbs: Home > Meetings                                    │
+│                                                                 │
+│ Page content filtered to selected org + committee               │
+└─────────────────────────────────────────────────────────────────┘
+```
+
 ---
 
 ## Summary: Pages Required for Module 2
 
-| Page | Route | Purpose |
-|------|-------|---------|
-| Board List | `/boards` | List all boards with filters |
-| Board Create | `/boards/create` | Create new board form |
-| Board Details | `/boards/:id` | View board info, members, committees |
-| Board Edit | `/boards/:id/edit` | Edit board settings |
-| Board Branding | `/boards/:id/branding` | Configure logo and colors |
-| Committee Create | `/boards/:id/committees/create` | Create committee for board |
-| Committee Details | `/committees/:id` | View committee info, members |
-| Hierarchy View | `/boards/hierarchy` | Visual tree of all boards |
-| Import Boards | `/boards/import` | Bulk import factory boards |
+| Page | Route | UI Pattern | Purpose |
+|------|-------|------------|---------|
+| Board List | `/boards` | Index/List Page | List all boards with filters |
+| Board Create | `/boards/create` | **Vertical Wizard (3 steps)** | Create new board |
+| Board Details | `/boards/:id` | **Vertical Tabs Page** | View/edit board info, members, settings, branding |
+| Committee Create | `/boards/:id/committees/create` | **Vertical Wizard (4 steps)** | Create committee for board |
+| Committee Details | `/committees/:id` | **Vertical Tabs Page** | View/edit committee info, members, settings |
+| Hierarchy View | `/boards/hierarchy` | Tree View Page | Visual tree of all boards |
+| Import Boards | `/boards/import` | **Vertical Wizard (4 steps)** | Bulk import factory boards |
+
+### Key UI Patterns Used
+
+| Pattern | Flows | Description |
+|---------|-------|-------------|
+| Index/List Page | Flow 1 | Table with filters, tabs, expandable rows, pagination |
+| Vertical Wizard (3-4 steps) | Flows 2, 3, 10 | Steps sidebar on left (30%), form content on right (70%) |
+| Vertical Tabs Page | Flow 4, 9 | Edit page with tabs on left (General, Settings, Members, Branding) |
+| Modal Form (Quick Action) | Flows 5, 6 | Centered modal for adding members (4 fields max) |
+| Confirmation Modal | Flow 7 | Cascade warning with action buttons |
+| Tree View Page | Flow 8 | Expandable tree with search and filters |
+| Header Component | Flow 11 | Organization Selector + Committee Tabs (not a page) |
 
 ---
 

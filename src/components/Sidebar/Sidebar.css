@@ -1,0 +1,51 @@
+/* Custom scrollbar styles for Sidebar */
+.sidebar-container {
+  overflow: auto;
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+}
+
+/* Hide scrollbar by default */
+.sidebar-container::-webkit-scrollbar {
+  width: 6px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+/* Show scrollbar on hover */
+.sidebar-container:hover::-webkit-scrollbar {
+  opacity: 1;
+}
+
+/* Scrollbar track (background) */
+.sidebar-container::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+/* Scrollbar thumb (draggable part) */
+.sidebar-container::-webkit-scrollbar-thumb {
+  background: var(--sidebar-primary-color);
+  border-radius: 3px;
+  min-height: 40px;
+  max-height: 40px;
+}
+
+/* Scrollbar thumb on hover */
+.sidebar-container::-webkit-scrollbar-thumb:hover {
+  background: var(--sidebar-primary-color-hover);
+}
+
+/* Remove arrow buttons (top and bottom) */
+.sidebar-container::-webkit-scrollbar-button {
+  display: none;
+}
+
+/* Firefox scrollbar (fallback) */
+.sidebar-container {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sidebar-primary-color) rgba(0, 0, 0, 0.2);
+}

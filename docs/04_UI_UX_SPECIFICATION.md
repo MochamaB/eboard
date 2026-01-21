@@ -192,11 +192,135 @@
 ```
 - Steps across top
 - Content below
-- Use for 2-3 step processes
+- Use for 6+ step processes or combined multi-flow wizards
 
 ---
 
-### 2.7 Specialized Components
+### 2.7 UI Pattern Selection Rules
+
+Use these rules to determine the correct UI pattern for each operation type.
+
+#### 2.7.1 CREATE Operations
+
+| Condition | UI Pattern | Layout | Example |
+|-----------|------------|--------|---------|
+| 1 logical section | **Single Page Form** | Full page with sidebar | Create simple record |
+| 2-5 steps | **Vertical Wizard** | Full page, steps on left (30%), content right (70%) | Create Board (3 steps), Create User (5 steps) |
+| 6+ steps or combined flows | **Horizontal Wizard** | Full page, steps across top | Meeting Creation with sub-flows |
+
+**Important**: Create forms are ALWAYS full page. Never use modals for create operations.
+
+#### 2.7.2 EDIT Operations
+
+| Condition | UI Pattern | Layout | Example |
+|-----------|------------|--------|---------|
+| 1-2 fields inline | **Popover Edit** | Inline popover | Change user role |
+| Single section | **Single Page Form** | Full page with sidebar | Edit basic info |
+| Multiple sections | **Vertical Tabs Page** | Full page, tabs on left | Board Details (Info, Settings, Members) |
+| Multi-step process | **Vertical Wizard** | Full page (rare for edit) | Complex reconfiguration |
+
+**Important**: Edit forms are ALWAYS full page with vertical tabs for multiple sections. Never use modals for edit operations.
+
+#### 2.7.3 VIEW/DETAIL Operations
+
+| Condition | UI Pattern | Layout | Example |
+|-----------|------------|--------|---------|
+| Single entity, multiple aspects | **Detail Page with Vertical Tabs** | Full page, tabs on left | User Profile, Board Details |
+| List of items | **Index Page with Table** | Full page with filters | Users List, Boards List |
+| Hierarchical data | **Tree View** | Full page with expandable tree | Board Hierarchy |
+
+#### 2.7.4 QUICK ACTIONS (Modal/Popover Allowed)
+
+Modals and popovers are ONLY used for:
+
+| Action Type | UI Pattern | Example |
+|-------------|------------|---------|
+| Simple yes/no confirmation | **Popconfirm** | Delete item, Remove member |
+| Cascade warning confirmation | **Confirmation Modal** | Remove from board (affects committees) |
+| Quick selection (1-2 fields) | **Modal Form** | Add existing member to board (select user + role) |
+| Inline field edit | **Popover** | Change role dropdown |
+
+**Never use modals for**:
+- Creating new entities (users, boards, meetings)
+- Editing multiple fields
+- Multi-step processes
+- Complex forms with validation
+
+#### 2.7.5 Wizard Step Count Rules
+
+| Steps | Orientation | Layout |
+|-------|-------------|--------|
+| 2-5 steps | **Vertical** | Steps sidebar on left (30%), content on right (70%) |
+| 6+ steps | **Horizontal** | Steps bar across top, content below |
+
+**Vertical Wizard Layout**:
+```
+┌───────────────┬─────────────────────────────────────────┐
+│  STEPS        │  STEP CONTENT                           │
+│  ───────────  │  ─────────────────────────────────────  │
+│  ● Step 1     │                                         │
+│  ○ Step 2     │  [Form fields for current step]         │
+│  ○ Step 3     │                                         │
+│               │                    [Cancel]  [Next →]   │
+└───────────────┴─────────────────────────────────────────┘
+```
+
+**Horizontal Wizard Layout** (6+ steps):
+```
+┌─────────────────────────────────────────────────────────┐
+│ [●1 Info] → [○2 Details] → [○3 Config] → ... → [○6 Review] │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  [Form fields for current step]                         │
+│                                                         │
+│                           [← Back]  [Cancel]  [Next →]  │
+└─────────────────────────────────────────────────────────┘
+```
+
+#### 2.7.6 Edit Page Tabs Layout
+
+For edit pages with multiple sections, use vertical tabs:
+
+```
+┌───────────────┬─────────────────────────────────────────┐
+│  TABS         │  TAB CONTENT                            │
+│  ───────────  │  ─────────────────────────────────────  │
+│  ● General    │                                         │
+│  ○ Settings   │  [Form fields for current tab]          │
+│  ○ Members    │                                         │
+│  ○ Branding   │                         [Save Changes]  │
+└───────────────┴─────────────────────────────────────────┘
+```
+
+#### 2.7.7 Decision Flowchart
+
+```
+Is it a CREATE operation?
+├── Yes → How many steps?
+│         ├── 1 section → Single Page Form
+│         ├── 2-5 steps → Vertical Wizard (full page)
+│         └── 6+ steps → Horizontal Wizard (full page)
+│
+├── Is it an EDIT operation?
+│   ├── Yes → How many sections?
+│   │         ├── 1-2 fields → Popover (inline)
+│   │         ├── 1 section → Single Page Form
+│   │         └── Multiple sections → Vertical Tabs Page
+│
+├── Is it a VIEW operation?
+│   ├── Yes → Detail Page with Vertical Tabs
+│
+├── Is it a DELETE/REMOVE?
+│   ├── Yes → Simple? → Popconfirm
+│   │         Has cascade? → Confirmation Modal
+│
+└── Is it a quick selection (add existing item)?
+    └── Yes → Modal Form (1-2 fields only)
+```
+
+---
+
+### 2.8 Specialized Components
 
 **Meeting-Specific:**
 - **Calendar**: `Calendar` for month/week/day views
