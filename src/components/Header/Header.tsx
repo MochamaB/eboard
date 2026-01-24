@@ -10,7 +10,7 @@ import {
   LogoutOutlined,
 } from '@ant-design/icons';
 import { colors } from '../../theme';
-import { useOrgTheme } from '../../contexts';
+import { useOrgTheme, useAuth } from '../../contexts';
 
 const { Header: AntHeader } = Layout;
 
@@ -107,10 +107,11 @@ const notificationItems: MenuProps['items'] = [
 
 export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) => {
   const { theme } = useOrgTheme();
+  const { user, logout } = useAuth();
 
   const handleUserMenuClick: MenuProps['onClick'] = ({ key }) => {
     if (key === 'logout') {
-      console.log('Logout clicked');
+      logout();
     } else if (key === 'profile') {
       console.log('Profile clicked');
     } else if (key === 'settings') {
@@ -182,9 +183,14 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) =
               style={{ backgroundColor: theme.primaryColor }}
               icon={<UserOutlined />}
             />
-            <span style={{ color: colors.textPrimary, fontWeight: 500 }}>
-              John Kamau
-            </span>
+            <div style={{ lineHeight: 1.3 }}>
+              <div style={{ color: colors.textPrimary, fontWeight: 500 }}>
+                {user?.fullName || 'Guest'}
+              </div>
+              <div style={{ color: colors.textSecondary, fontSize: 11 }}>
+                {user?.primaryRole?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || ''}
+              </div>
+            </div>
           </Space>
         </Dropdown>
       </Space>

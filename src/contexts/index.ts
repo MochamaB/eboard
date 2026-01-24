@@ -1,2 +1,2 @@
-export { OrgThemeProvider, useOrgTheme } from './OrgThemeContext';
+export { BoardProvider, useBoardContext, useOrgTheme } from './BoardContext';
 export { AuthProvider, useAuth } from './AuthContext';

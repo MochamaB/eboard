@@ -12,15 +12,11 @@ import {
   ArrowLeftOutlined,
 } from '@ant-design/icons';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useOrgTheme } from '../../contexts';
+import { useBoardContext } from '../../contexts';
+import { useAuth } from '../../contexts/AuthContext';
 import { generateBreadcrumbs } from '../../utils/breadcrumbs';
-import {
-  organizations,
-  getSubsidiaries,
-  getFactoriesByZone,
-  getUniqueZones,
-} from '../../data/organizations';
-import type { Organization } from '../../data/organizations';
+import type { Board } from '../../types/board.types';
+import { BOARD_TYPE_LABELS } from '../../types/board.types';
 
 const { Text } = Typography;
 
@@ -44,18 +40,26 @@ const getCommitteeIcon = (key: string): React.ReactNode => {
   return committeeIcons.default;
 };
 
-// Organization type labels
-const typeLabels: Record<string, string> = {
-  group: 'Group',
-  main: 'Main Board',
-  subsidiary: 'Subsidiary',
-  factory: 'Factory',
-};
+// Board type labels (using imported constants)
+const typeLabels = BOARD_TYPE_LABELS;
 
 export const NavigationBar: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { currentOrg, committees, hasCommittees, activeCommittee, setActiveCommittee, setCurrentOrg, theme } = useOrgTheme();
+  const { hasGlobalAccess } = useAuth();
+  const { 
+    currentBoard, 
+    committees, 
+    hasCommittees, 
+    activeCommittee, 
+    setActiveCommittee, 
+    setCurrentBoard, 
+    theme, 
+    allBoards,
+    viewMode,
+    setViewMode,
+    hasMultipleBoardAccess,
+  } = useBoardContext();
   
   const breadcrumbs = generateBreadcrumbs(location.pathname);
   
@@ -65,10 +69,10 @@ export const NavigationBar: React.FC = () => {
     location.pathname.includes('/edit') ||
     location.pathname.includes('/wizard');
   
-  // Build committee items with icons
+  // Build committee items with icons (committees are now boards with type='committee')
   const committeeItems = [
     { key: 'all', label: 'ALL', icon: committeeIcons.all },
-    { key: 'board', label: currentOrg.shortName.toUpperCase(), icon: committeeIcons.board },
+    { key: 'board', label: currentBoard.shortName.toUpperCase(), icon: committeeIcons.board },
     ...committees.map(c => ({
       key: c.id,
       label: c.shortName.toUpperCase(),
@@ -76,76 +80,100 @@ export const NavigationBar: React.FC = () => {
     })),
   ];
 
-  // Organization selector dropdown
-  const subsidiaries = getSubsidiaries();
-  const zones = getUniqueZones();
-  const ktdaGroup = organizations.find(org => org.id === 'ktda-group');
-  const mainBoard = organizations.find(org => org.id === 'ktda-main');
+  // Board selector dropdown - group boards by type
+  const mainBoard = allBoards.find(b => b.type === 'main');
+  const subsidiaries = allBoards.filter(b => b.type === 'subsidiary');
+  const factories = allBoards.filter(b => b.type === 'factory');
+  
+  // Group factories by zone
+  const factoriesByZone = factories.reduce((acc, factory) => {
+    const zone = factory.zone || 'zone_1';
+    if (!acc[zone]) acc[zone] = [];
+    acc[zone].push(factory);
+    return acc;
+  }, {} as Record<string, Board[]>);
+  const zones = Object.keys(factoriesByZone).sort();
 
-  const handleOrgSelect = (org: Organization) => {
-    setCurrentOrg(org.id);
-    navigate(`/${org.id}/dashboard`);
+  const handleBoardSelect = (board: Board) => {
+    setCurrentBoard(board.id);
+    // Preserve current module when switching boards (e.g., /ktda-main/users -> /temec/users)
+    const pathParts = location.pathname.split('/');
+    const currentModule = pathParts[2] || 'dashboard';
+    navigate(`/${board.id}/${currentModule}`);
   };
 
-  const orgMenuItems: MenuProps['items'] = [
-    {
-      key: 'group-header',
-      type: 'group',
-      label: <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>KTDA GROUP</Text>,
-      children: ktdaGroup ? [{
-        key: ktdaGroup.id,
-        label: (
-          <Space>
-            <img src={ktdaGroup.logo.small || ktdaGroup.logo.main} alt="" style={{ width: 20, height: 20, borderRadius: 4 }} />
-            {ktdaGroup.name}
-          </Space>
-        ),
-        onClick: () => handleOrgSelect(ktdaGroup),
-      }] : [],
+  const getBoardLogo = (board: Board): string => {
+    return board.branding?.logo?.small || board.branding?.logo?.main || '';
+  };
+
+  // Build "View All Boards" option if user has multi-board access or global access
+  const showAllBoardsOption = hasMultipleBoardAccess || hasGlobalAccess;
+  
+  const allBoardsViewOption = showAllBoardsOption ? [{
+    key: 'view-all-boards',
+    label: (
+      <Space>
+        <AppstoreOutlined style={{ fontSize: 16 }} />
+        <Text strong>{viewMode === 'all' ? '✓ Viewing All Boards' : 'View All My Boards'}</Text>
+      </Space>
+    ),
+    onClick: () => {
+      setViewMode('all');
+      navigate('/boards'); // Navigate to global boards page
     },
+    style: { 
+      borderBottom: '1px solid #f0f0f0', 
+      paddingBottom: 8, 
+      marginBottom: 8,
+      background: viewMode === 'all' ? 'rgba(50, 71, 33, 0.05)' : undefined,
+    },
+  }] : [];
+
+  const boardMenuItems: MenuProps['items'] = [
+    ...allBoardsViewOption,
     {
       key: 'main-header',
-      type: 'group',
+      type: 'group' as const,
       label: <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>MAIN BOARD</Text>,
       children: mainBoard ? [{
         key: mainBoard.id,
         label: (
           <Space>
-            <img src={mainBoard.logo.small || mainBoard.logo.main} alt="" style={{ width: 20, height: 20, borderRadius: 4 }} />
+            <img src={getBoardLogo(mainBoard)} alt="" style={{ width: 20, height: 20, borderRadius: 4 }} />
             {mainBoard.name}
           </Space>
         ),
-        onClick: () => handleOrgSelect(mainBoard),
+        onClick: () => handleBoardSelect(mainBoard),
       }] : [],
     },
     {
       key: 'subsidiaries-header',
       type: 'group',
       label: <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>SUBSIDIARIES</Text>,
-      children: subsidiaries.map(org => ({
-        key: org.id,
+      children: subsidiaries.map(board => ({
+        key: board.id,
         label: (
           <Space>
-            <img src={org.logo.small || org.logo.main} alt="" style={{ width: 20, height: 20, borderRadius: 4 }} />
-            {org.name}
+            <img src={getBoardLogo(board)} alt="" style={{ width: 20, height: 20, borderRadius: 4 }} />
+            {board.name}
           </Space>
         ),
-        onClick: () => handleOrgSelect(org),
+        onClick: () => handleBoardSelect(board),
       })),
     },
     ...zones.map(zone => ({
       key: `zone-${zone}`,
       type: 'group' as const,
-      label: <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>ZONE {zone} FACTORIES</Text>,
-      children: getFactoriesByZone(zone).map(org => ({
-        key: org.id,
+      label: <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>{zone.replace('_', ' ').toUpperCase()} FACTORIES</Text>,
+      children: factoriesByZone[zone].map(board => ({
+        key: board.id,
         label: (
           <Space>
-            <img src={org.logo.small || org.logo.main} alt="" style={{ width: 20, height: 20, borderRadius: 4 }} />
-            {org.name}
+            <img src={getBoardLogo(board)} alt="" style={{ width: 20, height: 20, borderRadius: 4 }} />
+            {board.name}
           </Space>
         ),
-        onClick: () => handleOrgSelect(org),
+        onClick: () => handleBoardSelect(board),
       })),
     })),
   ];
@@ -160,12 +188,12 @@ export const NavigationBar: React.FC = () => {
         marginTop: 20,
       }}
     >
-      {/* ROW 1: Organization Selector + Breadcrumbs */}
+      {/* ROW 1: Board Selector + Breadcrumbs */}
       <Row align="middle" justify="space-between" style={{ paddingBottom: 12, borderBottom: '1px solid #dfdfe4' }}>
-        {/* LEFT: Organization Selector */}
+        {/* LEFT: Board Selector */}
         <Col>
           <Dropdown
-            menu={{ items: orgMenuItems, style: { maxHeight: 400, overflow: 'auto' } }}
+            menu={{ items: boardMenuItems, style: { maxHeight: 400, overflow: 'auto' } }}
             trigger={['click']}
             placement="bottomLeft"
           >
@@ -206,19 +234,19 @@ export const NavigationBar: React.FC = () => {
                 }}
               >
                 <img
-                  src={currentOrg.logo.small || currentOrg.logo.main}
-                  alt={currentOrg.shortName}
+                  src={getBoardLogo(currentBoard)}
+                  alt={currentBoard.shortName}
                   style={{ width: 28, height: 28, objectFit: 'contain' }}
                 />
               </div>
               
-              {/* Organization Name & Type */}
+              {/* Board Name & Type */}
               <div style={{ lineHeight: 1.3, flex: 1 }}>
                 <div style={{ fontWeight: 600, fontSize: 15, color: theme.textPrimary }}>
-                  {currentOrg.name}
+                  {currentBoard.name}
                 </div>
                 <div style={{ fontSize: 12, color: theme.textSecondary }}>
-                  {typeLabels[currentOrg.type] || currentOrg.type}
+                  {viewMode === 'all' ? 'Viewing All Boards' : (typeLabels[currentBoard.type] || currentBoard.type)}
                 </div>
               </div>
               
@@ -236,7 +264,7 @@ export const NavigationBar: React.FC = () => {
                 <span style={{ fontSize: 16, color: theme.textSecondary, margin: '0 4px' }}>›</span>
               }
               items={[
-                { title: <a href={`/${currentOrg.id}/dashboard`} style={{ color: theme.textSecondary }}>Home</a> },
+                { title: <a href={`/${currentBoard.id}/dashboard`} style={{ color: theme.textSecondary }}>Home</a> },
                 ...breadcrumbs.map((b, index) => ({
                   title: index === breadcrumbs.length - 1 ? (
                     <span style={{ color: theme.primaryColor, fontWeight: 500 }}>{b.title}</span>

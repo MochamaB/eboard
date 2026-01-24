@@ -4,3 +4,4 @@
  */
 
 export { UsersIndexPage } from './UsersIndexPage';
+export { CreateUserPage } from './CreateUserPage';

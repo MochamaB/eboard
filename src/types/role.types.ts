@@ -7,15 +7,19 @@ import { z } from 'zod';
 
 // System Roles (from docs/02_REQUIREMENTS_DOCUMENT.md)
 export const SystemRoleSchema = z.enum([
-  'system_admin',      // Full system access across all boards
-  'board_secretary',   // Create meetings, upload documents, manage participants
-  'chairman',          // Control meetings, start votes, approve minutes
-  'vice_chairman',     // Similar to Chairman for specific board
-  'board_member',      // Join meetings, vote, view documents
-  'committee_member',  // Committee-specific access
-  'executive_member',  // CEO, Company Secretary, Group Finance Director
-  'observer',          // View meetings but cannot vote
-  'guest',             // Temporary meeting access
+  'system_admin',           // Full system access across all boards
+  'group_chairman',         // Group-level chairman (global access)
+  'group_company_secretary', // Group-level company secretary (global access)
+  'board_secretary',        // Create meetings, upload documents, manage participants
+  'chairman',               // Control meetings, start votes, approve minutes
+  'vice_chairman',          // Similar to Chairman for specific board
+  'company_secretary',      // Board-level company secretary
+  'board_member',           // Join meetings, vote, view documents
+  'committee_member',       // Committee-specific access
+  'executive_member',       // CEO, Company Secretary, Group Finance Director
+  'presenter',              // Present at meetings
+  'observer',               // View meetings but cannot vote
+  'guest',                  // Temporary meeting access
 ]);
 
 // Board-specific roles (role a user has ON a specific board)
@@ -87,6 +91,16 @@ export const SYSTEM_ROLE_INFO: Record<SystemRole, { label: string; description: 
     description: 'Full system access across all boards and committees',
     color: 'red',
   },
+  group_chairman: {
+    label: 'Group Chairman',
+    description: 'Group-level chairman with global board access',
+    color: 'gold',
+  },
+  group_company_secretary: {
+    label: 'Group Company Secretary',
+    description: 'Group-level secretary with global board access',
+    color: 'purple',
+  },
   board_secretary: {
     label: 'Board Secretary',
     description: 'Can create meetings, upload documents, manage participants',
@@ -101,6 +115,11 @@ export const SYSTEM_ROLE_INFO: Record<SystemRole, { label: string; description: 
     label: 'Vice Chairman',
     description: 'Similar to Chairman but for specific board/committee',
     color: 'orange',
+  },
+  company_secretary: {
+    label: 'Company Secretary',
+    description: 'Board-level secretary managing administration',
+    color: 'blue',
   },
   board_member: {
     label: 'Board Member',
@@ -117,13 +136,18 @@ export const SYSTEM_ROLE_INFO: Record<SystemRole, { label: string; description: 
     description: 'CEO, Company Secretary, Group Finance Director',
     color: 'purple',
   },
+  presenter: {
+    label: 'Presenter',
+    description: 'Can present at meetings',
+    color: 'geekblue',
+  },
   observer: {
     label: 'Observer',
     description: 'Can view meetings but cannot vote',
     color: 'default',
   },
   guest: {
-    label: 'Guest/Presenter',
+    label: 'Guest',
     description: 'Temporary access to specific meeting only',
     color: 'default',
   },

@@ -1,9 +1,14 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import React from 'react';
+import { createBrowserRouter, useNavigate } from 'react-router-dom';
 import { RootLayout } from '../layouts/RootLayout';
 import { AppLayout } from '../layouts/AppLayout';
 import { AuthLayout } from '../layouts/AuthLayout';
 import { Dashboard } from '../pages/Dashboard';
-import { UsersIndexPage } from '../pages/Users';
+import { UsersIndexPage, CreateUserPage as CreateUserPageComponent } from '../pages/Users';
+import { BoardsIndexPage } from '../pages/Boards';
+import { LoginPage } from '../pages/Auth';
+import { ProtectedRoute } from '../components/ProtectedRoute';
+import { useAuth } from '../contexts/AuthContext';
 
 // Placeholder components for routes
 const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
@@ -14,7 +19,6 @@ const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
 );
 
 // Auth pages (placeholders)
-const LoginPage = () => <PlaceholderPage title="Login" />;
 const ForgotPasswordPage = () => <PlaceholderPage title="Forgot Password" />;
 
 // Main pages (placeholders)
@@ -34,23 +38,68 @@ const AttendanceReportsPage = () => <PlaceholderPage title="Attendance Reports" 
 const ComplianceReportsPage = () => <PlaceholderPage title="Compliance Reports" />;
 
 const RolesPage = () => <PlaceholderPage title="Roles & Permissions" />;
-const CreateUserPage = () => <PlaceholderPage title="Create User" />;
 const UserDetailPage = () => <PlaceholderPage title="User Details" />;
 
-const BoardsPage = () => <PlaceholderPage title="Boards" />;
+const BoardDetailPage = () => <PlaceholderPage title="Board Details" />;
+const BoardCreatePage = () => <PlaceholderPage title="Create Board" />;
+const BoardEditPage = () => <PlaceholderPage title="Edit Board" />;
+const BoardMembersPage = () => <PlaceholderPage title="Board Members" />;
 const CommitteesPage = () => <PlaceholderPage title="Committees" />;
 
 const SettingsPage = () => <PlaceholderPage title="Settings" />;
 const AdminPage = () => <PlaceholderPage title="Admin" />;
 
+// Dynamic redirect component - redirects to user's primary board
+const DynamicBoardRedirect: React.FC = () => {
+  const navigate = useNavigate();
+  const { isAuthenticated, isLoading, getPrimaryBoard } = useAuth();
+  
+  React.useEffect(() => {
+    if (isLoading) return;
+    
+    if (!isAuthenticated) {
+      navigate('/auth/login', { replace: true });
+      return;
+    }
+    
+    const primaryBoard = getPrimaryBoard();
+    if (primaryBoard) {
+      navigate(`/${primaryBoard.id}/dashboard`, { replace: true });
+    } else {
+      // Fallback to ktda-ms if no primary board
+      navigate('/ktda-ms/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, isLoading, getPrimaryBoard, navigate]);
+  
+  // Show loading while determining redirect
+  return <div style={{ padding: 24, textAlign: 'center' }}>Loading...</div>;
+};
+
+// Global boards page (for 'View All Boards' mode)
+const GlobalBoardsPage: React.FC = () => {
+  return <BoardsIndexPage />;
+};
+
 export const router = createBrowserRouter([
   {
     element: <RootLayout />,
     children: [
-      // Root redirect to default organization
+      // Root redirect - dynamically redirects to user's primary board
       {
         path: '/',
-        element: <Navigate to="/ktda-main/dashboard" replace />,
+        element: <ProtectedRoute><DynamicBoardRedirect /></ProtectedRoute>,
+      },
+      
+      // Global boards route (for 'View All Boards' mode - not under /:boardId)
+      {
+        path: '/boards',
+        element: <ProtectedRoute><AppLayout /></ProtectedRoute>,
+        children: [
+          {
+            index: true,
+            element: <GlobalBoardsPage />,
+          },
+        ],
       },
 
       // Auth routes (no sidebar)
@@ -68,10 +117,11 @@ export const router = createBrowserRouter([
         ],
       },
 
-      // Main app routes (with sidebar) - all under /:orgId
+      // Main app routes (with sidebar) - all under /:boardId
+      // Protected: requires authentication
       {
-        path: '/:orgId',
-        element: <AppLayout />,
+        path: '/:boardId',
+        element: <ProtectedRoute><AppLayout /></ProtectedRoute>,
     children: [
       {
         path: 'dashboard',
@@ -137,7 +187,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'users/create',
-        element: <CreateUserPage />,
+        element: <CreateUserPageComponent />,
       },
       {
         path: 'users/:id',
@@ -155,7 +205,23 @@ export const router = createBrowserRouter([
       // Boards
       {
         path: 'boards',
-        element: <BoardsPage />,
+        element: <BoardsIndexPage />,
+      },
+      {
+        path: 'boards/create',
+        element: <BoardCreatePage />,
+      },
+      {
+        path: 'boards/:id',
+        element: <BoardDetailPage />,
+      },
+      {
+        path: 'boards/:id/edit',
+        element: <BoardEditPage />,
+      },
+      {
+        path: 'boards/:id/members',
+        element: <BoardMembersPage />,
       },
       {
         path: 'boards/committees',

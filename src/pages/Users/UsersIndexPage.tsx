@@ -4,7 +4,7 @@
  * Based on docs/MODULES/Module01_UserManagement/01_USERS_PAGES.md
  */
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Button,
@@ -12,28 +12,33 @@ import {
   Avatar,
   Tag,
   Tooltip,
-  Dropdown,
   message,
   Typography,
+  Card,
+  Tabs,
+  Input,
+  Select,
+  Badge,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table/interface';
 import {
   PlusOutlined,
   MailOutlined,
   StopOutlined,
-  MoreOutlined,
   EyeOutlined,
   EditOutlined,
-  KeyOutlined,
+  SearchOutlined,
+  ReloadOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 
-import { useOrgTheme } from '../../contexts';
+import { useBoardContext } from '../../contexts';
 import { useUsers, useBulkDeactivateUsers } from '../../hooks/api';
-import { DataTable, FilterBar } from '../../components/common';
-import type { BulkAction, ExportOption } from '../../components/common/DataTable';
-import type { FilterConfig, QuickFilter } from '../../components/common/FilterBar';
+import { DataTable } from '../../components/common';
+import type { BulkAction } from '../../components/common/DataTable';
+import type { QuickFilter } from '../../components/common/FilterBar';
 import type { UserListItem, UserStatus } from '../../types';
 import { SYSTEM_ROLE_INFO } from '../../types/role.types';
 
@@ -51,38 +56,36 @@ const getInitials = (name: string): string => {
     .slice(0, 2);
 };
 
-// Status color map
-const statusColors: Record<UserStatus, string> = {
-  active: 'green',
-  inactive: 'default',
-  pending: 'orange',
-};
-
 export const UsersIndexPage: React.FC = () => {
   const navigate = useNavigate();
-  const { currentOrg, activeCommittee } = useOrgTheme();
+  const { currentBoard, activeCommittee, theme } = useBoardContext();
 
   // Filter state
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [roleFilter, setRoleFilter] = useState<string | undefined>();
-  const [boardFilter, setBoardFilter] = useState<string | undefined>();
   const [searchValue, setSearchValue] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
+  // Reset filters when board changes
+  useEffect(() => {
+    setStatusFilter('all');
+    setRoleFilter(undefined);
+    setSearchValue('');
+    setPage(1);
+  }, [currentBoard?.id]);
+
   // Determine board filter based on org context
   const effectiveBoardId = useMemo(() => {
-    // If user selected a specific board filter, use that
-    if (boardFilter) return boardFilter;
     // If viewing a specific committee (not 'all' or 'board'), filter by that committee
     if (activeCommittee && activeCommittee !== 'all' && activeCommittee !== 'board') {
       return activeCommittee;
     }
-    // If viewing a specific org (not group), filter by that org's board
-    if (currentOrg && currentOrg.type !== 'group') return currentOrg.id;
+    // If viewing a specific board, filter by that board
+    if (currentBoard) return currentBoard.id;
     // Otherwise, show all users (KTDA Group view or 'all' tab)
     return undefined;
-  }, [boardFilter, activeCommittee, currentOrg]);
+  }, [activeCommittee, currentBoard]);
 
   // Build filter params
   const filterParams = useMemo(() => ({
@@ -105,14 +108,17 @@ export const UsersIndexPage: React.FC = () => {
       dataIndex: 'fullName',
       key: 'name',
       sorter: true,
+      ellipsis: true,
       render: (name: string, record) => (
         <Space>
-          <Avatar src={record.avatar} style={{ backgroundColor: '#1890ff' }}>
+          <Avatar src={record.avatar} style={{ backgroundColor: theme.primaryColor }}>
             {getInitials(name)}
           </Avatar>
-          <div>
-            <div>{name}</div>
-            <Text type="secondary" style={{ fontSize: 12 }}>{record.email}</Text>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
+            <Text type="secondary" style={{ fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
+              {record.email}
+            </Text>
           </div>
         </Space>
       ),
@@ -121,11 +127,11 @@ export const UsersIndexPage: React.FC = () => {
       title: 'Role',
       dataIndex: 'primaryRole',
       key: 'role',
-      width: 180,
+      width: 160,
       render: (role: string) => {
         const roleInfo = SYSTEM_ROLE_INFO[role as keyof typeof SYSTEM_ROLE_INFO];
         return (
-          <Tag color={roleInfo?.color || 'default'}>
+          <Tag color={roleInfo?.color || theme.primaryColor}>
             {roleInfo?.label || role}
           </Tag>
         );
@@ -135,12 +141,12 @@ export const UsersIndexPage: React.FC = () => {
       title: 'Boards',
       dataIndex: 'boardCount',
       key: 'boards',
-      width: 100,
+      width: 90,
       align: 'center',
       sorter: true,
       render: (count: number) => (
         <Tooltip title={`Member of ${count} board(s)`}>
-          <Tag>{count}</Tag>
+          <Badge count={count} showZero style={{ backgroundColor: theme.primaryColor }} />
         </Tooltip>
       ),
     },
@@ -149,20 +155,24 @@ export const UsersIndexPage: React.FC = () => {
       dataIndex: 'status',
       key: 'status',
       width: 100,
-      render: (status: UserStatus) => (
-        <Tag color={statusColors[status]}>
-          {status.charAt(0).toUpperCase() + status.slice(1)}
-        </Tag>
-      ),
+      render: (status: UserStatus) => {
+        const color = status === 'active' ? theme.successColor : 
+                      status === 'pending' ? theme.warningColor : 'default';
+        return (
+          <Tag color={color}>
+            {status.charAt(0).toUpperCase() + status.slice(1)}
+          </Tag>
+        );
+      },
     },
     {
       title: 'MFA',
       dataIndex: 'mfaEnabled',
       key: 'mfa',
-      width: 80,
+      width: 70,
       align: 'center',
       render: (enabled: boolean) => (
-        <Tag color={enabled ? 'green' : 'default'}>
+        <Tag color={enabled ? theme.successColor : 'default'}>
           {enabled ? 'On' : 'Off'}
         </Tag>
       ),
@@ -171,57 +181,59 @@ export const UsersIndexPage: React.FC = () => {
       title: 'Last Login',
       dataIndex: 'lastLogin',
       key: 'lastLogin',
-      width: 140,
+      width: 130,
       sorter: true,
       render: (date: string | null) => (
-        <Text type="secondary">
+        <Text type="secondary" style={{ whiteSpace: 'nowrap' }}>
           {date ? dayjs(date).fromNow() : 'Never'}
         </Text>
       ),
     },
     {
-      title: '',
+      title: 'Actions',
       key: 'actions',
-      width: 50,
+      width: 120,
       align: 'center',
       render: (_, record) => (
-        <Dropdown
-          menu={{
-            items: [
-              {
-                key: 'view',
-                icon: <EyeOutlined />,
-                label: 'View Details',
-                onClick: () => navigate(`/${currentOrg?.id}/users/${record.id}`),
-              },
-              {
-                key: 'edit',
-                icon: <EditOutlined />,
-                label: 'Edit User',
-                onClick: () => navigate(`/${currentOrg?.id}/users/${record.id}/edit`),
-              },
-              {
-                key: 'reset-password',
-                icon: <KeyOutlined />,
-                label: 'Reset Password',
-                onClick: () => message.info('Password reset email sent'),
-              },
-              { type: 'divider' },
-              {
-                key: 'deactivate',
-                icon: <StopOutlined />,
-                label: record.status === 'active' ? 'Deactivate' : 'Activate',
-                danger: record.status === 'active',
-              },
-            ],
-          }}
-          trigger={['click']}
-        >
-          <Button type="text" icon={<MoreOutlined />} />
-        </Dropdown>
+        <Space size="small">
+          <Tooltip title="View">
+            <Button
+              type="text"
+              size="small"
+              icon={<EyeOutlined />}
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/${currentBoard?.id}/users/${record.id}`);
+              }}
+            />
+          </Tooltip>
+          <Tooltip title="Edit">
+            <Button
+              type="text"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/${currentBoard?.id}/users/${record.id}/edit`);
+              }}
+            />
+          </Tooltip>
+          <Tooltip title={record.status === 'active' ? 'Deactivate' : 'Activate'}>
+            <Button
+              type="text"
+              size="small"
+              danger={record.status === 'active'}
+              icon={<StopOutlined />}
+              onClick={(e) => {
+                e.stopPropagation();
+                message.info(record.status === 'active' ? 'User deactivated' : 'User activated');
+              }}
+            />
+          </Tooltip>
+        </Space>
       ),
     },
-  ], [navigate, currentOrg?.id]);
+  ], [navigate, currentBoard?.id, theme]);
 
   // Quick filters (status tabs)
   const quickFilters: QuickFilter[] = useMemo(() => {
@@ -234,21 +246,6 @@ export const UsersIndexPage: React.FC = () => {
       { key: 'pending', label: 'Pending' },
     ];
   }, [data?.total]);
-
-  // Filter configurations
-  const filterConfigs: FilterConfig[] = useMemo(() => [
-    {
-      key: 'role',
-      label: 'Role',
-      type: 'select',
-      placeholder: 'All Roles',
-      width: 180,
-      options: Object.entries(SYSTEM_ROLE_INFO).map(([key, info]) => ({
-        label: info.label,
-        value: key,
-      })),
-    },
-  ], []);
 
   // Bulk actions
   const bulkActions: BulkAction<UserListItem>[] = useMemo(() => [
@@ -278,22 +275,6 @@ export const UsersIndexPage: React.FC = () => {
     },
   ], [bulkDeactivateMutation, refetch]);
 
-  // Export options
-  const exportOptions: ExportOption[] = useMemo(() => [
-    {
-      key: 'csv',
-      label: 'Export as CSV',
-      format: 'csv',
-      onClick: () => message.info('Exporting as CSV...'),
-    },
-    {
-      key: 'xlsx',
-      label: 'Export as Excel',
-      format: 'xlsx',
-      onClick: () => message.info('Exporting as Excel...'),
-    },
-  ], []);
-
   // Handlers
   const handleSearch = useCallback((value: string) => {
     setSearchValue(value);
@@ -305,26 +286,9 @@ export const UsersIndexPage: React.FC = () => {
     setPage(1);
   }, []);
 
-  const handleFilterChange = useCallback((key: string, value: unknown) => {
-    if (key === 'role') {
-      setRoleFilter(value as string | undefined);
-    } else if (key === 'board') {
-      setBoardFilter(value as string | undefined);
-    }
-    setPage(1);
-  }, []);
-
-  const handleResetFilters = useCallback(() => {
-    setStatusFilter('all');
-    setRoleFilter(undefined);
-    setBoardFilter(undefined);
-    setSearchValue('');
-    setPage(1);
-  }, []);
-
   const handleRowClick = useCallback((record: UserListItem) => {
-    navigate(`/${currentOrg?.id}/users/${record.id}`);
-  }, [navigate, currentOrg?.id]);
+    navigate(`/${currentBoard?.id}/users/${record.id}`);
+  }, [navigate, currentBoard?.id]);
 
   const handleTableChange = useCallback((pagination: any) => {
     setPage(pagination.current || 1);
@@ -332,61 +296,127 @@ export const UsersIndexPage: React.FC = () => {
   }, []);
 
   const handleCreateUser = useCallback(() => {
-    navigate(`/${currentOrg?.id}/users/create`);
-  }, [navigate, currentOrg?.id]);
+    navigate(`/${currentBoard?.id}/users/create`);
+  }, [navigate, currentBoard?.id]);
+
+  // Tab items for status filtering
+  const tabItems = quickFilters.map(filter => ({
+    key: filter.key,
+    label: filter.count !== undefined ? (
+      <span>
+        {filter.label} <Badge count={filter.count} style={{ backgroundColor: theme.primaryColor }} />
+      </span>
+    ) : filter.label,
+  }));
 
   return (
-    <div>
+    <div style={{ padding: '0 24px 24px' }}>
       {/* Page Header */}
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <Typography.Title level={4} style={{ margin: 0 }}>Users</Typography.Title>
-            <Text type="secondary">
-              Manage users and their board memberships
-              {currentOrg && currentOrg.type !== 'group' && (
-                <> for <strong>{currentOrg.name}</strong></>
-              )}
-            </Text>
-          </div>
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateUser}>
-            Create User
-          </Button>
+      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <Typography.Title level={3} style={{ margin: 0, marginBottom: 4 }}>Users</Typography.Title>
+          <Text type="secondary">
+            Manage users and their board memberships
+            {currentBoard && (
+              <> for <strong>{currentBoard.name}</strong></>
+            )}
+          </Text>
         </div>
+        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateUser} size="large">
+          Create User
+        </Button>
       </div>
 
-      {/* Filters */}
-      <FilterBar
-        quickFilters={quickFilters}
-        activeQuickFilter={statusFilter}
-        onQuickFilterChange={handleQuickFilterChange}
-        filters={filterConfigs}
-        values={{ role: roleFilter, board: boardFilter }}
-        onChange={handleFilterChange}
-        onReset={handleResetFilters}
-      />
+      {/* Main Card */}
+      <Card bordered={false} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02)' }}>
+        {/* Status Tabs */}
+        <Tabs
+          activeKey={statusFilter}
+          onChange={handleQuickFilterChange}
+          type="line"
+          size="large"
+          style={{ marginBottom: 24 }}
+          tabBarStyle={{ 
+            borderBottom: `2px solid ${theme.borderColor}`,
+            marginBottom: 0,
+          }}
+          items={tabItems}
+        />
 
-      {/* Data Table */}
-      <DataTable<UserListItem>
-        columns={columns}
-        dataSource={data?.data || []}
-        loading={isLoading}
-        rowSelection
-        searchPlaceholder="Search by name or email..."
-        searchValue={searchValue}
-        onSearch={handleSearch}
-        bulkActions={bulkActions}
-        exportOptions={exportOptions}
-        onRowClick={handleRowClick}
-        onRefresh={() => refetch()}
-        onChange={handleTableChange}
-        pagination={{
-          current: page,
-          pageSize,
-          total: data?.total || 0,
-        }}
-        scroll={{ x: 900 }}
-      />
+        {/* Search and Filters Bar */}
+        <div style={{ marginBottom: 24, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Search Input */}
+          <Input.Search
+            placeholder="Search by name or email..."
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+            onSearch={handleSearch}
+            allowClear
+            style={{ width: 320 }}
+          />
+
+          {/* Role Filter */}
+          <Select
+            placeholder="All Roles"
+            value={roleFilter}
+            onChange={(value) => {
+              setRoleFilter(value);
+              setPage(1);
+            }}
+            allowClear
+            style={{ width: 180 }}
+            options={[
+              { label: 'All Roles', value: undefined },
+              ...Object.entries(SYSTEM_ROLE_INFO).map(([key, info]) => ({
+                label: info.label,
+                value: key,
+              })),
+            ]}
+          />
+
+          <div style={{ flex: 1 }} />
+
+          {/* Action Buttons */}
+          <Space>
+            <Button icon={<ReloadOutlined />} onClick={() => refetch()}>
+              Refresh
+            </Button>
+            <Button icon={<DownloadOutlined />} onClick={() => message.info('Exporting...')}>
+              Export
+            </Button>
+          </Space>
+        </div>
+
+        {/* Data Table */}
+        <div className="users-table-wrapper">
+          <style>{`
+            .users-table-wrapper .ant-table-thead > tr > th:last-child {
+              padding-right: 16px !important;
+            }
+            .users-table-wrapper .ant-table-tbody > tr > td:last-child {
+              padding-right: 16px !important;
+            }
+          `}</style>
+          <DataTable<UserListItem>
+            columns={columns}
+            dataSource={data?.data || []}
+            loading={isLoading}
+            rowSelection
+            bulkActions={bulkActions}
+            onRowClick={handleRowClick}
+            onChange={handleTableChange}
+            showSearch={false}
+            pagination={{
+              current: page,
+              pageSize,
+              total: data?.total || 0,
+              showSizeChanger: true,
+              showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} users`,
+            }}
+            scroll={{ x: 'max-content' }}
+          />
+        </div>
+      </Card>
     </div>
   );
 };

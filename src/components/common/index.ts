@@ -9,5 +9,8 @@ export { DataTable, type DataTableProps, type BulkAction, type ExportOption } fr
 // FilterBar
 export { FilterBar, type FilterBarProps, type FilterConfig, type FilterOption, type FilterType, type QuickFilter } from './FilterBar';
 
+// SearchBox
+export { SearchBox, type SearchBoxProps } from './SearchBox';
+
 // WizardForm
 export { WizardForm, type WizardFormProps, type WizardStep } from './WizardForm';

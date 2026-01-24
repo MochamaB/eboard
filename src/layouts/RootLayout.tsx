@@ -1,7 +1,7 @@
 import { ConfigProvider } from 'antd';
 import { Outlet } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { OrgThemeProvider, useOrgTheme, AuthProvider } from '../contexts';
+import { BoardProvider, useBoardContext, AuthProvider } from '../contexts';
 
 // Create React Query client
 const queryClient = new QueryClient({
@@ -14,26 +14,34 @@ const queryClient = new QueryClient({
   },
 });
 
-// Inner component that uses the theme context
-const ThemedRoot: React.FC = () => {
-  const { antdTheme } = useOrgTheme();
+// Inner component that uses the board context for theming
+const ThemedApp: React.FC = () => {
+  const { antdTheme } = useBoardContext();
   
   return (
     <ConfigProvider theme={antdTheme}>
-      <AuthProvider>
-        <Outlet />
-      </AuthProvider>
+      <Outlet />
     </ConfigProvider>
   );
 };
 
-// Root layout that provides OrgThemeContext (must be inside Router)
+// Board provider wrapper - must be inside AuthProvider since it uses useAuth
+const BoardWrapper: React.FC = () => {
+  return (
+    <BoardProvider>
+      <ThemedApp />
+    </BoardProvider>
+  );
+};
+
+// Root layout - AuthProvider must be outermost (after QueryClient)
+// because BoardProvider depends on useAuth
 export const RootLayout: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
-      <OrgThemeProvider>
-        <ThemedRoot />
-      </OrgThemeProvider>
+      <AuthProvider>
+        <BoardWrapper />
+      </AuthProvider>
     </QueryClientProvider>
   );
 };

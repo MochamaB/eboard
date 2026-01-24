@@ -12,7 +12,7 @@ import {
   SettingOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
-import { useOrgTheme } from '../../contexts';
+import { useBoardContext } from '../../contexts';
 import './Sidebar.css';
 
 const { Sider } = Layout;
@@ -81,15 +81,15 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { orgId } = useParams<{ orgId: string }>();
-  const { theme, currentOrg } = useOrgTheme();
+  const { boardId } = useParams<{ boardId: string }>();
+  const { theme, currentBoard } = useBoardContext();
   const screens = useBreakpoint();
   const isMobile = !screens.md; // md breakpoint = 768px
 
   const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
-    // Navigate with orgId prefix
-    if (orgId) {
-      navigate(`/${orgId}${key}`);
+    // Navigate with boardId prefix
+    if (boardId) {
+      navigate(`/${boardId}${key}`);
     }
   };
 
@@ -162,8 +162,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
             }}
           >
             <img
-              src={currentOrg.logo.small || currentOrg.logo.main}
-              alt={currentOrg.shortName}
+              src={currentBoard.branding?.logo?.small || currentBoard.branding?.logo?.main || ''}
+              alt={currentBoard.shortName}
               style={{ width: 36, height: 36, objectFit: 'contain' }}
             />
           </div>
@@ -184,8 +184,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
             }}
           >
             <img
-              src={currentOrg.logo.small || currentOrg.logo.main}
-              alt={currentOrg.shortName}
+              src={currentBoard.branding?.logo?.small || currentBoard.branding?.logo?.main || ''}
+              alt={currentBoard.shortName}
               style={{ width: 80, height: 80, objectFit: 'contain' }}
             />
           </div>

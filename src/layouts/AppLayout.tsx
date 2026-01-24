@@ -4,8 +4,8 @@ import { Outlet, useParams, useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header/Header';
 import { Sidebar } from '../components/Sidebar/Sidebar';
 import { NavigationBar } from '../components/NavigationBar';
-import { useOrgTheme } from '../contexts';
-import { getOrganizationById } from '../data/organizations';
+import { useBoardContext } from '../contexts';
+import { getBoardById } from '../mocks/db';
 
 const { Content } = Layout;
 const { useBreakpoint } = Grid;
@@ -18,9 +18,9 @@ export const AppLayout: React.FC = () => {
   const screens = useBreakpoint();
   const isMobile = !screens.md; // md breakpoint = 768px
   const sidebarWidth = collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED;
-  const { orgId } = useParams<{ orgId: string }>();
+  const { boardId } = useParams<{ boardId: string }>();
   const navigate = useNavigate();
-  const { currentOrg, setCurrentOrg } = useOrgTheme();
+  const { currentBoard, setCurrentBoard } = useBoardContext();
 
   // Auto-close sidebar drawer on mobile (but keep it ready to open)
   useEffect(() => {
@@ -31,21 +31,21 @@ export const AppLayout: React.FC = () => {
     }
   }, [isMobile]);
 
-  // Sync URL orgId with context on mount and URL change
+  // Sync URL boardId with context on mount and URL change
   useEffect(() => {
-    if (orgId) {
-      const org = getOrganizationById(orgId);
-      if (org) {
+    if (boardId) {
+      const board = getBoardById(boardId);
+      if (board) {
         // Only update context if different from current
-        if (currentOrg.id !== orgId) {
-          setCurrentOrg(orgId);
+        if (currentBoard.id !== boardId) {
+          setCurrentBoard(boardId);
         }
       } else {
-        // Invalid orgId, redirect to default
-        navigate('/ktda-main/dashboard', { replace: true });
+        // Invalid boardId, redirect to default
+        navigate('/ktda-ms/dashboard', { replace: true });
       }
     }
-  }, [orgId, currentOrg.id, setCurrentOrg, navigate]);
+  }, [boardId, currentBoard.id, setCurrentBoard, navigate]);
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
@@ -66,7 +66,7 @@ export const AppLayout: React.FC = () => {
             margin: isMobile ? '16px' : '24px',
             padding: isMobile ? '16px' : '24px',
             minHeight: 280,
-            background: 'transparent',
+            backgroundColor: '#fff',
           }}
         >
           <Outlet />
