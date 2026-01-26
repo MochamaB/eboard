@@ -17,26 +17,27 @@ import {
   Tooltip,
   message,
   Typography,
-  Card,
   Badge,
   Progress,
+  Input,
+  Select,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table/interface';
 import {
-  PlusOutlined,
   EyeOutlined,
   EditOutlined,
   TeamOutlined,
   CalendarOutlined,
   ApartmentOutlined,
+  ReloadOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 
 import { useBoardContext } from '../../contexts';
 import { useBoards } from '../../hooks/api';
-import { DataTable, SearchBox, FilterBar } from '../../components/common';
-import type { FilterConfig } from '../../components/common';
+import { DataTable, IndexPageLayout, type TabItem } from '../../components/common';
 import type { BoardListItem, BoardStatus, Zone } from '../../types/board.types';
 
 dayjs.extend(relativeTime);
@@ -60,11 +61,6 @@ const ZONE_LABELS: Record<Zone, string> = {
   zone_5: 'Zone 5',
   zone_6: 'Zone 6',
   zone_7: 'Zone 7',
-  zone_8: 'Zone 8',
-  zone_9: 'Zone 9',
-  zone_10: 'Zone 10',
-  zone_11: 'Zone 11',
-  zone_12: 'Zone 12',
 };
 
 export const BoardsIndexPage: React.FC = () => {
@@ -72,7 +68,7 @@ export const BoardsIndexPage: React.FC = () => {
   const { currentBoard, activeCommittee, theme, viewMode } = useBoardContext();
 
   // Filter state
-  const [statusFilter, setStatusFilter] = useState<BoardStatus | undefined>();
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [zoneFilter, setZoneFilter] = useState<Zone | undefined>();
   const [searchValue, setSearchValue] = useState('');
   const [page, setPage] = useState(1);
@@ -80,7 +76,7 @@ export const BoardsIndexPage: React.FC = () => {
 
   // Reset filters when board changes
   useEffect(() => {
-    setStatusFilter(undefined);
+    setStatusFilter('all');
     setZoneFilter(undefined);
     setSearchValue('');
     setPage(1);
@@ -119,7 +115,7 @@ export const BoardsIndexPage: React.FC = () => {
   // Build filter params for API
   const filterParams = useMemo(() => ({
     search: searchValue || undefined,
-    status: statusFilter,
+    status: statusFilter !== 'all' ? (statusFilter as BoardStatus) : undefined,
     zone: zoneFilter,
     boardId: boardIdFilter,
     parentId: parentIdFilter,
@@ -131,60 +127,25 @@ export const BoardsIndexPage: React.FC = () => {
   // Fetch boards
   const { data, isLoading, refetch } = useBoards(filterParams);
 
-  // Filter configurations
-  const filterConfigs: FilterConfig[] = useMemo(() => {
-    const configs: FilterConfig[] = [
-      {
-        key: 'status',
-        label: 'Status',
-        type: 'select',
-        placeholder: 'All Statuses',
-        width: 140,
-        options: [
-          { label: 'Active', value: 'active' },
-          { label: 'Inactive', value: 'inactive' },
-        ],
-      },
+  // Quick filters (status tabs)
+  const quickFilters = useMemo(() => {
+    const total = data?.total || 0;
+    return [
+      { key: 'all', label: 'All', count: total },
+      { key: 'active', label: 'Active' },
+      { key: 'inactive', label: 'Inactive' },
     ];
+  }, [data?.total]);
 
-    // Only show zone filter for factory boards
-    if (currentBoard?.type === 'factory' || currentBoard?.type === 'main') {
-      configs.push({
-        key: 'zone',
-        label: 'Zone',
-        type: 'select',
-        placeholder: 'All Zones',
-        width: 140,
-        options: Object.entries(ZONE_LABELS).map(([value, label]) => ({
-          label,
-          value,
-        })),
-      });
-    }
-
-    return configs;
-  }, [currentBoard?.type]);
-
-  // Filter values for FilterBar
-  const filterValues = useMemo(() => ({
-    status: statusFilter,
-    zone: zoneFilter,
-  }), [statusFilter, zoneFilter]);
-
-  // Handle filter change
-  const handleFilterChange = useCallback((key: string, value: unknown) => {
-    if (key === 'status') {
-      setStatusFilter(value as BoardStatus | undefined);
-    } else if (key === 'zone') {
-      setZoneFilter(value as Zone | undefined);
-    }
+  // Handle quick filter change (tabs)
+  const handleQuickFilterChange = useCallback((key: string) => {
+    setStatusFilter(key);
     setPage(1);
   }, []);
 
-  // Handle filter reset
-  const handleFilterReset = useCallback(() => {
-    setStatusFilter(undefined);
-    setZoneFilter(undefined);
+  // Handle search
+  const handleSearch = useCallback((value: string) => {
+    setSearchValue(value);
     setPage(1);
   }, []);
 
@@ -311,14 +272,14 @@ export const BoardsIndexPage: React.FC = () => {
       align: 'center',
       render: (_, record) => (
         <Space size="small">
-          <Tooltip title="View">
+          <Tooltip title="View Details">
             <Button
               type="text"
               size="small"
               icon={<EyeOutlined />}
               onClick={(e) => {
                 e.stopPropagation();
-                navigate(`/${currentBoard?.id}/boards/${record.id}`);
+                navigate(`/${currentBoard?.id}/boards/${record.id}/details`);
               }}
             />
           </Tooltip>
@@ -351,7 +312,7 @@ export const BoardsIndexPage: React.FC = () => {
 
   // Handle row click
   const handleRowClick = useCallback((record: BoardListItem) => {
-    navigate(`/${currentBoard?.id}/boards/${record.id}`);
+    navigate(`/${currentBoard?.id}/boards/${record.id}/details`);
   }, [navigate, currentBoard?.id]);
 
   // Handle table change (pagination, sorting)
@@ -365,79 +326,90 @@ export const BoardsIndexPage: React.FC = () => {
     navigate(`/${currentBoard?.id}/boards/create`);
   }, [navigate, currentBoard?.id]);
 
+  // Tab items for IndexPageLayout
+  const tabs: TabItem[] = quickFilters.map(filter => ({
+    key: filter.key,
+    label: filter.label,
+    count: filter.count,
+  }));
+
   return (
-    <div style={{ padding: '0 24px 24px' }}>
-      {/* Page Header */}
-      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <Typography.Title level={3} style={{ margin: 0, marginBottom: 4 }}>
-            Boards
-          </Typography.Title>
-          <Text type="secondary">
-            Manage boards and committees
-            {currentBoard && (
-              <> under <strong>{currentBoard.name}</strong></>
-            )}
-          </Text>
-        </div>
-        <Button 
-          type="primary" 
-          icon={<PlusOutlined />} 
-          onClick={handleCreateBoard} 
-          size="large"
-        >
-          New Board
-        </Button>
+    <IndexPageLayout
+      title="Boards"
+      subtitle={`Manage boards and committees under ${currentBoard?.name}`}
+      subtitleAll="Manage all boards and committees"
+      tabs={tabs}
+      activeTab={statusFilter}
+      onTabChange={handleQuickFilterChange}
+      primaryActionLabel="New Board"
+      onPrimaryAction={handleCreateBoard}
+    >
+
+      {/* Search and Filters Bar */}
+      <div style={{ marginBottom: 24, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+        {/* Search Input */}
+        <Input.Search
+          placeholder="Search boards..."
+          value={searchValue}
+          onChange={(e) => setSearchValue(e.target.value)}
+          onSearch={handleSearch}
+          allowClear
+          style={{ width: 320 }}
+        />
+
+        {/* Zone Filter - only show for factory boards or main board */}
+        {(currentBoard?.type === 'factory' || currentBoard?.type === 'main') && (
+          <Select
+            placeholder="All Zones"
+            value={zoneFilter}
+            onChange={(value) => {
+              setZoneFilter(value);
+              setPage(1);
+            }}
+            allowClear
+            style={{ width: 180 }}
+            options={[
+              { label: 'All Zones', value: undefined },
+              ...Object.entries(ZONE_LABELS).map(([value, label]) => ({
+                label,
+                value,
+              })),
+            ]}
+          />
+        )}
+
+        <div style={{ flex: 1 }} />
+
+        {/* Action Buttons */}
+        <Space>
+          <Button icon={<ReloadOutlined />} onClick={() => refetch()}>
+            Refresh
+          </Button>
+          <Button icon={<DownloadOutlined />} onClick={() => message.info('Exporting...')}>
+            Export
+          </Button>
+        </Space>
       </div>
 
-      {/* Main Card */}
-      <Card 
-        bordered={false} 
-        style={{ 
-          boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02)' 
+      {/* Data Table */}
+      <DataTable<BoardListItem>
+        columns={columns}
+        dataSource={data?.data || []}
+        loading={isLoading}
+        rowKey="id"
+        showSearch={false}
+        pagination={{
+          current: page,
+          pageSize: pageSize,
+          total: data?.total || 0,
+          showSizeChanger: true,
+          showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} boards`,
         }}
-      >
-        {/* Search and Filters Row */}
-        <div style={{ marginBottom: 16, display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-          <SearchBox
-            value={searchValue}
-            onChange={setSearchValue}
-            placeholder="Search boards..."
-            width={280}
-          />
-          <FilterBar
-            filters={filterConfigs}
-            values={filterValues}
-            onChange={handleFilterChange}
-            onReset={handleFilterReset}
-            compact
-          />
-          <div style={{ marginLeft: 'auto' }}>
-            <Button onClick={() => refetch()}>
-              Refresh
-            </Button>
-          </div>
-        </div>
-
-        {/* Data Table */}
-        <DataTable<BoardListItem>
-          columns={columns}
-          dataSource={data?.data || []}
-          loading={isLoading}
-          rowKey="id"
-          pagination={{
-            current: page,
-            pageSize: pageSize,
-            total: data?.total || 0,
-            showSizeChanger: true,
-            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} boards`,
-          }}
-          onChange={handleTableChange}
-          onRowClick={handleRowClick}
-          scroll={{ x: 1100 }}
-        />
-      </Card>
-    </div>
+        onChange={handleTableChange}
+        onRowClick={handleRowClick}
+        scroll={{ x: 1100 }}
+      />
+    </IndexPageLayout>
   );
 };
 

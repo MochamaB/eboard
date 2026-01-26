@@ -11,6 +11,7 @@ import {
 } from '@ant-design/icons';
 import { colors } from '../../theme';
 import { useOrgTheme, useAuth } from '../../contexts';
+import { BoardSelector } from './BoardSelector';
 
 const { Header: AntHeader } = Layout;
 
@@ -133,7 +134,7 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) =
         zIndex: 100,
       }}
     >
-      {/* Left section - Menu toggle */}
+      {/* Left section - Menu toggle + Board Selector */}
       <Space size="middle" align="center">
         <Button
           type="text"
@@ -141,10 +142,12 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) =
           onClick={onToggleCollapse}
           style={{ fontSize: 16, width: 40, height: 40 }}
         />
+        <BoardSelector />
       </Space>
 
-      {/* Center - Search */}
+      {/* Center - Search (hidden on mobile) */}
       <Input
+        className="header-search-bar"
         placeholder="Search meetings, documents, users..."
         prefix={<SearchOutlined style={{ color: colors.textMuted }} />}
         style={{
@@ -183,7 +186,7 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) =
               style={{ backgroundColor: theme.primaryColor }}
               icon={<UserOutlined />}
             />
-            <div style={{ lineHeight: 1.3 }}>
+            <div className="header-user-info" style={{ lineHeight: 1.3 }}>
               <div style={{ color: colors.textPrimary, fontWeight: 500 }}>
                 {user?.fullName || 'Guest'}
               </div>

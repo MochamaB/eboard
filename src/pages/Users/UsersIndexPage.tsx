@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Button,
   Space,
@@ -14,20 +14,16 @@ import {
   Tooltip,
   message,
   Typography,
-  Card,
-  Tabs,
   Input,
   Select,
   Badge,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table/interface';
 import {
-  PlusOutlined,
   MailOutlined,
   StopOutlined,
   EyeOutlined,
   EditOutlined,
-  SearchOutlined,
   ReloadOutlined,
   DownloadOutlined,
 } from '@ant-design/icons';
@@ -36,7 +32,7 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 
 import { useBoardContext } from '../../contexts';
 import { useUsers, useBulkDeactivateUsers } from '../../hooks/api';
-import { DataTable } from '../../components/common';
+import { DataTable, IndexPageLayout, type TabItem } from '../../components/common';
 import type { BulkAction } from '../../components/common/DataTable';
 import type { QuickFilter } from '../../components/common/FilterBar';
 import type { UserListItem, UserStatus } from '../../types';
@@ -58,7 +54,11 @@ const getInitials = (name: string): string => {
 
 export const UsersIndexPage: React.FC = () => {
   const navigate = useNavigate();
-  const { currentBoard, activeCommittee, theme } = useBoardContext();
+  const location = useLocation();
+  const { currentBoard, activeCommittee, theme, viewMode: boardViewMode, allBoards } = useBoardContext();
+
+  // Check if we're in "View All" mode (route is /all/users)
+  const isAllBoardsView = location.pathname.startsWith('/all/');
 
   // Filter state
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -66,17 +66,26 @@ export const UsersIndexPage: React.FC = () => {
   const [searchValue, setSearchValue] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  
+  // Board filter for "View All" mode
+  const [selectedBoardId, setSelectedBoardId] = useState<string | undefined>();
 
-  // Reset filters when board changes
+  // Reset filters when board changes or view mode changes
   useEffect(() => {
     setStatusFilter('all');
     setRoleFilter(undefined);
     setSearchValue('');
     setPage(1);
-  }, [currentBoard?.id]);
+    setSelectedBoardId(undefined);
+  }, [currentBoard?.id, isAllBoardsView]);
 
-  // Determine board filter based on org context
+  // Determine board filter based on view mode and org context
   const effectiveBoardId = useMemo(() => {
+    // In "View All" mode, use selectedBoardId if set, otherwise undefined (all boards)
+    if (isAllBoardsView || boardViewMode === 'all') {
+      return selectedBoardId; // undefined = all boards, or specific board if selected
+    }
+    
     // If viewing a specific committee (not 'all' or 'board'), filter by that committee
     if (activeCommittee && activeCommittee !== 'all' && activeCommittee !== 'board') {
       return activeCommittee;
@@ -85,7 +94,7 @@ export const UsersIndexPage: React.FC = () => {
     if (currentBoard) return currentBoard.id;
     // Otherwise, show all users (KTDA Group view or 'all' tab)
     return undefined;
-  }, [activeCommittee, currentBoard]);
+  }, [activeCommittee, currentBoard, isAllBoardsView, boardViewMode, selectedBoardId]);
 
   // Build filter params
   const filterParams = useMemo(() => ({
@@ -145,8 +154,8 @@ export const UsersIndexPage: React.FC = () => {
       align: 'center',
       sorter: true,
       render: (count: number) => (
-        <Tooltip title={`Member of ${count} board(s)`}>
-          <Badge count={count} showZero style={{ backgroundColor: theme.primaryColor }} />
+        <Tooltip title={`Member of ${count || 0} board(s)`}>
+          <Badge count={count || 0} showZero style={{ backgroundColor: theme.primaryColor }} />
         </Tooltip>
       ),
     },
@@ -183,7 +192,7 @@ export const UsersIndexPage: React.FC = () => {
       key: 'lastLogin',
       width: 130,
       sorter: true,
-      render: (date: string | null) => (
+      render: (date: string | null | undefined) => (
         <Text type="secondary" style={{ whiteSpace: 'nowrap' }}>
           {date ? dayjs(date).fromNow() : 'Never'}
         </Text>
@@ -286,9 +295,12 @@ export const UsersIndexPage: React.FC = () => {
     setPage(1);
   }, []);
 
+  // Determine route prefix for navigation
+  const routePrefix = isAllBoardsView ? 'all' : currentBoard?.id;
+
   const handleRowClick = useCallback((record: UserListItem) => {
-    navigate(`/${currentBoard?.id}/users/${record.id}`);
-  }, [navigate, currentBoard?.id]);
+    navigate(`/${routePrefix}/users/${record.id}`);
+  }, [navigate, routePrefix]);
 
   const handleTableChange = useCallback((pagination: any) => {
     setPage(pagination.current || 1);
@@ -296,54 +308,28 @@ export const UsersIndexPage: React.FC = () => {
   }, []);
 
   const handleCreateUser = useCallback(() => {
-    navigate(`/${currentBoard?.id}/users/create`);
-  }, [navigate, currentBoard?.id]);
+    navigate(`/${routePrefix}/users/create`);
+  }, [navigate, routePrefix]);
 
-  // Tab items for status filtering
-  const tabItems = quickFilters.map(filter => ({
+  // Tab items for IndexPageLayout
+  const tabs: TabItem[] = quickFilters.map(filter => ({
     key: filter.key,
-    label: filter.count !== undefined ? (
-      <span>
-        {filter.label} <Badge count={filter.count} style={{ backgroundColor: theme.primaryColor }} />
-      </span>
-    ) : filter.label,
+    label: filter.label,
+    count: filter.count,
   }));
 
   return (
-    <div style={{ padding: '0 24px 24px' }}>
-      {/* Page Header */}
-      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <Typography.Title level={3} style={{ margin: 0, marginBottom: 4 }}>Users</Typography.Title>
-          <Text type="secondary">
-            Manage users and their board memberships
-            {currentBoard && (
-              <> for <strong>{currentBoard.name}</strong></>
-            )}
-          </Text>
-        </div>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateUser} size="large">
-          Create User
-        </Button>
-      </div>
-
-      {/* Main Card */}
-      <Card bordered={false} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02)' }}>
-        {/* Status Tabs */}
-        <Tabs
-          activeKey={statusFilter}
-          onChange={handleQuickFilterChange}
-          type="line"
-          size="large"
-          style={{ marginBottom: 24 }}
-          tabBarStyle={{ 
-            borderBottom: `2px solid ${theme.borderColor}`,
-            marginBottom: 0,
-          }}
-          items={tabItems}
-        />
-
-        {/* Search and Filters Bar */}
+    <IndexPageLayout
+      title="Users"
+      subtitle={`Manage users and their board memberships for ${currentBoard?.name}`}
+      subtitleAll="Manage users across all boards"
+      tabs={tabs}
+      activeTab={statusFilter}
+      onTabChange={handleQuickFilterChange}
+      primaryActionLabel="Create User"
+      onPrimaryAction={handleCreateUser}
+    >
+      {/* Search and Filters Bar */}
         <div style={{ marginBottom: 24, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
           {/* Search Input */}
           <Input.Search
@@ -354,6 +340,27 @@ export const UsersIndexPage: React.FC = () => {
             allowClear
             style={{ width: 320 }}
           />
+
+          {/* Board filter - only shown in "View All" mode */}
+          {isAllBoardsView && (
+            <Select
+              placeholder="All Boards"
+              value={selectedBoardId}
+              onChange={(value) => {
+                setSelectedBoardId(value);
+                setPage(1);
+              }}
+              allowClear
+              style={{ width: 200 }}
+              options={[
+                { label: 'All Boards', value: undefined },
+                ...allBoards.map(board => ({
+                  label: board.name,
+                  value: board.id,
+                })),
+              ]}
+            />
+          )}
 
           {/* Role Filter */}
           <Select
@@ -416,8 +423,7 @@ export const UsersIndexPage: React.FC = () => {
             scroll={{ x: 'max-content' }}
           />
         </div>
-      </Card>
-    </div>
+    </IndexPageLayout>
   );
 };
 

@@ -16,21 +16,17 @@ import type {
   RescheduleMeetingPayload,
 } from '../../types/meeting.types';
 import {
-  getMeetingById,
   getMeetingsByBoard,
   getMeetingsByBoardWithCommittees,
-  getMeetingsByStatus,
   getUpcomingMeetings,
   getPendingConfirmationMeetings,
   getAllMeetingObjects,
   getAllMeetingListItems,
-  toMeetingObject,
   toMeetingListItem,
-  filterMeetings,
 } from '../db/queries/meetingQueries';
-import { getBoardById } from '../db/queries/boardQueries';
-import { meetingsTable, type MeetingRow } from '../db/tables/meetings';
-import { meetingParticipantsTable } from '../db/tables/meetingParticipants';
+import { getBoardById, getBoardMembers } from '../db/queries/boardQueries';
+import { boardsTable } from '../db/tables/boards';
+import { usersTable } from '../db/tables/users';
 
 // In-memory storage for created/updated meetings
 let meetings = getAllMeetingObjects();
@@ -38,6 +34,34 @@ let meetingListItems = getAllMeetingListItems();
 
 // Helper to generate new meeting ID
 const generateMeetingId = () => `mtg-new-${Date.now()}`;
+
+// Helper to get board members as meeting participants
+const getBoardMembersAsParticipants = (boardId: string) => {
+  const members = getBoardMembers(boardId);
+  return members.filter(m => m !== null).map(member => {
+    const user = usersTable.find(u => u.id === member!.id);
+    return {
+      id: `part-${member!.id}`,
+      userId: member!.id,
+      name: user?.fullName || member!.odooUserName || 'Unknown User',
+      email: member!.email || user?.email || '',
+      avatar: member!.avatar || user?.avatar,
+      boardRole: (member!.role || 'board_member') as 'board_member',
+      rsvpStatus: 'no_response' as const,
+      isGuest: false,
+      canViewDocuments: true,
+      canShareScreen: true,
+      receiveMinutes: true,
+    };
+  });
+};
+
+// Helper to get parent board name
+const getParentBoardName = (parentId: string | null): string | undefined => {
+  if (!parentId) return undefined;
+  const parent = boardsTable.find(b => b.id === parentId);
+  return parent?.name;
+};
 
 // Helper to calculate pagination
 const paginate = <T,>(data: T[], page: number = 1, pageSize: number = 20) => {
@@ -56,8 +80,8 @@ const paginate = <T,>(data: T[], page: number = 1, pageSize: number = 20) => {
   };
 };
 
-// Helper to filter meetings
-const filterMeetings = (params: MeetingFilterParams): MeetingListItem[] => {
+// Helper to filter meetings (using imported filterMeetings from queries)
+const filterMeetingsLocal = (params: MeetingFilterParams): MeetingListItem[] => {
   let filtered = [...meetingListItems];
 
   // Board filtering
@@ -83,10 +107,10 @@ const filterMeetings = (params: MeetingFilterParams): MeetingListItem[] => {
     filtered = filtered.filter(m => m.boardId === params.committeeId && m.boardType === 'committee');
   }
 
-  // Status filtering
+  // Status filtering - handle both single status and array of statuses
   if (params.status) {
     const statuses = Array.isArray(params.status) ? params.status : [params.status];
-    filtered = filtered.filter(m => statuses.includes(m.status));
+    filtered = filtered.filter(m => statuses.includes(m.status as string));
   }
 
   // Meeting type filtering
@@ -157,13 +181,27 @@ export const meetingsHandlers = [
   // Get meetings with filters
   http.get('/api/meetings', ({ request }) => {
     const url = new URL(request.url);
+    
+    // Parse status - can be single value, comma-separated, or array format (status[]=x&status[]=y)
+    let statusParam: string | string[] | undefined;
+    const statusValues = url.searchParams.getAll('status[]');
+    if (statusValues.length > 0) {
+      statusParam = statusValues;
+    } else {
+      const singleStatus = url.searchParams.get('status');
+      if (singleStatus) {
+        // Check if comma-separated
+        statusParam = singleStatus.includes(',') ? singleStatus.split(',') : singleStatus;
+      }
+    }
+    
     const params: MeetingFilterParams = {
       boardId: url.searchParams.get('boardId') || undefined,
       boardIds: url.searchParams.get('boardIds')?.split(',') || undefined,
       boardType: url.searchParams.get('boardType') || undefined,
       includeCommittees: url.searchParams.get('includeCommittees') === 'true',
       committeeId: url.searchParams.get('committeeId') || undefined,
-      status: url.searchParams.get('status') || undefined,
+      status: statusParam,
       meetingType: url.searchParams.get('meetingType') || undefined,
       dateFrom: url.searchParams.get('dateFrom') || undefined,
       dateTo: url.searchParams.get('dateTo') || undefined,
@@ -177,7 +215,7 @@ export const meetingsHandlers = [
       sortOrder: (url.searchParams.get('sortOrder') as 'ascend' | 'descend') || undefined,
     };
 
-    const filtered = filterMeetings(params);
+    const filtered = filterMeetingsLocal(params);
     const paginated = paginate(filtered, params.page, params.pageSize);
 
     return HttpResponse.json(paginated);
@@ -191,33 +229,15 @@ export const meetingsHandlers = [
     const page = parseInt(url.searchParams.get('page') || '1');
     const pageSize = parseInt(url.searchParams.get('pageSize') || '20');
 
-    let boardMeetings: Meeting[];
+    let boardMeetingRows;
     if (includeCommittees) {
-      boardMeetings = getMeetingsByBoardWithCommittees(boardId as string);
+      boardMeetingRows = getMeetingsByBoardWithCommittees(boardId as string);
     } else {
-      boardMeetings = getMeetingsByBoard(boardId as string);
+      boardMeetingRows = getMeetingsByBoard(boardId as string);
     }
 
-    const listItems: MeetingListItem[] = boardMeetings.map(m => ({
-      id: m.id,
-      boardId: m.boardId,
-      boardName: m.boardName,
-      boardType: m.boardType,
-      parentBoardName: m.parentBoardName,
-      title: m.title,
-      meetingType: m.meetingType,
-      startDate: m.startDate,
-      startTime: m.startTime,
-      duration: m.duration,
-      locationType: m.locationType,
-      status: m.status,
-      participantCount: m.participants.length,
-      quorumPercentage: m.quorumPercentage,
-      requiresConfirmation: m.requiresConfirmation,
-      confirmationStatus: m.confirmationStatus,
-      createdByName: m.createdByName,
-      createdAt: m.createdAt,
-    }));
+    // Use the transformation function to get proper list items
+    const listItems = boardMeetingRows.map(row => toMeetingListItem(row));
 
     const paginated = paginate(listItems, page, pageSize);
     return HttpResponse.json(paginated);
@@ -295,8 +315,8 @@ export const meetingsHandlers = [
       status: requiresConfirmation ? 'pending_confirmation' : 'draft',
       isRecurring: payload.isRecurring || false,
       recurrencePattern: payload.recurrencePattern,
-      createdBy: '4', // Mock user
-      createdByName: 'Jane Mwangi',
+      createdBy: '17', // Mock user - Kenneth Muhia (Company Secretary)
+      createdByName: 'Kenneth Mwangi Muhia',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -316,9 +336,13 @@ export const meetingsHandlers = [
       startTime: newMeeting.startTime,
       duration: newMeeting.duration,
       locationType: newMeeting.locationType,
+      physicalLocation: newMeeting.physicalAddress || null,
+      meetingLink: newMeeting.virtualMeetingLink || null,
       status: newMeeting.status,
       participantCount: newMeeting.participants.length,
+      expectedAttendees: newMeeting.expectedAttendees,
       quorumPercentage: newMeeting.quorumPercentage,
+      quorumRequired: newMeeting.quorumRequired,
       requiresConfirmation: newMeeting.requiresConfirmation,
       confirmationStatus: newMeeting.confirmationStatus,
       createdByName: newMeeting.createdByName,
@@ -539,8 +563,8 @@ export const meetingsHandlers = [
     const meeting = meetings[meetingIndex];
     meeting.status = 'confirmed';
     meeting.confirmationStatus = 'approved';
-    meeting.confirmedBy = '5'; // Mock Company Secretary
-    meeting.confirmedByName = 'Sarah Kimani';
+    meeting.confirmedBy = '17'; // Mock Company Secretary - Kenneth Muhia
+    meeting.confirmedByName = 'Kenneth Mwangi Muhia';
     meeting.confirmedAt = new Date().toISOString();
     meeting.updatedAt = new Date().toISOString();
 
@@ -702,26 +726,7 @@ export const meetingsHandlers = [
     const limit = parseInt(url.searchParams.get('limit') || '5');
 
     const upcoming = getUpcomingMeetings(limit);
-    const listItems: MeetingListItem[] = upcoming.map(m => ({
-      id: m.id,
-      boardId: m.boardId,
-      boardName: m.boardName,
-      boardType: m.boardType,
-      parentBoardName: m.parentBoardName,
-      title: m.title,
-      meetingType: m.meetingType,
-      startDate: m.startDate,
-      startTime: m.startTime,
-      duration: m.duration,
-      locationType: m.locationType,
-      status: m.status,
-      participantCount: m.participants.length,
-      quorumPercentage: m.quorumPercentage,
-      requiresConfirmation: m.requiresConfirmation,
-      confirmationStatus: m.confirmationStatus,
-      createdByName: m.createdByName,
-      createdAt: m.createdAt,
-    }));
+    const listItems = upcoming.map(row => toMeetingListItem(row));
 
     return HttpResponse.json({ data: listItems, total: listItems.length });
   }),
@@ -729,26 +734,7 @@ export const meetingsHandlers = [
   // Get pending confirmations
   http.get('/api/meetings/pending-confirmation', () => {
     const pending = getPendingConfirmationMeetings();
-    const listItems: MeetingListItem[] = pending.map(m => ({
-      id: m.id,
-      boardId: m.boardId,
-      boardName: m.boardName,
-      boardType: m.boardType,
-      parentBoardName: m.parentBoardName,
-      title: m.title,
-      meetingType: m.meetingType,
-      startDate: m.startDate,
-      startTime: m.startTime,
-      duration: m.duration,
-      locationType: m.locationType,
-      status: m.status,
-      participantCount: m.participants.length,
-      quorumPercentage: m.quorumPercentage,
-      requiresConfirmation: m.requiresConfirmation,
-      confirmationStatus: m.confirmationStatus,
-      createdByName: m.createdByName,
-      createdAt: m.createdAt,
-    }));
+    const listItems = pending.map(row => toMeetingListItem(row));
 
     return HttpResponse.json({ data: listItems, total: listItems.length });
   }),

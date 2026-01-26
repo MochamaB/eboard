@@ -86,10 +86,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
   const screens = useBreakpoint();
   const isMobile = !screens.md; // md breakpoint = 768px
 
+  // Check if we're in "View All" mode (route starts with /all/)
+  const isAllView = location.pathname.startsWith('/all/');
+  
+  // Determine the route prefix - use 'all' for View All mode, otherwise use boardId
+  const routePrefix = isAllView ? 'all' : (boardId || currentBoard?.id);
+
   const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
-    // Navigate with boardId prefix
-    if (boardId) {
-      navigate(`/${boardId}${key}`);
+    // Navigate with appropriate prefix (boardId or 'all')
+    if (routePrefix) {
+      navigate(`/${routePrefix}${key}`);
     }
   };
 
@@ -162,7 +168,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
             }}
           >
             <img
-              src={currentBoard.branding?.logo?.small || currentBoard.branding?.logo?.main || ''}
+              src={currentBoard.branding?.logo?.main || currentBoard.branding?.logo?.small || ''}
               alt={currentBoard.shortName}
               style={{ width: 36, height: 36, objectFit: 'contain' }}
             />
@@ -184,7 +190,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
             }}
           >
             <img
-              src={currentBoard.branding?.logo?.small || currentBoard.branding?.logo?.main || ''}
+              src={currentBoard.branding?.logo?.main || currentBoard.branding?.logo?.small || ''}
               alt={currentBoard.shortName}
               style={{ width: 80, height: 80, objectFit: 'contain' }}
             />
@@ -217,6 +223,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
         onClose={() => onCollapse(true)}
         open={!collapsed}
         closable={false}
+        size="default"
         width={250}
         styles={{
           body: {

@@ -80,7 +80,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     admittedAt: null,
     removedAt: null,
     isRequired: true,
-    addedBy: 30,
+    addedBy: 17,
     addedAt: '2025-02-01T08:00:00Z',
   },
   // Vice Chairman
@@ -106,7 +106,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     admittedAt: null,
     removedAt: null,
     isRequired: true,
-    addedBy: 30,
+    addedBy: 17,
     addedAt: '2025-02-01T08:00:00Z',
   },
   // Board Members
@@ -132,7 +132,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     admittedAt: null,
     removedAt: null,
     isRequired: true,
-    addedBy: 30,
+    addedBy: 17,
     addedAt: '2025-02-01T08:00:00Z',
   },
   {
@@ -157,7 +157,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     admittedAt: null,
     removedAt: null,
     isRequired: true,
-    addedBy: 30,
+    addedBy: 17,
     addedAt: '2025-02-01T08:00:00Z',
   },
   {
@@ -182,7 +182,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     admittedAt: null,
     removedAt: null,
     isRequired: true,
-    addedBy: 30,
+    addedBy: 17,
     addedAt: '2025-02-01T08:00:00Z',
   },
   {
@@ -207,7 +207,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     admittedAt: null,
     removedAt: null,
     isRequired: true,
-    addedBy: 30,
+    addedBy: 17,
     addedAt: '2025-02-01T08:00:00Z',
   },
   {
@@ -232,7 +232,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     admittedAt: null,
     removedAt: null,
     isRequired: true,
-    addedBy: 30,
+    addedBy: 17,
     addedAt: '2025-02-01T08:00:00Z',
   },
   {
@@ -257,14 +257,14 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     admittedAt: null,
     removedAt: null,
     isRequired: true,
-    addedBy: 30,
+    addedBy: 17,
     addedAt: '2025-02-01T08:00:00Z',
   },
   // Secretary
   {
     id: 'part-009',
     meetingId: 'mtg-001',
-    userId: 30, // Kenneth Muhia (Company Secretary)
+    userId: 17, // Kenneth Muhia (Company Secretary)
     participantType: 'secretary',
     roleTitle: 'Company Secretary',
     rsvpStatus: 'accepted',
@@ -283,7 +283,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     admittedAt: null,
     removedAt: null,
     isRequired: true,
-    addedBy: 30,
+    addedBy: 17,
     addedAt: '2025-02-01T08:00:00Z',
   },
   // Guest Presenter (Finance Director)
@@ -309,7 +309,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     admittedAt: null,
     removedAt: null,
     isRequired: false,
-    addedBy: 30,
+    addedBy: 17,
     addedAt: '2025-02-10T08:00:00Z',
   },
 
@@ -338,7 +338,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     admittedAt: null,
     removedAt: null,
     isRequired: true,
-    addedBy: 30,
+    addedBy: 17,
     addedAt: '2024-11-01T08:00:00Z',
   },
   {
@@ -363,7 +363,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     admittedAt: null,
     removedAt: null,
     isRequired: true,
-    addedBy: 30,
+    addedBy: 17,
     addedAt: '2024-11-01T08:00:00Z',
   },
   {
@@ -388,13 +388,13 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     admittedAt: null,
     removedAt: null,
     isRequired: true,
-    addedBy: 30,
+    addedBy: 17,
     addedAt: '2024-11-01T08:00:00Z',
   },
   {
     id: 'part-014',
     meetingId: 'mtg-003',
-    userId: 30,
+    userId: 17,
     participantType: 'secretary',
     roleTitle: 'Company Secretary',
     rsvpStatus: 'accepted',
@@ -413,7 +413,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     admittedAt: null,
     removedAt: null,
     isRequired: true,
-    addedBy: 30,
+    addedBy: 17,
     addedAt: '2024-11-01T08:00:00Z',
   },
 
@@ -442,7 +442,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     admittedAt: null,
     removedAt: null,
     isRequired: true,
-    addedBy: 31,
+    addedBy: 18,
     addedAt: '2025-02-10T08:00:00Z',
   },
   {
@@ -467,7 +467,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     admittedAt: null,
     removedAt: null,
     isRequired: true,
-    addedBy: 31,
+    addedBy: 18,
     addedAt: '2025-02-10T08:00:00Z',
   },
   {
@@ -492,13 +492,13 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     admittedAt: null,
     removedAt: null,
     isRequired: true,
-    addedBy: 31,
+    addedBy: 18,
     addedAt: '2025-02-10T08:00:00Z',
   },
   {
     id: 'part-023',
     meetingId: 'mtg-004',
-    userId: 31, // Isaac Chege (Board Secretary)
+    userId: 18, // Isaac Chege (Board Secretary)
     participantType: 'secretary',
     roleTitle: 'Board Secretary',
     rsvpStatus: 'accepted',
@@ -517,7 +517,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     admittedAt: null,
     removedAt: null,
     isRequired: true,
-    addedBy: 31,
+    addedBy: 18,
     addedAt: '2025-02-10T08:00:00Z',
   },
   // Guest: External Auditor
@@ -543,7 +543,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     admittedAt: null,
     removedAt: null,
     isRequired: false,
-    addedBy: 31,
+    addedBy: 18,
     addedAt: '2025-02-15T08:00:00Z',
   },
 
@@ -572,7 +572,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     admittedAt: null,
     removedAt: null,
     isRequired: true,
-    addedBy: 32,
+    addedBy: 19,
     addedAt: '2025-01-10T08:00:00Z',
   },
   {
@@ -597,7 +597,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     admittedAt: null,
     removedAt: null,
     isRequired: true,
-    addedBy: 32,
+    addedBy: 19,
     addedAt: '2025-01-10T08:00:00Z',
   },
   {
@@ -622,13 +622,13 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     admittedAt: null,
     removedAt: null,
     isRequired: true,
-    addedBy: 32,
+    addedBy: 19,
     addedAt: '2025-01-10T08:00:00Z',
   },
   {
     id: 'part-033',
     meetingId: 'mtg-005',
-    userId: 32, // Jane Mukunua
+    userId: 19, // Jane Njeri
     participantType: 'secretary',
     roleTitle: 'Board Secretary',
     rsvpStatus: 'accepted',
@@ -647,7 +647,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     admittedAt: null,
     removedAt: null,
     isRequired: true,
-    addedBy: 32,
+    addedBy: 19,
     addedAt: '2025-01-10T08:00:00Z',
   },
 
@@ -676,7 +676,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     admittedAt: null,
     removedAt: null,
     isRequired: true,
-    addedBy: 31,
+    addedBy: 18,
     addedAt: '2025-01-05T08:00:00Z',
   },
   {
@@ -701,13 +701,13 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     admittedAt: null,
     removedAt: null,
     isRequired: true,
-    addedBy: 31,
+    addedBy: 18,
     addedAt: '2025-01-05T08:00:00Z',
   },
   {
     id: 'part-042',
     meetingId: 'mtg-008',
-    userId: 31, // Board Secretary
+    userId: 18, // Board Secretary
     participantType: 'secretary',
     roleTitle: 'Board Secretary',
     rsvpStatus: 'accepted',
@@ -726,7 +726,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     admittedAt: null,
     removedAt: null,
     isRequired: true,
-    addedBy: 31,
+    addedBy: 18,
     addedAt: '2025-01-05T08:00:00Z',
   },
   // Guest: Sales Manager presenting
@@ -752,7 +752,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     admittedAt: '2025-01-20T10:30:00Z',
     removedAt: '2025-01-20T11:15:00Z',
     isRequired: false,
-    addedBy: 31,
+    addedBy: 18,
     addedAt: '2025-01-08T08:00:00Z',
   },
 
@@ -781,13 +781,13 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     admittedAt: null,
     removedAt: null,
     isRequired: true,
-    addedBy: 30,
+    addedBy: 17,
     addedAt: '2025-01-05T08:00:00Z',
   },
   {
     id: 'part-051',
     meetingId: 'mtg-011',
-    userId: 30, // Secretary
+    userId: 17, // Secretary
     participantType: 'secretary',
     roleTitle: 'Board Secretary',
     rsvpStatus: 'accepted',
@@ -806,7 +806,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     admittedAt: null,
     removedAt: null,
     isRequired: true,
-    addedBy: 30,
+    addedBy: 17,
     addedAt: '2025-01-05T08:00:00Z',
   },
 
@@ -835,7 +835,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     admittedAt: null,
     removedAt: null,
     isRequired: true,
-    addedBy: 30,
+    addedBy: 17,
     addedAt: '2025-02-27T16:00:00Z',
   },
   {
@@ -860,7 +860,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     admittedAt: null,
     removedAt: null,
     isRequired: true,
-    addedBy: 30,
+    addedBy: 17,
     addedAt: '2025-02-27T16:00:00Z',
   },
   {
@@ -885,13 +885,13 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     admittedAt: null,
     removedAt: null,
     isRequired: true,
-    addedBy: 30,
+    addedBy: 17,
     addedAt: '2025-02-27T16:00:00Z',
   },
   {
     id: 'part-063',
     meetingId: 'mtg-014',
-    userId: 30, // Secretary
+    userId: 17, // Secretary
     participantType: 'secretary',
     roleTitle: 'Company Secretary',
     rsvpStatus: 'accepted',
@@ -910,7 +910,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     admittedAt: null,
     removedAt: null,
     isRequired: true,
-    addedBy: 30,
+    addedBy: 17,
     addedAt: '2025-02-27T16:00:00Z',
   },
 ];

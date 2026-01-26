@@ -79,7 +79,9 @@ apiClient.interceptors.response.use(
       
       // Only redirect if not already on auth pages
       if (!window.location.pathname.startsWith('/auth')) {
-        window.location.href = '/auth/login';
+        // Save current location to redirect back after login
+        const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+        window.location.href = `/auth/login?returnUrl=${returnUrl}`;
       }
     }
     

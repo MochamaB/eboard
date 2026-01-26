@@ -190,7 +190,7 @@ export const toBoardListItem = (row: BoardRow): BoardListItem => {
     memberCount: row.memberCount,
     committeeCount: row.committeeCount,
     compliance: row.compliance,
-    lastMeetingDate: row.lastMeetingDate || undefined,
+    lastMeetingDate: row.lastMeetingDate,  // Keep null as null for Zod schema
   };
 };
 

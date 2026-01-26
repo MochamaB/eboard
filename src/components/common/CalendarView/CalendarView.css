@@ -1,0 +1,170 @@
+/**
+ * CalendarView Styles
+ * Custom styles for react-big-calendar integration with Ant Design theme
+ */
+
+.calendar-view {
+  background: #fff;
+  border-radius: 4px;
+  padding: 16px;
+}
+
+/* Toolbar customization */
+.calendar-view .rbc-toolbar {
+  padding: 12px 0;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.calendar-view .rbc-toolbar button {
+  color: #595959;
+  border: 1px solid #d9d9d9;
+  background: #fff;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.calendar-view .rbc-toolbar button:hover {
+  color: #324721;
+  border-color: #324721;
+}
+
+.calendar-view .rbc-toolbar button:active,
+.calendar-view .rbc-toolbar button.rbc-active {
+  background-color: #324721;
+  color: #fff;
+  border-color: #324721;
+}
+
+.calendar-view .rbc-toolbar .rbc-toolbar-label {
+  font-weight: 600;
+  font-size: 16px;
+  color: #212529;
+}
+
+/* Month view */
+.calendar-view .rbc-month-view {
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+}
+
+.calendar-view .rbc-header {
+  padding: 12px 8px;
+  font-weight: 600;
+  font-size: 13px;
+  color: #595959;
+  background-color: #fafafa;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.calendar-view .rbc-date-cell {
+  padding: 8px;
+  text-align: right;
+}
+
+.calendar-view .rbc-off-range {
+  color: #bfbfbf;
+}
+
+.calendar-view .rbc-today {
+  background-color: #e8ebe6;
+}
+
+/* Events */
+.calendar-view .rbc-event {
+  padding: 4px 6px;
+  border-radius: 3px;
+  font-size: 12px;
+  cursor: pointer;
+  border: none;
+}
+
+.calendar-view .rbc-event:hover {
+  opacity: 0.9;
+}
+
+.calendar-view .rbc-event.rbc-selected {
+  background-color: #324721;
+}
+
+.calendar-view .rbc-show-more {
+  color: #324721;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.calendar-view .rbc-show-more:hover {
+  text-decoration: underline;
+}
+
+/* Week and Day views */
+.calendar-view .rbc-time-view {
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+}
+
+.calendar-view .rbc-time-header-content {
+  border-left: 1px solid #e9ecef;
+}
+
+.calendar-view .rbc-time-content {
+  border-top: 1px solid #e9ecef;
+}
+
+.calendar-view .rbc-timeslot-group {
+  min-height: 60px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.calendar-view .rbc-current-time-indicator {
+  background-color: #f5222d;
+  height: 2px;
+}
+
+/* Agenda view */
+.calendar-view .rbc-agenda-view {
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+}
+
+.calendar-view .rbc-agenda-view table {
+  border: none;
+}
+
+.calendar-view .rbc-agenda-date-cell,
+.calendar-view .rbc-agenda-time-cell {
+  padding: 12px;
+  vertical-align: top;
+}
+
+.calendar-view .rbc-agenda-event-cell {
+  padding: 12px;
+}
+
+/* Popup */
+.calendar-view .rbc-overlay {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  padding: 12px;
+}
+
+.calendar-view .rbc-overlay-header {
+  border-bottom: 1px solid #e9ecef;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* Selection */
+.calendar-view .rbc-slot-selection {
+  background-color: rgba(50, 71, 33, 0.15);
+  border: 1px solid #324721;
+}

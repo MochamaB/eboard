@@ -5,7 +5,8 @@ import { AppLayout } from '../layouts/AppLayout';
 import { AuthLayout } from '../layouts/AuthLayout';
 import { Dashboard } from '../pages/Dashboard';
 import { UsersIndexPage, CreateUserPage as CreateUserPageComponent } from '../pages/Users';
-import { BoardsIndexPage } from '../pages/Boards';
+import { BoardsIndexPage, BoardDetailsPage } from '../pages/Boards';
+import { MeetingsIndexPage } from '../pages/Meetings';
 import { LoginPage } from '../pages/Auth';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import { useAuth } from '../contexts/AuthContext';
@@ -22,7 +23,6 @@ const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
 const ForgotPasswordPage = () => <PlaceholderPage title="Forgot Password" />;
 
 // Main pages (placeholders)
-const MeetingsPage = () => <PlaceholderPage title="Meetings" />;
 const MeetingsCalendarPage = () => <PlaceholderPage title="Meetings Calendar" />;
 const CreateMeetingPage = () => <PlaceholderPage title="Create Meeting" />;
 
@@ -102,6 +102,42 @@ export const router = createBrowserRouter([
         ],
       },
 
+      // "View All" routes - aggregated view across all boards
+      {
+        path: '/all',
+        element: <ProtectedRoute><AppLayout /></ProtectedRoute>,
+        children: [
+          {
+            path: 'dashboard',
+            element: <Dashboard />,
+          },
+          {
+            path: 'meetings',
+            element: <MeetingsIndexPage />,
+          },
+          {
+            path: 'users',
+            element: <UsersIndexPage />,
+          },
+          {
+            path: 'documents',
+            element: <DocumentsPage />,
+          },
+          {
+            path: 'boards',
+            element: <GlobalBoardsPage />,
+          },
+          {
+            path: 'reports',
+            element: <ReportsPage />,
+          },
+          {
+            path: 'notifications',
+            element: <NotificationsPage />,
+          },
+        ],
+      },
+
       // Auth routes (no sidebar)
       {
         element: <AuthLayout />,
@@ -131,7 +167,7 @@ export const router = createBrowserRouter([
       // Meetings
       {
         path: 'meetings',
-        element: <MeetingsPage />,
+        element: <MeetingsIndexPage />,
       },
       {
         path: 'meetings/calendar',
@@ -212,8 +248,8 @@ export const router = createBrowserRouter([
         element: <BoardCreatePage />,
       },
       {
-        path: 'boards/:id',
-        element: <BoardDetailPage />,
+        path: 'boards/:targetBoardId/details',
+        element: <BoardDetailsPage />,
       },
       {
         path: 'boards/:id/edit',

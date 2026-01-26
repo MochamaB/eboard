@@ -4,3 +4,4 @@
  */
 
 export { BoardsIndexPage } from './BoardsIndexPage';
+export { BoardDetailsPage } from './BoardDetailsPage';

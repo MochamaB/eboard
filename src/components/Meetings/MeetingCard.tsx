@@ -1,31 +1,57 @@
 /**
  * MeetingCard Component
- * Displays meeting summary in a card format
- * Used in dashboard, calendar tooltips, and list views
+ * Card view for displaying meeting information in a grid layout
+ * Features: Date block, status badge, time/location/participants, status-based actions
  */
 
 import React from 'react';
-import { Card, Space, Tag, Button, Typography, Tooltip } from 'antd';
+import { Card, Tag, Button, Tooltip, Progress, Typography, Divider, message } from 'antd';
 import {
+  EyeOutlined,
+  EditOutlined,
   CalendarOutlined,
   ClockCircleOutlined,
-  EnvironmentOutlined,
   TeamOutlined,
   VideoCameraOutlined,
   HomeOutlined,
-  GlobalOutlined,
-  EyeOutlined,
-  EditOutlined,
+  DeleteOutlined,
+  SendOutlined,
+  CheckOutlined,
+  CloseOutlined,
+  StopOutlined,
   PlayCircleOutlined,
+  CheckCircleOutlined,
+  DownloadOutlined,
+  GlobalOutlined,
 } from '@ant-design/icons';
+import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
-import type { MeetingListItem } from '../../types/meeting.types';
-import { MEETING_TYPE_LABELS, LOCATION_TYPE_LABELS } from '../../types/meeting.types';
-import { BOARD_TYPE_COLORS } from '../../types/board.types';
-import { MeetingStatusBadge } from './MeetingStatusBadge';
+import type { MeetingListItem, MeetingStatus, MeetingType, LocationType } from '../../types/meeting.types';
+import { MEETING_STATUS_LABELS, MEETING_TYPE_LABELS } from '../../types/meeting.types';
 import { useBoardContext } from '../../contexts';
 
 const { Text, Title } = Typography;
+
+// Status badge colors (Ant Design preset colors)
+const STATUS_BADGE_COLORS: Record<MeetingStatus, string> = {
+  draft: 'default',
+  pending_confirmation: 'warning',
+  confirmed: 'processing',
+  scheduled: 'cyan',
+  in_progress: 'success',
+  completed: 'success',
+  cancelled: 'error',
+  rejected: 'error',
+};
+
+// Meeting type colors (Ant Design preset colors)
+const MEETING_TYPE_COLORS: Record<MeetingType, string> = {
+  regular: 'blue',
+  special: 'purple',
+  emergency: 'red',
+  agm: 'gold',
+  committee: 'orange',
+};
 
 interface MeetingCardProps {
   meeting: MeetingListItem;
@@ -41,197 +67,334 @@ export const MeetingCard: React.FC<MeetingCardProps> = ({
   onClick,
 }) => {
   const navigate = useNavigate();
-  const { currentBoard } = useBoardContext();
-
-  // Format date and time
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
+  const { currentBoard, theme } = useBoardContext();
+  
+  const status = meeting.status;
+  
+  // Get status-based accent color from theme
+  const getStatusColor = (meetingStatus: MeetingStatus): string => {
+    switch (meetingStatus) {
+      case 'draft': return theme.textDisabled || '#d9d9d9';
+      case 'pending_confirmation': return theme.warningColor || '#faad14';
+      case 'confirmed': return theme.infoColor || '#1890ff';
+      case 'scheduled': return theme.primaryColor || '#13c2c2';
+      case 'in_progress': return theme.successColor || '#52c41a';
+      case 'completed': return theme.successColor || '#52c41a';
+      case 'cancelled': return theme.errorColor || '#ff4d4f';
+      case 'rejected': return theme.errorColor || '#ff4d4f';
+      default: return theme.primaryColor || '#324721';
+    }
   };
+  
+  const accentColor = getStatusColor(status);
+  
+  // Parse date and time
+  const meetingDate = dayjs(meeting.startDate);
+  const startTime = dayjs(`${meeting.startDate} ${meeting.startTime}`);
+  const endTime = startTime.add(meeting.duration, 'minute');
+  
+  // Calculate quorum percentage
+  const quorumPercentage = meeting.expectedAttendees > 0 
+    ? Math.round((meeting.participantCount / meeting.expectedAttendees) * 100)
+    : 0;
 
-  const formatTime = (timeStr: string) => {
-    const [hours, minutes] = timeStr.split(':');
-    const hour = parseInt(hours);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour % 12 || 12;
-    return `${displayHour}:${minutes} ${ampm}`;
-  };
-
-  // Location icon
-  const getLocationIcon = () => {
-    switch (meeting.locationType) {
-      case 'virtual':
-        return <VideoCameraOutlined />;
-      case 'physical':
-        return <HomeOutlined />;
-      case 'hybrid':
-        return <GlobalOutlined />;
-      default:
-        return <EnvironmentOutlined />;
+  // Get location icon - use theme secondary text color
+  const iconColor = theme.textSecondary || '#8c8c8c';
+  
+  const getLocationIcon = (locationType: LocationType) => {
+    switch (locationType) {
+      case 'virtual': return <VideoCameraOutlined style={{ color: iconColor }} />;
+      case 'physical': return <HomeOutlined style={{ color: iconColor }} />;
+      case 'hybrid': return <GlobalOutlined style={{ color: iconColor }} />;
+      default: return <GlobalOutlined style={{ color: iconColor }} />;
     }
   };
 
-  // Board type color
-  const boardColor = BOARD_TYPE_COLORS[meeting.boardType];
+  // Get location label
+  const getLocationLabel = (locationType: LocationType) => {
+    switch (locationType) {
+      case 'virtual': return 'Virtual';
+      case 'physical': return 'Physical';
+      case 'hybrid': return 'Hybrid';
+      default: return 'Meeting';
+    }
+  };
 
-  // Quick actions
-  const handleView = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    navigate(`/${meeting.boardId}/meetings/${meeting.id}`);
+  // Action handlers
+  const handleView = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    navigate(`/${currentBoard?.id || meeting.boardId}/meetings/${meeting.id}`);
   };
 
   const handleEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
-    navigate(`/${meeting.boardId}/meetings/${meeting.id}/edit`);
+    navigate(`/${currentBoard?.id || meeting.boardId}/meetings/${meeting.id}/edit`);
   };
 
-  const handleJoin = (e: React.MouseEvent) => {
+  const handleAction = (e: React.MouseEvent, actionName: string) => {
     e.stopPropagation();
-    // TODO: Join meeting logic
-    console.log('Join meeting:', meeting.id);
+    message.info(`${actionName} functionality coming soon`);
   };
 
-  // Check if meeting is near start time (within 15 minutes)
-  const isNearStart = () => {
-    const now = new Date();
-    const meetingStart = new Date(`${meeting.startDate}T${meeting.startTime}`);
-    const diffMinutes = (meetingStart.getTime() - now.getTime()) / (1000 * 60);
-    return diffMinutes >= -15 && diffMinutes <= 15;
+  // Render action buttons based on status - using theme colors
+  const renderActions = () => {
+    if (!showActions || compact) return null;
+    
+    const actions: React.ReactNode[] = [];
+    
+    // Theme-based colors
+    const primaryColor = theme.primaryColor || '#324721';
+    const infoColor = theme.infoColor || '#1890ff';
+    const successColor = theme.successColor || '#52c41a';
+    const warningColor = theme.warningColor || '#faad14';
+
+    // View - always available
+    actions.push(
+      <Tooltip title="View" key="view">
+        <Button
+          type="text"
+          size="small"
+          icon={<EyeOutlined style={{ color: primaryColor }} />}
+          onClick={handleView}
+        />
+      </Tooltip>
+    );
+
+    // Status-specific actions
+    switch (status) {
+      case 'draft':
+        actions.push(
+          <Tooltip title="Edit" key="edit">
+            <Button type="text" size="small" icon={<EditOutlined style={{ color: infoColor }} />} onClick={handleEdit} />
+          </Tooltip>,
+          <Tooltip title="Submit" key="submit">
+            <Button type="text" size="small" icon={<SendOutlined style={{ color: successColor }} />} onClick={(e) => handleAction(e, 'Submit')} />
+          </Tooltip>,
+          <Tooltip title="Delete" key="delete">
+            <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={(e) => handleAction(e, 'Delete')} />
+          </Tooltip>
+        );
+        break;
+      case 'pending_confirmation':
+        actions.push(
+          <Tooltip title="Edit" key="edit">
+            <Button type="text" size="small" icon={<EditOutlined style={{ color: infoColor }} />} onClick={handleEdit} />
+          </Tooltip>,
+          <Tooltip title="Approve" key="approve">
+            <Button type="text" size="small" icon={<CheckOutlined style={{ color: successColor }} />} onClick={(e) => handleAction(e, 'Approve')} />
+          </Tooltip>,
+          <Tooltip title="Reject" key="reject">
+            <Button type="text" size="small" danger icon={<CloseOutlined />} onClick={(e) => handleAction(e, 'Reject')} />
+          </Tooltip>
+        );
+        break;
+      case 'confirmed':
+        actions.push(
+          <Tooltip title="Edit" key="edit">
+            <Button type="text" size="small" icon={<EditOutlined style={{ color: infoColor }} />} onClick={handleEdit} />
+          </Tooltip>,
+          <Tooltip title="Reschedule" key="reschedule">
+            <Button type="text" size="small" icon={<CalendarOutlined style={{ color: warningColor }} />} onClick={(e) => handleAction(e, 'Reschedule')} />
+          </Tooltip>,
+          <Tooltip title="Cancel" key="cancel">
+            <Button type="text" size="small" danger icon={<StopOutlined />} onClick={(e) => handleAction(e, 'Cancel')} />
+          </Tooltip>
+        );
+        break;
+      case 'scheduled':
+        actions.push(
+          <Tooltip title="Start" key="start">
+            <Button type="text" size="small" icon={<PlayCircleOutlined style={{ color: successColor }} />} onClick={(e) => handleAction(e, 'Start')} />
+          </Tooltip>,
+          <Tooltip title="Reschedule" key="reschedule">
+            <Button type="text" size="small" icon={<CalendarOutlined style={{ color: warningColor }} />} onClick={(e) => handleAction(e, 'Reschedule')} />
+          </Tooltip>,
+          <Tooltip title="Cancel" key="cancel">
+            <Button type="text" size="small" danger icon={<StopOutlined />} onClick={(e) => handleAction(e, 'Cancel')} />
+          </Tooltip>
+        );
+        break;
+      case 'in_progress':
+        actions.push(
+          <Tooltip title="End Meeting" key="end">
+            <Button type="text" size="small" icon={<CheckCircleOutlined style={{ color: successColor }} />} onClick={(e) => handleAction(e, 'End')} />
+          </Tooltip>
+        );
+        break;
+      case 'completed':
+        actions.push(
+          <Tooltip title="Download Minutes" key="download">
+            <Button type="text" size="small" icon={<DownloadOutlined style={{ color: infoColor }} />} onClick={(e) => handleAction(e, 'Download')} />
+          </Tooltip>
+        );
+        break;
+      case 'cancelled':
+      case 'rejected':
+        actions.push(
+          <Tooltip title="Reschedule" key="reschedule">
+            <Button type="text" size="small" icon={<CalendarOutlined style={{ color: warningColor }} />} onClick={(e) => handleAction(e, 'Reschedule')} />
+          </Tooltip>
+        );
+        break;
+    }
+
+    return actions;
   };
 
-  const canJoin = meeting.status === 'in_progress' || (meeting.status === 'scheduled' && isNearStart());
+  // Compact card for dashboard/tooltips
+  if (compact) {
+    return (
+      <Card
+        hoverable={!!onClick}
+        onClick={onClick || handleView}
+        size="small"
+        style={{ borderLeft: `3px solid ${accentColor}` }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <Text strong style={{ fontSize: 13 }} ellipsis>{meeting.title}</Text>
+            <div style={{ fontSize: 12, color: '#8c8c8c' }}>
+              {meetingDate.format('DD MMM')} • {startTime.format('h:mm A')}
+            </div>
+          </div>
+          <Tag color={STATUS_BADGE_COLORS[status]} style={{ marginLeft: 8, flexShrink: 0 }}>
+            {MEETING_STATUS_LABELS[status]}
+          </Tag>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card
-      hoverable={!!onClick}
-      onClick={onClick}
-      style={{ height: '100%' }}
-      styles={{
-        body: { padding: compact ? '12px' : '16px' },
+      hoverable
+      onClick={onClick || handleView}
+      style={{
+        borderLeft: `4px solid ${accentColor}`,
+        height: '100%',
       }}
-      bordered
+      styles={{
+        body: { padding: 16, display: 'flex', flexDirection: 'column', height: '100%' }
+      }}
     >
-      <Space direction="vertical" style={{ width: '100%' }} size="small">
-        {/* Header: Board badge + Status */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Space size={4}>
-            <Tag
-              color={boardColor}
-              style={{ margin: 0, fontSize: compact ? '10px' : '11px' }}
-            >
-              {meeting.boardName}
-            </Tag>
-            {meeting.parentBoardName && (
-              <Text type="secondary" style={{ fontSize: compact ? '10px' : '11px' }}>
-                ({meeting.parentBoardName})
-              </Text>
-            )}
-          </Space>
-          <MeetingStatusBadge status={meeting.status} />
+      {/* Header: Date Block + Title + Status */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+        {/* Date Block */}
+        <div
+          style={{
+            minWidth: 52,
+            textAlign: 'center',
+            padding: '6px 4px',
+            background: `${accentColor}15`,
+            borderRadius: 8,
+          }}
+        >
+          <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1, color: accentColor }}>
+            {meetingDate.format('DD')}
+          </div>
+          <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', color: accentColor }}>
+            {meetingDate.format('MMM')}
+          </div>
+          <div style={{ fontSize: 10, color: '#8c8c8c' }}>
+            {meetingDate.format('YYYY')}
+          </div>
         </div>
 
-        {/* Title */}
-        <Title
-          level={compact ? 5 : 4}
-          style={{ margin: 0, marginTop: compact ? 4 : 8 }}
-          ellipsis={{ rows: 2 }}
-        >
-          {meeting.title}
-        </Title>
-
-        {/* Meeting metadata */}
-        <Space direction="vertical" size={2} style={{ width: '100%' }}>
-          {/* Date & Time */}
-          <Space size={4}>
-            <CalendarOutlined style={{ color: '#1890ff' }} />
-            <Text style={{ fontSize: compact ? '12px' : '13px' }}>
-              {formatDate(meeting.startDate)}
-            </Text>
-            <Text type="secondary" style={{ fontSize: compact ? '12px' : '13px' }}>•</Text>
-            <ClockCircleOutlined style={{ color: '#52c41a' }} />
-            <Text style={{ fontSize: compact ? '12px' : '13px' }}>
-              {formatTime(meeting.startTime)}
-            </Text>
-            <Text type="secondary" style={{ fontSize: compact ? '12px' : '13px' }}>
-              ({meeting.duration} min)
-            </Text>
-          </Space>
-
-          {/* Location */}
-          <Space size={4}>
-            {getLocationIcon()}
-            <Text type="secondary" style={{ fontSize: compact ? '12px' : '13px' }}>
-              {LOCATION_TYPE_LABELS[meeting.locationType]}
-            </Text>
-          </Space>
-
-          {/* Participants & Quorum */}
-          <Space size={4}>
-            <TeamOutlined style={{ color: '#9C27B0' }} />
-            <Text type="secondary" style={{ fontSize: compact ? '12px' : '13px' }}>
-              {meeting.participantCount} participants
-            </Text>
-            <Text type="secondary" style={{ fontSize: compact ? '12px' : '13px' }}>•</Text>
-            <Text type="secondary" style={{ fontSize: compact ? '12px' : '13px' }}>
-              Quorum: {meeting.quorumPercentage}%
-            </Text>
-          </Space>
-
-          {/* Meeting Type */}
-          {!compact && (
-            <Tag style={{ fontSize: '11px', marginTop: 4 }}>
-              {MEETING_TYPE_LABELS[meeting.meetingType]}
+        {/* Title & Board */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+            <Title
+              level={5}
+              style={{
+                margin: 0,
+                fontSize: 14,
+                lineHeight: 1.3,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+              }}
+            >
+              {meeting.title}
+            </Title>
+            <Tag color={STATUS_BADGE_COLORS[status]} style={{ flexShrink: 0, fontSize: 11 }}>
+              {MEETING_STATUS_LABELS[status]}
             </Tag>
-          )}
+          </div>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {meeting.boardName}
+          </Text>
+        </div>
+      </div>
 
-          {/* Confirmation status */}
-          {meeting.requiresConfirmation && meeting.confirmationStatus === 'pending' && (
-            <Tag color="warning" style={{ fontSize: '11px', marginTop: 4 }}>
-              Pending Confirmation
-            </Tag>
-          )}
-        </Space>
+      <Divider style={{ margin: '8px 0' }} />
 
-        {/* Actions */}
-        {showActions && !compact && (
-          <Space style={{ marginTop: 8, width: '100%', justifyContent: 'flex-end' }}>
-            <Tooltip title="View Details">
-              <Button
-                type="text"
-                icon={<EyeOutlined />}
-                size="small"
-                onClick={handleView}
+      {/* Details */}
+      <div style={{ flex: 1 }}>
+        {/* Time */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          <ClockCircleOutlined style={{ color: iconColor, fontSize: 13 }} />
+          <Text style={{ fontSize: 12 }}>
+            {startTime.format('h:mm A')} - {endTime.format('h:mm A')}
+            <Text type="secondary" style={{ marginLeft: 6 }}>({meeting.duration}min)</Text>
+          </Text>
+        </div>
+
+        {/* Location */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          {getLocationIcon(meeting.locationType)}
+          <Text style={{ fontSize: 12 }}>
+            {getLocationLabel(meeting.locationType)}
+            {meeting.physicalLocation && (
+              <Text type="secondary"> • {meeting.physicalLocation}</Text>
+            )}
+          </Text>
+        </div>
+
+        {/* Participants & Quorum */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <TeamOutlined style={{ color: iconColor, fontSize: 13 }} />
+            <Text style={{ fontSize: 12 }}>
+              {meeting.participantCount}/{meeting.expectedAttendees}
+            </Text>
+          </div>
+          {meeting.quorumRequired && (
+            <Tooltip title={`Quorum: ${meeting.quorumPercentage}% required`}>
+              <Progress
+                type="circle"
+                percent={quorumPercentage}
+                size={28}
+                strokeColor={quorumPercentage >= (meeting.quorumPercentage || 0) ? theme.successColor : theme.warningColor}
+                format={() => <span style={{ fontSize: 9 }}>{quorumPercentage}%</span>}
               />
             </Tooltip>
+          )}
+        </div>
 
-            {meeting.status === 'draft' && (
-              <Tooltip title="Edit Meeting">
-                <Button
-                  type="text"
-                  icon={<EditOutlined />}
-                  size="small"
-                  onClick={handleEdit}
-                />
-              </Tooltip>
-            )}
+        {/* Meeting Type Tag */}
+        <Tag color={MEETING_TYPE_COLORS[meeting.meetingType]} style={{ fontSize: 11 }}>
+          {MEETING_TYPE_LABELS[meeting.meetingType]}
+        </Tag>
+      </div>
 
-            {canJoin && meeting.locationType !== 'physical' && (
-              <Button
-                type="primary"
-                icon={<PlayCircleOutlined />}
-                size="small"
-                onClick={handleJoin}
-              >
-                Join
-              </Button>
-            )}
-          </Space>
-        )}
-      </Space>
+      {/* Actions */}
+      {showActions && (
+        <div 
+          style={{ 
+            display: 'flex', 
+            justifyContent: 'flex-start', 
+            gap: 2,
+            borderTop: `1px solid ${theme.borderColor || '#f0f0f0'}`,
+            paddingTop: 10,
+            marginTop: 10,
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {renderActions()}
+        </div>
+      )}
     </Card>
   );
 };

@@ -26,3 +26,26 @@ body {
 #root {
   min-height: 100vh;
 }
+
+/* Responsive styles for mobile */
+@media (max-width: 768px) {
+  /* Hide board name in selector on mobile - show only logo */
+  .board-selector-name {
+    display: none !important;
+  }
+  
+  /* Hide search bar on mobile */
+  .header-search-bar {
+    display: none !important;
+  }
+  
+  /* Hide user name on mobile - show only avatar */
+  .header-user-info {
+    display: none !important;
+  }
+  
+  /* Reduce header spacing on mobile */
+  .ant-layout-header {
+    padding: 0 12px !important;
+  }
+}

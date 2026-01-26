@@ -8,3 +8,4 @@ export { BoardCommitteeSelector } from './BoardCommitteeSelector';
 export { MeetingCard } from './MeetingCard';
 export { ParticipantList } from './ParticipantList';
 export { MeetingCalendar } from './MeetingCalendar';
+export { MeetingsCalendarView } from './MeetingsCalendarView';

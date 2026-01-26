@@ -203,22 +203,29 @@ export const toMeetingObject = (row: MeetingRow): Meeting => {
  */
 export const toMeetingListItem = (row: MeetingRow): MeetingListItem => {
   const board = boardsTable.find(b => b.id === row.boardId);
+  const parentBoard = board?.parentId ? boardsTable.find(b => b.id === board.parentId) : undefined;
   const participants = getMeetingParticipants(row.id);
+  const requiredParticipants = participants.filter(p => p.isRequired);
   
   return {
     id: row.id,
     boardId: row.boardId,
     boardName: board?.name || 'Unknown Board',
     boardType: board?.type || 'main',
+    parentBoardName: parentBoard?.name,
     title: row.title,
     meetingType: (row.meetingType === 'annual' ? 'agm' : row.meetingType) as MeetingListItem['meetingType'],
     startDate: row.scheduledDate,
     startTime: row.startTime,
     duration: row.duration,
     locationType: row.locationType,
+    physicalLocation: row.physicalLocation,
+    meetingLink: row.meetingLink,
     status: row.status,
     participantCount: participants.length,
+    expectedAttendees: requiredParticipants.length || participants.length || row.quorumRequired * 2,
     quorumPercentage: row.quorumPercentage,
+    quorumRequired: row.quorumRequired,
     requiresConfirmation: row.confirmationRequired,
     confirmationStatus: row.confirmedAt ? 'approved' : row.rejectionReason ? 'rejected' : 'pending',
     createdByName: usersTable.find(u => u.id === row.createdBy)?.fullName || 'Unknown',

@@ -14,3 +14,6 @@ export * from './useAuth';
 
 // Board hooks
 export * from './useBoards';
+
+// Meeting hooks
+export * from './useMeetings';

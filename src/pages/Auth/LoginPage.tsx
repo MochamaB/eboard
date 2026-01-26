@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import { Card, Form, Input, Button, Divider, Space, message, Typography } from 'antd';
 import { UserOutlined, LockOutlined, ThunderboltOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts';
 
 const { Text } = Typography;
@@ -49,7 +49,11 @@ export const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [devLoading, setDevLoading] = useState<string | null>(null);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { login } = useAuth();
+
+  // Get the return URL from query params (if user was redirected to login)
+  const returnUrl = searchParams.get('returnUrl') || '/';
 
   const handleLogin = async (values: { email: string; password: string }) => {
     setLoading(true);
@@ -59,8 +63,8 @@ export const LoginPage: React.FC = () => {
         navigate('/auth/mfa');
       } else {
         message.success(`Welcome, ${response.user.firstName}!`);
-        // Navigate to root - DynamicBoardRedirect will handle routing to user's primary board
-        navigate('/');
+        // Redirect to the original page or root
+        navigate(returnUrl);
       }
     } catch (error) {
       message.error('Invalid email or password');
@@ -79,8 +83,8 @@ export const LoginPage: React.FC = () => {
         navigate('/auth/mfa');
       } else {
         message.success(`Welcome, ${response.user.firstName}!`);
-        // Navigate to root - DynamicBoardRedirect will handle routing to user's primary board
-        navigate('/');
+        // Redirect to the original page or root
+        navigate(returnUrl);
       }
     } catch (error) {
       message.error('Login failed. Check if user exists in mock data.');

@@ -95,7 +95,8 @@ export const boardsHandlers = [
       );
     }
     
-    return HttpResponse.json({ data: toBoardObject(boardRow) });
+    // Return board object directly (not wrapped in { data: ... })
+    return HttpResponse.json(toBoardObject(boardRow));
   }),
 
   // GET /api/boards/:id/members - Get board members

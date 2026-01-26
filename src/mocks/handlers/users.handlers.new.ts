@@ -30,18 +30,21 @@ export const usersHandlers = [
       pageSize,
     });
     
-    // Transform to UserListItem format
+    // Transform to UserListItem format (must match UserListItemSchema)
     const data = result.data.map(user => ({
       id: user.id,
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
       fullName: user.fullName,
+      phone: user.phone,
       avatar: user.avatar,
       primaryRole: user.primaryRole,
       status: user.status,
-      boardMemberships: user.boardMemberships,
-      lastLoginAt: user.lastLoginAt,
+      boardCount: user.boardMemberships?.length || 0,
+      mfaEnabled: user.mfaEnabled,
+      lastLogin: user.lastLoginAt,
+      createdAt: user.createdAt,
     }));
     
     return HttpResponse.json({

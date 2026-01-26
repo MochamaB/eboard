@@ -154,9 +154,13 @@ export const MeetingListItemSchema = z.object({
   startTime: z.string(),
   duration: z.number(),
   locationType: LocationTypeSchema,
+  physicalLocation: z.string().nullable().optional(), // Physical location address
+  meetingLink: z.string().nullable().optional(), // Virtual meeting link
   status: MeetingStatusSchema,
   participantCount: z.number(),
+  expectedAttendees: z.number(), // Total expected participants
   quorumPercentage: z.number(),
+  quorumRequired: z.number(), // Calculated quorum number
   requiresConfirmation: z.boolean(),
   confirmationStatus: z.string().optional(),
   createdByName: z.string(),
