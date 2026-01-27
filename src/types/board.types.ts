@@ -5,6 +5,7 @@
  */
 
 import { z } from 'zod';
+import { isValidRoleCode, VALID_ROLE_CODES, type BoardRole } from '../mocks/db/tables/roles';
 
 // ============================================================================
 // ENUMS & CONSTANTS
@@ -38,20 +39,13 @@ export const VotingThresholdSchema = z.enum([
 ]);
 
 // Board roles (per-board assignment)
-export const BoardRoleSchema = z.enum([
-  'chairman',
-  'vice_chairman',
-  'group_company_secretary',
-  'company_secretary',
-  'board_secretary',
-  'board_member',
-  'independent_director',
-  'executive_member',
-  'committee_chairman',
-  'committee_member',
-  'committee_secretary',
-  'observer',
-]);
+// Generated from roles.ts mock data - single source of truth
+export const BoardRoleSchema = z.string().refine(
+  (code) => isValidRoleCode(code),
+  {
+    message: `Invalid role code. Must be one of: ${VALID_ROLE_CODES.join(', ')}`
+  }
+);
 
 // Factory zones
 export const ZoneSchema = z.enum([
@@ -387,7 +381,8 @@ export type BoardType = z.infer<typeof BoardTypeSchema>;
 export type BoardStatus = z.infer<typeof BoardStatusSchema>;
 export type MeetingFrequency = z.infer<typeof MeetingFrequencySchema>;
 export type VotingThreshold = z.infer<typeof VotingThresholdSchema>;
-export type BoardRole = z.infer<typeof BoardRoleSchema>;
+// BoardRole now imported from roles.ts as single source of truth
+export type { BoardRole } from '../mocks/db/tables/roles';
 export type Zone = z.infer<typeof ZoneSchema>;
 
 export type BoardSettings = z.infer<typeof BoardSettingsSchema>;

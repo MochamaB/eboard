@@ -5,8 +5,8 @@ import { AppLayout } from '../layouts/AppLayout';
 import { AuthLayout } from '../layouts/AuthLayout';
 import { Dashboard } from '../pages/Dashboard';
 import { UsersIndexPage, CreateUserPage as CreateUserPageComponent } from '../pages/Users';
-import { BoardsIndexPage, BoardDetailsPage } from '../pages/Boards';
-import { MeetingsIndexPage } from '../pages/Meetings';
+import { BoardsIndexPage, BoardDetailsPage, BoardCreatePage as BoardCreatePageComponent } from '../pages/Boards';
+import { MeetingsIndexPage, MeetingCreatePage } from '../pages/Meetings';
 import { LoginPage } from '../pages/Auth';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import { useAuth } from '../contexts/AuthContext';
@@ -24,7 +24,6 @@ const ForgotPasswordPage = () => <PlaceholderPage title="Forgot Password" />;
 
 // Main pages (placeholders)
 const MeetingsCalendarPage = () => <PlaceholderPage title="Meetings Calendar" />;
-const CreateMeetingPage = () => <PlaceholderPage title="Create Meeting" />;
 
 const DocumentsPage = () => <PlaceholderPage title="Documents" />;
 const BoardPacksPage = () => <PlaceholderPage title="Board Packs" />;
@@ -41,7 +40,6 @@ const RolesPage = () => <PlaceholderPage title="Roles & Permissions" />;
 const UserDetailPage = () => <PlaceholderPage title="User Details" />;
 
 const BoardDetailPage = () => <PlaceholderPage title="Board Details" />;
-const BoardCreatePage = () => <PlaceholderPage title="Create Board" />;
 const BoardEditPage = () => <PlaceholderPage title="Edit Board" />;
 const BoardMembersPage = () => <PlaceholderPage title="Board Members" />;
 const CommitteesPage = () => <PlaceholderPage title="Committees" />;
@@ -175,7 +173,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'meetings/create',
-        element: <CreateMeetingPage />,
+        element: <MeetingCreatePage />,
       },
 
       // Documents
@@ -245,7 +243,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'boards/create',
-        element: <BoardCreatePage />,
+        element: <BoardCreatePageComponent />,
       },
       {
         path: 'boards/:targetBoardId/details',

@@ -3,10 +3,10 @@
  */
 
 import { usersTable, type UserRow } from '../tables/users';
-import { userBoardRolesTable, getUserBoardRoles } from '../tables/userBoardRoles';
+import { userBoardRolesTable, getUserBoardRoles, getUserGlobalRoleAssignment, getUserDefaultBoardRole } from '../tables/userBoardRoles';
 import { boardsTable } from '../tables/boards';
 import { getRoleById } from '../tables/roles';
-import { getUserPermissionCodesOnBoard, getAllUserPermissionCodes } from './roleQueries';
+import { getAllUserPermissionCodes } from './roleQueries';
 import type { AuthUser } from '../../../types/auth.types';
 
 // ============================================================================
@@ -35,10 +35,17 @@ export const getUserByEmail = (email: string): UserRow | undefined => {
 };
 
 /**
- * Get users by role
+ * Get users by role code (searches in userBoardRoles)
  */
-export const getUsersByRole = (role: string): UserRow[] => {
-  return usersTable.filter(u => u.primaryRole === role);
+export const getUsersByRole = (roleCode: string): UserRow[] => {
+  const userIdsWithRole = userBoardRolesTable
+    .filter(ubr => {
+      const role = getRoleById(ubr.roleId);
+      return role?.code === roleCode && ubr.endDate === null;
+    })
+    .map(ubr => ubr.userId);
+  
+  return usersTable.filter(u => userIdsWithRole.includes(u.id));
 };
 
 /**
@@ -61,7 +68,7 @@ export const getUserMemberships = (userId: number) => {
       startDate: br.startDate,
       endDate: br.endDate,
       isActive: br.endDate === null,
-      isPrimary: br.isPrimary,
+      isDefault: br.isDefault,
     };
   });
 };
@@ -86,7 +93,7 @@ export const getUsersForBoard = (boardId: string) => {
       boardRoleName: role?.name || 'Unknown',
       roleId: membership.roleId,
       membershipStartDate: membership.startDate,
-      isPrimary: membership.isPrimary,
+      isDefault: membership.isDefault,
     };
   }).filter(Boolean);
 };
@@ -95,18 +102,44 @@ export const getUsersForBoard = (boardId: string) => {
  * Convert UserRow to AuthUser (for authentication)
  */
 export const toAuthUser = (user: UserRow, boardId?: string): AuthUser => {
+  // Get user's global role (if any)
+  const globalRoleAssignment = getUserGlobalRoleAssignment(user.id);
+  let globalRole = undefined;
+  let jobTitle = 'User'; // Default
+  
+  if (globalRoleAssignment) {
+    const role = getRoleById(globalRoleAssignment.roleId);
+    if (role) {
+      globalRole = {
+        code: role.code as any, // BoardRole type
+        name: role.name,
+        scope: 'global' as const,
+      };
+      jobTitle = role.name; // Use global role name as job title
+    }
+  }
+  
+  // Get default board from parameter, default membership, or first membership
+  const defaultBoardRole = getUserDefaultBoardRole(user.id);
   const memberships = getUserMemberships(user.id);
-  
-  // Get default board from parameter, primary membership, or ktda-ms
   const defaultBoardId = boardId || 
-    memberships.find(m => m.isPrimary)?.boardId || 
+    defaultBoardRole?.boardId || 
     memberships[0]?.boardId || 
-    'ktda-ms';
+    undefined;
   
-  // Get permissions for the default board context
-  const permissions = boardId 
-    ? getUserPermissionCodesOnBoard(user.id, boardId)
-    : getAllUserPermissionCodes(user.id);
+  // If no global role, use default board role name as job title
+  if (!globalRole && defaultBoardRole) {
+    const role = getRoleById(defaultBoardRole.roleId);
+    if (role) {
+      jobTitle = role.name;
+    }
+  } else if (!globalRole && memberships.length > 0 && memberships[0]) {
+    // Fallback to first membership role name
+    jobTitle = memberships[0].roleName;
+  }
+  
+  // Get aggregated permissions from all roles
+  const permissions = getAllUserPermissionCodes(user.id);
   
   return {
     id: user.id,
@@ -114,13 +147,14 @@ export const toAuthUser = (user: UserRow, boardId?: string): AuthUser => {
     firstName: user.firstName,
     lastName: user.lastName,
     fullName: user.fullName,
+    jobTitle,
     avatar: user.avatar,
-    primaryRole: user.primaryRole as AuthUser['primaryRole'],
+    globalRole,
+    defaultBoardId,
     permissions,
     mfaEnabled: user.mfaEnabled,
     mfaRequired: user.mfaEnabled && user.mfaSetupComplete,
     mustChangePassword: user.status === 'pending',
-    defaultOrgId: defaultBoardId,
   };
 };
 
@@ -150,9 +184,15 @@ export const filterUsers = (options: UserFilterOptions) => {
     );
   }
   
-  // Role filter
+  // Role filter (filters by role code in userBoardRoles)
   if (options.role) {
-    filtered = filtered.filter(u => u.primaryRole === options.role);
+    const userIdsWithRole = userBoardRolesTable
+      .filter(ubr => {
+        const role = getRoleById(ubr.roleId);
+        return role?.code === options.role && ubr.endDate === null;
+      })
+      .map(ubr => ubr.userId);
+    filtered = filtered.filter(u => userIdsWithRole.includes(u.id));
   }
   
   // Status filter

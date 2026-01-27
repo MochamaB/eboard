@@ -27,6 +27,11 @@ body {
   min-height: 100vh;
 }
 
+/* Form styles - Apply fontWeight to labels */
+.ant-form-item-label > label {
+  font-weight: 600 !important;
+}
+
 /* Responsive styles for mobile */
 @media (max-width: 768px) {
   /* Hide board name in selector on mobile - show only logo */

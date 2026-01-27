@@ -29,3 +29,6 @@ export { CalendarView, type CalendarViewProps, type CalendarEvent } from './Cale
 
 // IndexPageLayout
 export { IndexPageLayout, type IndexPageLayoutProps, type TabItem } from './IndexPageLayout';
+
+// ParticipantSelector
+export { ParticipantSelector, type ParticipantSelectorProps, type SelectedParticipant } from './ParticipantSelector';

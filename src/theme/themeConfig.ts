@@ -184,7 +184,18 @@ export const themeConfig: ThemeConfig = {
     Notification: {
       colorBgElevated: colors.white,
     },
+    Form: {
+      labelFontSize: 14,
+      labelColor: colors.textPrimary,
+      labelHeight: 22,
+      itemMarginBottom: 20,
+      verticalLabelPadding: '0 0 4px',
+      labelColonMarginInlineStart: 4,
+      labelColonMarginInlineEnd: 8,
+    },
   },
+  // Custom CSS for Form labels (not directly supported in token system)
+  // Apply via ConfigProvider or global CSS
 };
 
 // Sidebar theme options (for theme switching)

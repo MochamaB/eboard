@@ -5,3 +5,4 @@
 
 export { BoardsIndexPage } from './BoardsIndexPage';
 export { BoardDetailsPage } from './BoardDetailsPage';
+export { default as BoardCreatePage } from './BoardCreatePage';

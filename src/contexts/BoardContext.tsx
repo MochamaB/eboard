@@ -275,6 +275,29 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
         colorBorder: theme.borderColor,
         colorPrimaryHover: theme.borderColorHover,
         activeBorderColor: theme.primaryColor,
+        controlHeight: 36,
+        fontSize: 14,
+      },
+      Select: {
+        controlHeight: 36,
+        fontSize: 14,
+      },
+      DatePicker: {
+        controlHeight: 36,
+        fontSize: 14,
+      },
+      InputNumber: {
+        controlHeight: 36,
+        fontSize: 14,
+      },
+      TimePicker: {
+        controlHeight: 36,
+        fontSize: 14,
+      },
+      Form: {
+        labelFontSize: 13,
+        labelFontWeight: 500,
+        itemMarginBottom: 16,
       },
       Tabs: {
         inkBarColor: theme.primaryColor,

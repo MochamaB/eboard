@@ -232,20 +232,23 @@ export const getUserBoardAccess = (userId: number): Array<{
   roleId: number;
   roleName: string;
   roleCode: string;
-  isPrimary: boolean;
+  isDefault: boolean;
 }> => {
   const boardRoles = getUserBoardRoles(userId);
   
-  return boardRoles.map(br => {
-    const role = getRoleById(br.roleId);
-    return {
-      boardId: br.boardId,
-      roleId: br.roleId,
-      roleName: role?.name || 'Unknown',
-      roleCode: role?.code || 'unknown',
-      isPrimary: br.isPrimary,
-    };
-  });
+  // Filter out global roles (boardId is null for global scope)
+  return boardRoles
+    .filter(br => br.scope === 'board' && br.boardId !== null)
+    .map(br => {
+      const role = getRoleById(br.roleId);
+      return {
+        boardId: br.boardId!,
+        roleId: br.roleId,
+        roleName: role?.name || 'Unknown',
+        roleCode: role?.code || 'unknown',
+        isDefault: br.isDefault,
+      };
+    });
 };
 
 /**
@@ -278,7 +281,7 @@ export const getBoardMembers = (boardId: string): Array<{
   roleId: number;
   roleName: string;
   roleCode: string;
-  isPrimary: boolean;
+  isDefault: boolean;
   startDate: string;
 }> => {
   const memberships = userBoardRolesTable.filter(
@@ -292,7 +295,7 @@ export const getBoardMembers = (boardId: string): Array<{
       roleId: m.roleId,
       roleName: role?.name || 'Unknown',
       roleCode: role?.code || 'unknown',
-      isPrimary: m.isPrimary,
+      isDefault: m.isDefault,
       startDate: m.startDate,
     };
   });

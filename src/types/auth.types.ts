@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { SystemRoleSchema } from './role.types';
+import { BoardRoleSchema } from './board.types';
 
 // Login payload
 export const LoginPayloadSchema = z.object({
@@ -24,13 +24,21 @@ export const LoginResponseSchema = z.object({
     firstName: z.string(),
     lastName: z.string(),
     fullName: z.string(),
+    jobTitle: z.string(),
     avatar: z.string().nullable(),
-    primaryRole: SystemRoleSchema,
+    // Global role (if user has one) - from userBoardRoles with scope='global'
+    globalRole: z.object({
+      code: BoardRoleSchema,
+      name: z.string(),
+      scope: z.literal('global'),
+    }).optional(),
+    // Default board for initial navigation
+    defaultBoardId: z.string().optional(),
+    // Aggregated permissions from all roles
     permissions: z.array(z.string()),
     mfaEnabled: z.boolean(),
     mfaRequired: z.boolean(), // True if MFA verification needed
     mustChangePassword: z.boolean(), // True for first-time login
-    defaultOrgId: z.string().optional(),
   }),
 });
 

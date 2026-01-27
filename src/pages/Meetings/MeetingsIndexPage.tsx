@@ -39,6 +39,7 @@ import {
   StopOutlined,
   PlayCircleOutlined,
   CheckCircleOutlined,
+  ClockCircleOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -175,13 +176,13 @@ export const MeetingsIndexPage: React.FC = () => {
       allMeetings.filter(m => statuses.includes(m.status)).length;
 
     return [
-      { key: 'upcoming', label: 'Upcoming', count: getCount(['confirmed', 'scheduled']) },
-      { key: 'pending_confirmation', label: 'Pending', count: getCount(['pending_confirmation']) },
-      { key: 'draft', label: 'Draft', count: getCount(['draft']) },
-      { key: 'in_progress', label: 'In Progress', count: getCount(['in_progress']) },
-      { key: 'completed', label: 'Completed', count: getCount(['completed']) },
-      { key: 'cancelled', label: 'Cancelled', count: getCount(['cancelled', 'rejected']) },
-      { key: 'all', label: 'All', count: total },
+      { key: 'upcoming', label: 'Upcoming', icon: <CalendarOutlined />, count: getCount(['confirmed', 'scheduled']) },
+      { key: 'pending_confirmation', label: 'Pending', icon: <ClockCircleOutlined />, count: getCount(['pending_confirmation']) },
+      { key: 'draft', label: 'Draft', icon: <EditOutlined />, count: getCount(['draft']) },
+      { key: 'in_progress', label: 'In Progress', icon: <PlayCircleOutlined />, count: getCount(['in_progress']) },
+      { key: 'completed', label: 'Completed', icon: <CheckCircleOutlined />, count: getCount(['completed']) },
+      { key: 'cancelled', label: 'Cancelled', icon: <StopOutlined />, count: getCount(['cancelled', 'rejected']) },
+      { key: 'all', label: 'All', icon: <AppstoreOutlined />, count: total },
     ];
   }, [allMeetingsData]);
 
@@ -596,6 +597,7 @@ export const MeetingsIndexPage: React.FC = () => {
   const tabs: TabItem[] = statusTabs.map(tab => ({
     key: tab.key,
     label: tab.label,
+    icon: tab.icon,
     count: tab.count,
   }));
 

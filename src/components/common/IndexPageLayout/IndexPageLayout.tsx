@@ -16,6 +16,7 @@ const { Text } = Typography;
 export interface TabItem {
   key: string;
   label: string;
+  icon?: ReactNode;
   count?: number;
 }
 
@@ -75,8 +76,9 @@ export const IndexPageLayout: React.FC<IndexPageLayoutProps> = ({
   const tabItems: TabsProps['items'] = tabs?.map(tab => ({
     key: tab.key,
     label: (
-      <span>
-        {tab.label}{' '}
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 12 }}>
+        {tab.icon && <span style={{ display: 'inline-flex', alignItems: 'center' }}>{tab.icon}</span>}
+        <span>{tab.label}</span>
         {tab.count !== undefined && (
           <Badge 
             count={tab.count} 

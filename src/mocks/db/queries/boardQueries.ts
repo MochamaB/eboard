@@ -278,13 +278,22 @@ export const filterBoards = (options: BoardFilterOptions) => {
 
 /**
  * Get board members (users) for a board
+ * Also includes global presenters and guests (boardId: 'global')
  */
 export const getBoardMembers = (boardId: string) => {
-  const memberships = userBoardRolesTable.filter(
+  // Get members assigned to this specific board
+  const boardMemberships = userBoardRolesTable.filter(
     ubr => ubr.boardId === boardId && ubr.endDate === null
   );
   
-  return memberships.map(membership => {
+  // Also get global presenters and guests (available to all boards)
+  const globalMemberships = userBoardRolesTable.filter(
+    ubr => ubr.boardId === 'global' && ubr.endDate === null
+  );
+  
+  const allMemberships = [...boardMemberships, ...globalMemberships];
+  
+  return allMemberships.map(membership => {
     const user = usersTable.find(u => u.id === membership.userId);
     if (!user) return null;
     

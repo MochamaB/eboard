@@ -117,7 +117,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const hasRole = useCallback((role: string): boolean => {
     if (!user) return false;
-    return user.primaryRole === role;
+    return user.globalRole?.code === role;
   }, [user]);
 
   const refreshUser = useCallback(async () => {

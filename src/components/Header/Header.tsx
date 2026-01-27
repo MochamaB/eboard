@@ -191,7 +191,7 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) =
                 {user?.fullName || 'Guest'}
               </div>
               <div style={{ color: colors.textSecondary, fontSize: 11 }}>
-                {user?.primaryRole?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || ''}
+                {user?.jobTitle || ''}
               </div>
             </div>
           </Space>

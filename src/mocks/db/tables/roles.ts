@@ -51,7 +51,7 @@ export const rolesTable: RoleRow[] = [
 
   // BOARD SCOPE ROLES - Access scoped to assigned board(s)
   { 
-    id: 10, 
+    id: 4, 
     code: 'chairman', 
     name: 'Chairman', 
     description: 'Board chairman with elevated privileges for their board', 
@@ -59,7 +59,7 @@ export const rolesTable: RoleRow[] = [
     scope: 'board',
   },
   { 
-    id: 11, 
+    id: 5, 
     code: 'vice_chairman', 
     name: 'Vice Chairman', 
     description: 'Deputy to the chairman for their board', 
@@ -67,15 +67,15 @@ export const rolesTable: RoleRow[] = [
     scope: 'board',
   },
   { 
-    id: 12, 
-    code: 'company_secretary', 
-    name: 'Company Secretary', 
+    id: 6, 
+    code: 'board_secretary', 
+    name: 'Board Secretary', 
     description: 'Board-specific secretary managing administration', 
     isSystemRole: false,
     scope: 'board',
   },
   { 
-    id: 13, 
+    id: 7, 
     code: 'board_member', 
     name: 'Board Member', 
     description: 'Regular board member with voting rights', 
@@ -83,7 +83,7 @@ export const rolesTable: RoleRow[] = [
     scope: 'board',
   },
   { 
-    id: 14, 
+    id: 8, 
     code: 'committee_member', 
     name: 'Committee Member', 
     description: 'Committee participant with committee-level access', 
@@ -91,7 +91,7 @@ export const rolesTable: RoleRow[] = [
     scope: 'board',
   },
   { 
-    id: 15, 
+    id: 9, 
     code: 'executive_member', 
     name: 'Executive Member', 
     description: 'Executive (CEO, CFO, etc.) with special board access', 
@@ -99,7 +99,7 @@ export const rolesTable: RoleRow[] = [
     scope: 'board',
   },
   { 
-    id: 16, 
+    id: 10, 
     code: 'observer', 
     name: 'Observer', 
     description: 'View-only access to board meetings and documents', 
@@ -107,7 +107,7 @@ export const rolesTable: RoleRow[] = [
     scope: 'board',
   },
   { 
-    id: 17, 
+    id: 11, 
     code: 'presenter', 
     name: 'Presenter', 
     description: 'User who can present in meetings, added via meeting participants', 
@@ -115,10 +115,18 @@ export const rolesTable: RoleRow[] = [
     scope: 'board',
   },
   { 
-    id: 18, 
+    id: 12, 
     code: 'guest', 
     name: 'Guest', 
     description: 'Limited temporary access, typically for specific meetings', 
+    isSystemRole: false,
+    scope: 'board',
+  },
+  { 
+    id: 13, 
+    code: 'company_secretary', 
+    name: 'Company Secretary', 
+    description: 'Board-specific company secretary with cross-board administrative access', 
     isSystemRole: false,
     scope: 'board',
   },
@@ -155,4 +163,26 @@ export const getGlobalRoles = (): RoleRow[] => {
  */
 export const getBoardRoles = (): RoleRow[] => {
   return rolesTable.filter(r => r.scope === 'board');
+};
+
+// ============================================================================
+// GENERATED TYPES - Single source of truth
+// ============================================================================
+
+/**
+ * BoardRole type generated from rolesTable
+ * This ensures TypeScript types always match the database
+ */
+export type BoardRole = typeof rolesTable[number]['code'];
+
+/**
+ * Get all valid role codes (for validation)
+ */
+export const VALID_ROLE_CODES = rolesTable.map(r => r.code) as readonly BoardRole[];
+
+/**
+ * Check if a role code is valid
+ */
+export const isValidRoleCode = (code: string): code is BoardRole => {
+  return rolesTable.some(r => r.code === code);
 };

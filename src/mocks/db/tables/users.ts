@@ -13,7 +13,6 @@ export interface UserRow {
   employeeId: string | null;
   avatar: string | null;
   timezone: string;
-  primaryRole: string;
   zone: string | null;
   status: 'active' | 'inactive' | 'pending' | 'suspended';
   mfaEnabled: boolean;
@@ -43,7 +42,6 @@ export const usersTable: UserRow[] = [
     employeeId: 'DIR-001',
     avatar: null,
     timezone: 'Africa/Nairobi',
-    primaryRole: 'group_chairman',
     zone: 'Zone 3',
     status: 'active',
     mfaEnabled: true,
@@ -68,7 +66,8 @@ export const usersTable: UserRow[] = [
     employeeId: 'DIR-002',
     avatar: null,
     timezone: 'Africa/Nairobi',
-    primaryRole: 'vice_chairman',
+    // Role name derived from userBoardRoles default assignment
+    // jobTitle: 'Vice Chairman',
     zone: 'Zone 11',
     status: 'active',
     mfaEnabled: true,
@@ -93,7 +92,8 @@ export const usersTable: UserRow[] = [
     employeeId: 'SEC-001',
     avatar: null,
     timezone: 'Africa/Nairobi',
-    primaryRole: 'group_company_secretary',
+    // Role name derived from userBoardRoles default assignment
+    // jobTitle: 'Group Company Secretary',
     zone: null,
     status: 'active',
     mfaEnabled: true,
@@ -120,7 +120,8 @@ export const usersTable: UserRow[] = [
     employeeId: 'DIR-003',
     avatar: null,
     timezone: 'Africa/Nairobi',
-    primaryRole: 'board_member',
+    // Role name derived from userBoardRoles default assignment
+    // jobTitle: 'Board Member',
     zone: 'Zone 1',
     status: 'active',
     mfaEnabled: true,
@@ -143,7 +144,8 @@ export const usersTable: UserRow[] = [
     employeeId: 'DIR-004',
     avatar: null,
     timezone: 'Africa/Nairobi',
-    primaryRole: 'board_member',
+    // Role name derived from userBoardRoles default assignment
+    // jobTitle: 'Board Member',
     zone: 'Zone 2',
     status: 'active',
     mfaEnabled: true,
@@ -166,7 +168,8 @@ export const usersTable: UserRow[] = [
     employeeId: 'DIR-005',
     avatar: null,
     timezone: 'Africa/Nairobi',
-    primaryRole: 'board_member',
+    // Role name derived from userBoardRoles default assignment
+    // jobTitle: 'Board Member',
     zone: 'Zone 4',
     status: 'active',
     mfaEnabled: true,
@@ -189,7 +192,8 @@ export const usersTable: UserRow[] = [
     employeeId: 'DIR-006',
     avatar: null,
     timezone: 'Africa/Nairobi',
-    primaryRole: 'board_member',
+    // Role name derived from userBoardRoles default assignment
+    // jobTitle: 'Board Member',
     zone: 'Zone 5',
     status: 'active',
     mfaEnabled: true,
@@ -212,7 +216,8 @@ export const usersTable: UserRow[] = [
     employeeId: 'DIR-007',
     avatar: null,
     timezone: 'Africa/Nairobi',
-    primaryRole: 'board_member',
+    // Role name derived from userBoardRoles default assignment
+    // jobTitle: 'Board Member',
     zone: 'Zone 6',
     status: 'active',
     mfaEnabled: true,
@@ -235,7 +240,8 @@ export const usersTable: UserRow[] = [
     employeeId: 'DIR-008',
     avatar: null,
     timezone: 'Africa/Nairobi',
-    primaryRole: 'board_member',
+    // Role name derived from userBoardRoles default assignment
+    // jobTitle: 'Board Member',
     zone: 'Zone 7',
     status: 'active',
     mfaEnabled: true,
@@ -258,7 +264,8 @@ export const usersTable: UserRow[] = [
     employeeId: 'DIR-009',
     avatar: null,
     timezone: 'Africa/Nairobi',
-    primaryRole: 'board_member',
+    // Role name derived from userBoardRoles default assignment
+    // jobTitle: 'Board Member',
     zone: 'Zone 8',
     status: 'active',
     mfaEnabled: true,
@@ -281,7 +288,8 @@ export const usersTable: UserRow[] = [
     employeeId: 'DIR-010',
     avatar: null,
     timezone: 'Africa/Nairobi',
-    primaryRole: 'board_member',
+    // Role name derived from userBoardRoles default assignment
+    // jobTitle: 'Board Member',
     zone: 'Zone 9',
     status: 'active',
     mfaEnabled: true,
@@ -304,7 +312,8 @@ export const usersTable: UserRow[] = [
     employeeId: 'DIR-011',
     avatar: null,
     timezone: 'Africa/Nairobi',
-    primaryRole: 'board_member',
+    // Role name derived from userBoardRoles default assignment
+    // jobTitle: 'Board Member',
     zone: 'Zone 10',
     status: 'active',
     mfaEnabled: true,
@@ -327,7 +336,8 @@ export const usersTable: UserRow[] = [
     employeeId: 'DIR-012',
     avatar: null,
     timezone: 'Africa/Nairobi',
-    primaryRole: 'board_member',
+    // Role name derived from userBoardRoles default assignment
+    // jobTitle: 'Board Member',
     zone: 'Zone 12',
     status: 'active',
     mfaEnabled: true,
@@ -350,7 +360,8 @@ export const usersTable: UserRow[] = [
     employeeId: 'DIR-013',
     avatar: null,
     timezone: 'Africa/Nairobi',
-    primaryRole: 'board_member',
+    // Role name derived from userBoardRoles default assignment
+    // jobTitle: 'Board Member',
     zone: null,
     status: 'active',
     mfaEnabled: true,
@@ -375,7 +386,8 @@ export const usersTable: UserRow[] = [
     employeeId: 'EXE-001',
     avatar: null,
     timezone: 'Africa/Nairobi',
-    primaryRole: 'executive_member',
+    // Role name derived from userBoardRoles default assignment
+    // jobTitle: 'CEO',
     zone: null,
     status: 'active',
     mfaEnabled: true,
@@ -400,7 +412,8 @@ export const usersTable: UserRow[] = [
     employeeId: 'EXE-002',
     avatar: null,
     timezone: 'Africa/Nairobi',
-    primaryRole: 'executive_member',
+    // Role name derived from userBoardRoles default assignment
+    // jobTitle: 'GFSD',
     zone: null,
     status: 'active',
     mfaEnabled: true,
@@ -425,7 +438,8 @@ export const usersTable: UserRow[] = [
     employeeId: 'CS-001',
     avatar: null,
     timezone: 'Africa/Nairobi',
-    primaryRole: 'board_secretary',
+    // Role name derived from userBoardRoles default assignment
+    // jobTitle: 'Board Secretary',
     zone: null,
     status: 'active',
     mfaEnabled: true,
@@ -446,7 +460,8 @@ export const usersTable: UserRow[] = [
     employeeId: 'CS-002',
     avatar: null,
     timezone: 'Africa/Nairobi',
-    primaryRole: 'board_secretary',
+    // Role name derived from userBoardRoles default assignment
+    // jobTitle: 'Board Secretary',
     zone: null,
     status: 'active',
     mfaEnabled: true,
@@ -467,7 +482,8 @@ export const usersTable: UserRow[] = [
     employeeId: 'CS-003',
     avatar: null,
     timezone: 'Africa/Nairobi',
-    primaryRole: 'board_secretary',
+    // Role name derived from userBoardRoles default assignment
+    // jobTitle: 'Board Secretary',
     zone: null,
     status: 'active',
     mfaEnabled: true,
@@ -492,7 +508,8 @@ export const usersTable: UserRow[] = [
     employeeId: 'IT-001',
     avatar: null,
     timezone: 'Africa/Nairobi',
-    primaryRole: 'system_admin',
+    // Role name derived from userBoardRoles default assignment
+    // jobTitle: 'System Administrator',
     zone: null,
     status: 'active',
     mfaEnabled: false,
@@ -513,7 +530,8 @@ export const usersTable: UserRow[] = [
     employeeId: 'IT-002',
     avatar: null,
     timezone: 'Africa/Nairobi',
-    primaryRole: 'system_admin',
+    // Role name derived from userBoardRoles default assignment
+    // jobTitle: 'System Administrator',
     zone: null,
     status: 'active',
     mfaEnabled: false,
@@ -531,14 +549,37 @@ export const usersTable: UserRow[] = [
   {
     id: 22,
     email: 'headofict@ktdateas.com',
-    firstName: 'Peter',
-    lastName: 'Kamau',
-    fullName: 'Peter Kamau',
+    firstName: 'Martin',
+    lastName: 'Mwarangu',
+    fullName: 'Martin Mwarangu',
     phone: '+254 722 400 001',
     employeeId: 'ICT-001',
     avatar: null,
     timezone: 'Africa/Nairobi',
-    primaryRole: 'presenter',
+    // Role name derived from userBoardRoles default assignment
+    // jobTitle: 'Director',
+    zone: null,
+    status: 'active',
+    mfaEnabled: true,
+    mfaSetupComplete: true,
+    hasCertificate: false,
+    certificateExpiry: null,
+    createdAt: '2020-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+    lastLoginAt: '2024-12-17T10:00:00Z',
+  },
+   {
+    id: 23,
+    email: 'headofhr@ktdateas.com',
+    firstName: 'Charles',
+    lastName: 'Kireru',
+    fullName: 'Charles Kireru',
+    phone: '+254 722 400 001',
+    employeeId: 'HR-001',
+    avatar: null,
+    timezone: 'Africa/Nairobi',
+    // Role name derived from userBoardRoles default assignment
+    // jobTitle: 'Director',
     zone: null,
     status: 'active',
     mfaEnabled: true,

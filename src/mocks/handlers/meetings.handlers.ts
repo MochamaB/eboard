@@ -27,6 +27,8 @@ import {
 import { getBoardById, getBoardMembers } from '../db/queries/boardQueries';
 import { boardsTable } from '../db/tables/boards';
 import { usersTable } from '../db/tables/users';
+import { checkConfirmationRequired, getInitialMeetingStatus } from '../../utils/meetingConfirmation';
+import type { BoardRole } from '../../types/board.types';
 
 // In-memory storage for created/updated meetings
 let meetings = getAllMeetingObjects();
@@ -40,13 +42,21 @@ const getBoardMembersAsParticipants = (boardId: string) => {
   const members = getBoardMembers(boardId);
   return members.filter(m => m !== null).map(member => {
     const user = usersTable.find(u => u.id === member!.id);
+    
+    // Convert null to undefined for optional fields to match Zod schema
+    const avatarValue = member!.avatar || user?.avatar;
+    const avatar = avatarValue === null ? undefined : avatarValue;
+    
+    // Use actual board role from member, fallback to 'board_member' if undefined
+    const boardRole = (member!.role || 'board_member') as BoardRole;
+    
     return {
       id: `part-${member!.id}`,
       userId: member!.id,
       name: user?.fullName || member!.odooUserName || 'Unknown User',
       email: member!.email || user?.email || '',
-      avatar: member!.avatar || user?.avatar,
-      boardRole: (member!.role || 'board_member') as 'board_member',
+      avatar,
+      boardRole,
       rsvpStatus: 'no_response' as const,
       isGuest: false,
       canViewDocuments: true,
@@ -273,9 +283,9 @@ export const meetingsHandlers = [
 
     // Auto-populate participants from board members
     const participants = getBoardMembersAsParticipants(payload.boardId);
-
-    // Use board's quorum if not provided
-    const quorumPercentage = payload.quorumPercentage ?? board.settings?.quorumPercentage ?? 50;
+    
+    // Use board's quorum if not provided, fallback to 50%
+    const quorumPercentage = payload.quorumPercentage ?? 50;
     const quorumRequired = Math.ceil((participants.length * quorumPercentage) / 100);
 
     // Calculate end date time
@@ -285,16 +295,24 @@ export const meetingsHandlers = [
     const endDateTime = new Date(startDateTime);
     endDateTime.setMinutes(endDateTime.getMinutes() + payload.duration);
 
-    // Determine if requires confirmation from board settings
-    const requiresConfirmation = board.settings?.confirmationRequired ?? false;
+    // Determine if requires confirmation using business rules
+    const requiresConfirmation = checkConfirmationRequired(
+      board.type,
+      payload.meetingType,
+      { type: board.type }
+    );
+    
+    // Get initial status based on confirmation requirement
+    const initialStatus = getInitialMeetingStatus(requiresConfirmation);
 
     const newMeeting: Meeting = {
       id: generateMeetingId(),
       boardId: payload.boardId,
       boardName: board.name,
       boardType: board.type,
-      parentBoardId: board.parentId,
-      parentBoardName: board.parentName,
+      // Convert null to undefined for optional Zod fields
+      parentBoardId: board.parentId || undefined,
+      parentBoardName: board.parentId ? boardsTable.find(b => b.id === board.parentId)?.name : undefined,
       title: payload.title,
       description: payload.description,
       meetingType: payload.meetingType,
@@ -312,7 +330,7 @@ export const meetingsHandlers = [
       quorumRequired,
       expectedAttendees: participants.length,
       requiresConfirmation,
-      status: requiresConfirmation ? 'pending_confirmation' : 'draft',
+      status: initialStatus,
       isRecurring: payload.isRecurring || false,
       recurrencePattern: payload.recurrencePattern,
       createdBy: '17', // Mock user - Kenneth Muhia (Company Secretary)
