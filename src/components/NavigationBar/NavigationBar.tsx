@@ -49,12 +49,12 @@ export const NavigationBar: React.FC = () => {
   
   const breadcrumbs = generateBreadcrumbs(location.pathname);
   
-  // Hide committees row on create/edit/details/wizard pages
-  const shouldHideCommittees = 
-    location.pathname.includes('/create') || 
-    location.pathname.includes('/edit') ||
-    location.pathname.includes('/details') ||
-    location.pathname.includes('/wizard');
+  // Hide committees row on non-index pages
+  // Index pages have exactly 2 path segments: /:boardId/:module (e.g., /ktda-ms/meetings)
+  // Detail/create/edit pages have 3+ segments: /:boardId/:module/:id or /:boardId/:module/create
+  const pathSegments = location.pathname.split('/').filter(Boolean);
+  const isIndexPage = pathSegments.length === 2;
+  const shouldHideCommittees = !isIndexPage;
   
   // Build committee items with icons (committees are now boards with type='committee')
   const committeeItems = [

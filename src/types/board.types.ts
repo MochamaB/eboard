@@ -59,6 +59,21 @@ export const ZoneSchema = z.enum([
 ]);
 
 // ============================================================================
+// BOARD CONTACT INFO
+// ============================================================================
+
+export const BoardContactInfoSchema = z.object({
+  address: z.string(),
+  poBox: z.string(),
+  city: z.string(),
+  country: z.string(),
+  phone: z.string(),
+  phoneAlt: z.string().optional(),
+  email: z.string().email(),
+  website: z.string(),
+});
+
+// ============================================================================
 // BOARD SETTINGS
 // ============================================================================
 
@@ -111,15 +126,39 @@ export const BoardBrandingSchema = z.object({
   infoColor: z.string().default('#1890ff'),
   infoLight: z.string().default('rgba(24, 144, 255, 0.1)'),
   
-  // Neutral Colors
+  // Neutral Colors - Backgrounds
   backgroundPrimary: z.string().default('#f3f3f9'),
   backgroundSecondary: z.string().default('#ffffff'),
   backgroundTertiary: z.string().default('#fafafa'),
-  borderColor: z.string().default('#d9d9d9'),
-  borderColorHover: z.string().default('#40a9ff'),
+  backgroundQuaternary: z.string().default('#f5f5f5'),
+  backgroundHover: z.string().default('#f0f0f0'),
+  backgroundActive: z.string().default('#e8e8e8'),
+  backgroundDisabled: z.string().default('#fafafa'),
+  
+  // Neutral Colors - Text
   textPrimary: z.string().default('rgba(0, 0, 0, 0.85)'),
   textSecondary: z.string().default('rgba(0, 0, 0, 0.65)'),
+  textTertiary: z.string().default('rgba(0, 0, 0, 0.45)'),
   textDisabled: z.string().default('rgba(0, 0, 0, 0.25)'),
+  textPlaceholder: z.string().default('rgba(0, 0, 0, 0.35)'),
+  textInverse: z.string().default('#ffffff'),
+  
+  // Neutral Colors - Borders
+  borderColor: z.string().default('#d9d9d9'),
+  borderColorHover: z.string().default('#40a9ff'),
+  borderColorLight: z.string().default('#f0f0f0'),
+  borderColorStrong: z.string().default('#bfbfbf'),
+  borderColorFocus: z.string().default('#1890ff'),
+  
+  // Depth-Specific Colors (for nested items)
+  depthLevel1Bg: z.string().default('#fafafa'),
+  depthLevel2Bg: z.string().default('#f5f5f5'),
+  depthLevel3Bg: z.string().default('#f0f0f0'),
+  
+  // Surface Colors (for elevated elements)
+  surfaceElevated: z.string().default('#ffffff'),
+  surfaceSunken: z.string().default('#f5f5f5'),
+  surfaceOverlay: z.string().default('rgba(0, 0, 0, 0.45)'),
   
   // Sidebar Specific
   sidebarBg: z.string().default('#324721'),
@@ -174,6 +213,9 @@ export const BoardSchema = z.object({
   // Counts
   memberCount: z.number().default(0),
   committeeCount: z.number().default(0),
+  
+  // Contact information
+  contactInfo: BoardContactInfoSchema.optional(),
   
   // Nested data
   committees: z.array(CommitteeSchema).optional(),
@@ -385,6 +427,7 @@ export type VotingThreshold = z.infer<typeof VotingThresholdSchema>;
 export type { BoardRole } from '../mocks/db/tables/roles';
 export type Zone = z.infer<typeof ZoneSchema>;
 
+export type BoardContactInfo = z.infer<typeof BoardContactInfoSchema>;
 export type BoardSettings = z.infer<typeof BoardSettingsSchema>;
 export type BoardLogo = z.infer<typeof BoardLogoSchema>;
 export type BoardBranding = z.infer<typeof BoardBrandingSchema>;

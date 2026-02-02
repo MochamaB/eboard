@@ -3,6 +3,17 @@
  * All boards: main, subsidiaries, committees, factories
  */
 
+export interface BoardContactInfo {
+  address: string;
+  poBox: string;
+  city: string;
+  country: string;
+  phone: string;
+  phoneAlt?: string;
+  email: string;
+  website: string;
+}
+
 export interface BoardRow {
   id: string;
   name: string;
@@ -20,6 +31,8 @@ export interface BoardRow {
   nextMeetingDate: string | null;
   createdAt: string;
   updatedAt: string;
+  // Contact information
+  contactInfo: BoardContactInfo;
 }
 
 // ============================================================================
@@ -44,9 +57,19 @@ export const boardsTable: BoardRow[] = [
     nextMeetingDate: '2025-03-15T09:00:00Z',
     createdAt: '2020-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
+    contactInfo: {
+      address: 'KTDA Farmers Building, Moi Avenue',
+      poBox: 'P.O. Box 30213-00100',
+      city: 'Nairobi',
+      country: 'Kenya',
+      phone: '+254 20 322 7000',
+      phoneAlt: '+254 20 221 441-4',
+      email: 'info@ktdateas.com',
+      website: 'www.ktdateas.com',
+    },
   },
 
-  // COMMITTEES (parent: ktda-ms)
+  // COMMITTEES (parent: ktda-ms) - Use KTDA MS contact info
   {
     id: 'comm-audit',
     name: 'Audit Committee',
@@ -63,6 +86,16 @@ export const boardsTable: BoardRow[] = [
     nextMeetingDate: '2025-03-10T10:00:00Z',
     createdAt: '2020-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
+    contactInfo: {
+      address: 'KTDA Farmers Building, Moi Avenue',
+      poBox: 'P.O. Box 30213-00100',
+      city: 'Nairobi',
+      country: 'Kenya',
+      phone: '+254 20 322 7000',
+      phoneAlt: '+254 20 221 441-4',
+      email: 'info@ktdateas.com',
+      website: 'www.ktdateas.com',
+    },
   },
   {
     id: 'comm-hr',
@@ -80,6 +113,16 @@ export const boardsTable: BoardRow[] = [
     nextMeetingDate: '2025-02-05T14:00:00Z',
     createdAt: '2020-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
+    contactInfo: {
+      address: 'KTDA Farmers Building, Moi Avenue',
+      poBox: 'P.O. Box 30213-00100',
+      city: 'Nairobi',
+      country: 'Kenya',
+      phone: '+254 20 322 7000',
+      phoneAlt: '+254 20 221 441-4',
+      email: 'info@ktdateas.com',
+      website: 'www.ktdateas.com',
+    },
   },
   {
     id: 'comm-finance',
@@ -97,6 +140,16 @@ export const boardsTable: BoardRow[] = [
     nextMeetingDate: '2025-01-12T09:00:00Z',
     createdAt: '2020-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
+    contactInfo: {
+      address: 'KTDA Farmers Building, Moi Avenue',
+      poBox: 'P.O. Box 30213-00100',
+      city: 'Nairobi',
+      country: 'Kenya',
+      phone: '+254 20 322 7000',
+      phoneAlt: '+254 20 221 441-4',
+      email: 'info@ktdateas.com',
+      website: 'www.ktdateas.com',
+    },
   },
   {
     id: 'comm-nomination',
@@ -114,6 +167,16 @@ export const boardsTable: BoardRow[] = [
     nextMeetingDate: '2025-05-20T11:00:00Z',
     createdAt: '2020-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
+    contactInfo: {
+      address: 'KTDA Farmers Building, Moi Avenue',
+      poBox: 'P.O. Box 30213-00100',
+      city: 'Nairobi',
+      country: 'Kenya',
+      phone: '+254 20 322 7000',
+      phoneAlt: '+254 20 221 441-4',
+      email: 'info@ktdateas.com',
+      website: 'www.ktdateas.com',
+    },
   },
 
   // SUBSIDIARIES (parent: ktda-ms)
@@ -133,6 +196,16 @@ export const boardsTable: BoardRow[] = [
     nextMeetingDate: '2025-01-20T10:00:00Z',
     createdAt: '2020-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
+    contactInfo: {
+      address: 'KETEPA House, Moi Avenue',
+      poBox: 'P.O. Box 30213-00100',
+      city: 'Nairobi',
+      country: 'Kenya',
+      phone: '+254 20 222 1221',
+      phoneAlt: '+254 20 222 1222',
+      email: 'info@ketepa.com',
+      website: 'www.ketepa.com',
+    },
   },
   {
     id: 'temec',
@@ -150,6 +223,16 @@ export const boardsTable: BoardRow[] = [
     nextMeetingDate: '2025-01-18T10:00:00Z',
     createdAt: '2020-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
+    contactInfo: {
+      address: 'TEMEC Workshop, Industrial Area, Nanyuki Road',
+      poBox: 'P.O. Box 30213-00100',
+      city: 'Nairobi',
+      country: 'Kenya',
+      phone: '+254 20 237 9400',
+      phoneAlt: '+254 724 303 030',
+      email: 'info@temec.co.ke',
+      website: 'www.temec.co.ke',
+    },
   },
   {
     id: 'chai-trading',
@@ -167,6 +250,15 @@ export const boardsTable: BoardRow[] = [
     nextMeetingDate: '2025-01-22T10:00:00Z',
     createdAt: '2020-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
+    contactInfo: {
+      address: 'KTDA Farmers Building, Moi Avenue',
+      poBox: 'P.O. Box 30213-00100',
+      city: 'Nairobi',
+      country: 'Kenya',
+      phone: '+254 20 322 7111',
+      email: 'info@chaitrading.co.ke',
+      website: 'www.chaitrading.co.ke',
+    },
   },
   {
     id: 'ktda-power',
@@ -184,6 +276,15 @@ export const boardsTable: BoardRow[] = [
     nextMeetingDate: '2025-01-15T10:00:00Z',
     createdAt: '2020-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
+    contactInfo: {
+      address: 'KTDA Farmers Building, Moi Avenue',
+      poBox: 'P.O. Box 30213-00100',
+      city: 'Nairobi',
+      country: 'Kenya',
+      phone: '+254 20 322 7222',
+      email: 'power@ktdateas.com',
+      website: 'www.ktdapower.co.ke',
+    },
   },
   {
     id: 'greenland-fedha',
@@ -201,6 +302,15 @@ export const boardsTable: BoardRow[] = [
     nextMeetingDate: '2025-01-19T10:00:00Z',
     createdAt: '2020-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
+    contactInfo: {
+      address: 'Greenland Fedha House, Moi Avenue',
+      poBox: 'P.O. Box 30213-00100',
+      city: 'Nairobi',
+      country: 'Kenya',
+      phone: '+254 20 322 7333',
+      email: 'info@greenlandfedha.co.ke',
+      website: 'www.greenlandfedha.co.ke',
+    },
   },
   {
     id: 'ktda-foundation',
@@ -218,6 +328,15 @@ export const boardsTable: BoardRow[] = [
     nextMeetingDate: '2025-02-25T10:00:00Z',
     createdAt: '2020-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
+    contactInfo: {
+      address: 'KTDA Farmers Building, Moi Avenue',
+      poBox: 'P.O. Box 30213-00100',
+      city: 'Nairobi',
+      country: 'Kenya',
+      phone: '+254 20 322 7444',
+      email: 'foundation@ktdateas.com',
+      website: 'www.ktdafoundation.org',
+    },
   },
   {
     id: 'chai-logistics',
@@ -234,6 +353,15 @@ export const boardsTable: BoardRow[] = [
     lastMeetingDate: '2024-12-17T10:00:00Z',
     nextMeetingDate: '2025-01-17T10:00:00Z',
     createdAt: '2020-01-01T00:00:00Z',
+    contactInfo: {
+      address: 'Chai Logistics Centre, Industrial Area, Nanyuki Road',
+      poBox: 'P.O. Box 30213-00100',
+      city: 'Nairobi',
+      country: 'Kenya',
+      phone: '+254 20 322 7555',
+      email: 'logistics@ktdateas.com',
+      website: 'www.chailogistics.co.ke',
+    },
     updatedAt: '2024-01-01T00:00:00Z',
   },
   {
@@ -252,6 +380,15 @@ export const boardsTable: BoardRow[] = [
     nextMeetingDate: '2025-01-21T10:00:00Z',
     createdAt: '2020-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
+    contactInfo: {
+      address: 'Majani Insurance House, Moi Avenue',
+      poBox: 'P.O. Box 30213-00100',
+      city: 'Nairobi',
+      country: 'Kenya',
+      phone: '+254 20 322 7666',
+      email: 'info@majaniinsurance.co.ke',
+      website: 'www.majaniinsurance.co.ke',
+    },
   },
 
   // FACTORY BOARDS - Zone 1
@@ -272,6 +409,15 @@ export const boardsTable: BoardRow[] = [
     nextMeetingDate: '2025-01-15T09:00:00Z',
     createdAt: '2020-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
+    contactInfo: {
+      address: 'Chebut Tea Factory',
+      poBox: 'P.O. Box 42-30301',
+      city: 'Nandi Hills',
+      country: 'Kenya',
+      phone: '+254 720 100 001',
+      email: 'chebut@ktdateas.com',
+      website: 'www.ktdateas.com/factories/chebut',
+    },
   },
   {
     id: 'factory-kapkatet',
@@ -290,6 +436,15 @@ export const boardsTable: BoardRow[] = [
     nextMeetingDate: '2025-01-10T09:00:00Z',
     createdAt: '2020-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
+    contactInfo: {
+      address: 'Kapkatet Tea Factory',
+      poBox: 'P.O. Box 57-20400',
+      city: 'Bomet',
+      country: 'Kenya',
+      phone: '+254 720 100 002',
+      email: 'kapkatet@ktdateas.com',
+      website: 'www.ktdateas.com/factories/kapkatet',
+    },
   },
 
   // FACTORY BOARDS - Zone 2
@@ -310,6 +465,15 @@ export const boardsTable: BoardRow[] = [
     nextMeetingDate: '2025-01-20T09:00:00Z',
     createdAt: '2020-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
+    contactInfo: {
+      address: 'Litein Tea Factory',
+      poBox: 'P.O. Box 120-20210',
+      city: 'Litein',
+      country: 'Kenya',
+      phone: '+254 720 100 003',
+      email: 'litein@ktdateas.com',
+      website: 'www.ktdateas.com/factories/litein',
+    },
   },
   {
     id: 'factory-mogogosiek',
@@ -328,6 +492,15 @@ export const boardsTable: BoardRow[] = [
     nextMeetingDate: '2025-01-18T09:00:00Z',
     createdAt: '2020-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
+    contactInfo: {
+      address: 'Mogogosiek Tea Factory',
+      poBox: 'P.O. Box 85-20400',
+      city: 'Bomet',
+      country: 'Kenya',
+      phone: '+254 720 100 004',
+      email: 'mogogosiek@ktdateas.com',
+      website: 'www.ktdateas.com/factories/mogogosiek',
+    },
   },
 
   // FACTORY BOARDS - Zone 3
@@ -348,6 +521,15 @@ export const boardsTable: BoardRow[] = [
     nextMeetingDate: '2025-02-01T09:00:00Z',
     createdAt: '2020-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
+    contactInfo: {
+      address: 'Kangaita Tea Factory',
+      poBox: 'P.O. Box 6-10100',
+      city: 'Nyeri',
+      country: 'Kenya',
+      phone: '+254 720 100 005',
+      email: 'kangaita@ktdateas.com',
+      website: 'www.ktdateas.com/factories/kangaita',
+    },
   },
   {
     id: 'factory-ragati',
@@ -366,5 +548,14 @@ export const boardsTable: BoardRow[] = [
     nextMeetingDate: '2025-01-25T09:00:00Z',
     createdAt: '2020-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
+    contactInfo: {
+      address: 'Ragati Tea Factory',
+      poBox: 'P.O. Box 18-10100',
+      city: 'Nyeri',
+      country: 'Kenya',
+      phone: '+254 720 100 006',
+      email: 'ragati@ktdateas.com',
+      website: 'www.ktdateas.com/factories/ragati',
+    },
   },
 ];

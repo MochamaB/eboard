@@ -152,6 +152,7 @@ export const toBoardObject = (row: BoardRow): Board => {
     zone: row.zone,
     memberCount: row.memberCount,
     committeeCount: row.committeeCount,
+    contactInfo: row.contactInfo,
     branding: getBranding(row.id),
     settings: settings ? {
       quorumPercentage: settings.quorumPercentage,

@@ -15,6 +15,8 @@ import type {
   UpdateRSVPPayload,
   CancelMeetingPayload,
   RescheduleMeetingPayload,
+  MeetingConfirmationHistory,
+  RejectionReason,
 } from '../../types/meeting.types';
 import type { PaginatedResponse } from '../../types/api.types';
 
@@ -32,6 +34,8 @@ export const meetingKeys = {
     [...meetingKeys.all, 'board', boardId, includeCommittees] as const,
   upcoming: (limit?: number) => [...meetingKeys.all, 'upcoming', limit] as const,
   pendingConfirmation: () => [...meetingKeys.all, 'pending-confirmation'] as const,
+  confirmationHistory: (id: string) => [...meetingKeys.all, 'confirmation-history', id] as const,
+  confirmationStatus: (id: string) => [...meetingKeys.all, 'confirmation-status', id] as const,
 };
 
 // ============================================================================
@@ -101,11 +105,13 @@ export const useUpcomingMeetings = (
  * Get meetings pending confirmation (for approvers)
  */
 export const usePendingConfirmations = (
+  boardId?: string,
+  includeCommittees?: boolean,
   options?: Omit<UseQueryOptions<{ data: MeetingListItem[]; total: number }>, 'queryKey' | 'queryFn'>
 ) => {
   return useQuery({
-    queryKey: meetingKeys.pendingConfirmation(),
-    queryFn: () => meetingsApi.getPendingConfirmations(),
+    queryKey: [...meetingKeys.pendingConfirmation(), boardId, includeCommittees],
+    queryFn: () => meetingsApi.getPendingConfirmations(boardId, includeCommittees),
     ...options,
   });
 };
@@ -173,7 +179,7 @@ export const useDeleteMeeting = (
 
   return useMutation({
     mutationFn: (id: string) => meetingsApi.deleteMeeting(id),
-    onSuccess: (_, id) => {
+    onSuccess: () => {
       // Invalidate all meeting queries
       queryClient.invalidateQueries({ queryKey: meetingKeys.all });
     },
@@ -229,18 +235,20 @@ export const useRescheduleMeeting = (
 /**
  * Submit meeting for confirmation
  */
+type SubmitForConfirmationPayload = { submittedBy: number; notes?: string };
+type ConfirmationActionResponse = { success: boolean; data?: MeetingConfirmationHistory; message: string };
+
 export const useSubmitForConfirmation = (
   id: string,
-  options?: UseMutationOptions<Meeting, Error, void>
+  options?: UseMutationOptions<ConfirmationActionResponse, Error, SubmitForConfirmationPayload>
 ) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => meetingsApi.submitForConfirmation(id),
-    onSuccess: (data) => {
+    mutationFn: (payload: SubmitForConfirmationPayload) => meetingsApi.submitForConfirmation(id, payload),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: meetingKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: meetingKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: meetingKeys.boardMeetings(data.boardId) });
       queryClient.invalidateQueries({ queryKey: meetingKeys.pendingConfirmation() });
     },
     ...options,
@@ -250,18 +258,19 @@ export const useSubmitForConfirmation = (
 /**
  * Confirm meeting (approve)
  */
+type ConfirmMeetingPayload = { confirmedBy: number; pin: string; signatureId?: string; signatureImage?: string };
+
 export const useConfirmMeeting = (
   id: string,
-  options?: UseMutationOptions<Meeting, Error, void>
+  options?: UseMutationOptions<ConfirmationActionResponse, Error, ConfirmMeetingPayload>
 ) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => meetingsApi.confirmMeeting(id),
-    onSuccess: (data) => {
+    mutationFn: (payload: ConfirmMeetingPayload) => meetingsApi.confirmMeeting(id, payload),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: meetingKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: meetingKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: meetingKeys.boardMeetings(data.boardId) });
       queryClient.invalidateQueries({ queryKey: meetingKeys.pendingConfirmation() });
       queryClient.invalidateQueries({ queryKey: meetingKeys.upcoming() });
     },
@@ -272,18 +281,19 @@ export const useConfirmMeeting = (
 /**
  * Reject meeting confirmation
  */
+type RejectMeetingPayload = { rejectedBy: number; reason: RejectionReason; comments?: string };
+
 export const useRejectMeeting = (
   id: string,
-  options?: UseMutationOptions<Meeting, Error, string>
+  options?: UseMutationOptions<ConfirmationActionResponse, Error, RejectMeetingPayload>
 ) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (reason: string) => meetingsApi.rejectMeeting(id, reason),
-    onSuccess: (data) => {
+    mutationFn: (payload: RejectMeetingPayload) => meetingsApi.rejectMeeting(id, payload),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: meetingKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: meetingKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: meetingKeys.boardMeetings(data.boardId) });
       queryClient.invalidateQueries({ queryKey: meetingKeys.pendingConfirmation() });
     },
     ...options,
@@ -345,6 +355,64 @@ export const useRemoveGuest = (
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: meetingKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: meetingKeys.lists() });
+    },
+    ...options,
+  });
+};
+
+// ============================================================================
+// CONFIRMATION QUERY HOOKS
+// ============================================================================
+
+/**
+ * Get confirmation history for a meeting
+ */
+export const useConfirmationHistory = (
+  meetingId: string,
+  options?: Omit<UseQueryOptions<{ data: MeetingConfirmationHistory[]; total: number }>, 'queryKey' | 'queryFn'>
+) => {
+  return useQuery({
+    queryKey: meetingKeys.confirmationHistory(meetingId),
+    queryFn: () => meetingsApi.getConfirmationHistory(meetingId),
+    enabled: !!meetingId,
+    ...options,
+  });
+};
+
+/**
+ * Get latest confirmation status for a meeting
+ */
+export const useConfirmationStatus = (
+  meetingId: string,
+  options?: Omit<UseQueryOptions<{ data: MeetingConfirmationHistory | null; message?: string }>, 'queryKey' | 'queryFn'>
+) => {
+  return useQuery({
+    queryKey: meetingKeys.confirmationStatus(meetingId),
+    queryFn: () => meetingsApi.getConfirmationStatus(meetingId),
+    enabled: !!meetingId,
+    ...options,
+  });
+};
+
+/**
+ * Resubmit meeting for confirmation (after rejection)
+ */
+type ResubmitForConfirmationPayload = { submittedBy: number; notes?: string };
+
+export const useResubmitForConfirmation = (
+  id: string,
+  options?: UseMutationOptions<ConfirmationActionResponse, Error, ResubmitForConfirmationPayload>
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: ResubmitForConfirmationPayload) => meetingsApi.resubmitForConfirmation(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: meetingKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: meetingKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: meetingKeys.pendingConfirmation() });
+      queryClient.invalidateQueries({ queryKey: meetingKeys.confirmationHistory(id) });
+      queryClient.invalidateQueries({ queryKey: meetingKeys.confirmationStatus(id) });
     },
     ...options,
   });

@@ -3,7 +3,6 @@
  * Unified table for members, guests, presenters, and observers
  */
 
-export type ParticipantType = 'member' | 'secretary' | 'chairman' | 'guest' | 'presenter' | 'observer';
 export type RSVPStatus = 'pending' | 'accepted' | 'declined' | 'tentative';
 export type AttendanceStatus = 'present' | 'absent' | 'late' | 'left_early' | 'excused' | null;
 
@@ -12,10 +11,11 @@ export interface MeetingParticipantRow {
   meetingId: string;
   userId: number;
 
-  // Participant type determines access level
-  participantType: ParticipantType;
+  // Role assignment - FK to roles table (authoritative source)
+  roleId: number;
 
-  // Role context (for display)
+  // Role display title (e.g., "Committee Chair", "External Auditor")
+  // Can differ from role name for context-specific titles
   roleTitle: string | null;
 
   // RSVP
@@ -34,7 +34,7 @@ export interface MeetingParticipantRow {
   canViewBoardDocuments: boolean;
   canShareScreen: boolean;
 
-  // Guest-specific (only for participantType='guest' or 'presenter')
+  // Guest-specific (only for roleId=12 (guest) or roleId=11 (presenter))
   presentationTopic: string | null;
   presentationStartTime: string | null;
   presentationEndTime: string | null;
@@ -62,7 +62,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     id: 'part-001',
     meetingId: 'mtg-001',
     userId: 1, // Hon. Chege Kirundi
-    participantType: 'chairman',
+    roleId: 4, // chairman
     roleTitle: 'Chairman',
     rsvpStatus: 'accepted',
     rsvpAt: '2025-02-16T08:00:00Z',
@@ -88,7 +88,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     id: 'part-002',
     meetingId: 'mtg-001',
     userId: 2, // Hon. David Mwangi
-    participantType: 'member',
+    roleId: 7, // board_member
     roleTitle: 'Vice Chairman',
     rsvpStatus: 'accepted',
     rsvpAt: '2025-02-16T09:00:00Z',
@@ -114,7 +114,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     id: 'part-003',
     meetingId: 'mtg-001',
     userId: 3, // John Kamau
-    participantType: 'member',
+    roleId: 7, // board_member
     roleTitle: 'Executive Member',
     rsvpStatus: 'accepted',
     rsvpAt: '2025-02-16T10:00:00Z',
@@ -139,7 +139,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     id: 'part-004',
     meetingId: 'mtg-001',
     userId: 4, // Hon. G Kagombe
-    participantType: 'member',
+    roleId: 7, // board_member
     roleTitle: 'Board Member',
     rsvpStatus: 'tentative',
     rsvpAt: '2025-02-17T08:00:00Z',
@@ -164,7 +164,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     id: 'part-005',
     meetingId: 'mtg-001',
     userId: 5, // Hon. P Langat
-    participantType: 'member',
+    roleId: 7, // board_member
     roleTitle: 'Board Member',
     rsvpStatus: 'accepted',
     rsvpAt: '2025-02-16T11:00:00Z',
@@ -189,7 +189,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     id: 'part-006',
     meetingId: 'mtg-001',
     userId: 6, // Hon. J Mutai
-    participantType: 'member',
+    roleId: 7, // board_member
     roleTitle: 'Board Member',
     rsvpStatus: 'accepted',
     rsvpAt: '2025-02-16T12:00:00Z',
@@ -214,7 +214,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     id: 'part-007',
     meetingId: 'mtg-001',
     userId: 7, // Hon. W Korir
-    participantType: 'member',
+    roleId: 7, // board_member
     roleTitle: 'Board Member',
     rsvpStatus: 'accepted',
     rsvpAt: '2025-02-16T13:00:00Z',
@@ -239,7 +239,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     id: 'part-008',
     meetingId: 'mtg-001',
     userId: 8, // Hon. M Kiprop
-    participantType: 'member',
+    roleId: 7, // board_member
     roleTitle: 'Board Member',
     rsvpStatus: 'accepted',
     rsvpAt: '2025-02-16T14:00:00Z',
@@ -265,7 +265,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     id: 'part-009',
     meetingId: 'mtg-001',
     userId: 17, // Kenneth Muhia (Company Secretary)
-    participantType: 'secretary',
+    roleId: 6, // board_secretary
     roleTitle: 'Company Secretary',
     rsvpStatus: 'accepted',
     rsvpAt: '2025-02-15T10:30:00Z',
@@ -291,7 +291,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     id: 'part-010',
     meetingId: 'mtg-001',
     userId: 20, // Brian Mochama (as guest for this meeting)
-    participantType: 'presenter',
+    roleId: 11, // presenter
     roleTitle: 'Finance Director',
     rsvpStatus: 'accepted',
     rsvpAt: '2025-02-18T08:00:00Z',
@@ -320,7 +320,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     id: 'part-011',
     meetingId: 'mtg-003',
     userId: 1,
-    participantType: 'chairman',
+    roleId: 4, // chairman
     roleTitle: 'Chairman',
     rsvpStatus: 'accepted',
     rsvpAt: '2024-11-16T08:00:00Z',
@@ -345,7 +345,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     id: 'part-012',
     meetingId: 'mtg-003',
     userId: 2,
-    participantType: 'member',
+    roleId: 7, // board_member
     roleTitle: 'Vice Chairman',
     rsvpStatus: 'accepted',
     rsvpAt: '2024-11-16T09:00:00Z',
@@ -370,7 +370,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     id: 'part-013',
     meetingId: 'mtg-003',
     userId: 4,
-    participantType: 'member',
+    roleId: 7, // board_member
     roleTitle: 'Board Member',
     rsvpStatus: 'accepted',
     rsvpAt: '2024-11-16T10:00:00Z',
@@ -395,7 +395,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     id: 'part-014',
     meetingId: 'mtg-003',
     userId: 17,
-    participantType: 'secretary',
+    roleId: 6, // board_secretary
     roleTitle: 'Company Secretary',
     rsvpStatus: 'accepted',
     rsvpAt: '2024-11-15T10:00:00Z',
@@ -424,7 +424,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     id: 'part-020',
     meetingId: 'mtg-004',
     userId: 4, // Committee Chair
-    participantType: 'chairman',
+    roleId: 4, // chairman
     roleTitle: 'Committee Chair',
     rsvpStatus: 'accepted',
     rsvpAt: '2025-02-21T08:00:00Z',
@@ -449,7 +449,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     id: 'part-021',
     meetingId: 'mtg-004',
     userId: 5,
-    participantType: 'member',
+    roleId: 7, // board_member
     roleTitle: 'Committee Member',
     rsvpStatus: 'accepted',
     rsvpAt: '2025-02-21T09:00:00Z',
@@ -474,7 +474,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     id: 'part-022',
     meetingId: 'mtg-004',
     userId: 6,
-    participantType: 'member',
+    roleId: 7, // board_member
     roleTitle: 'Committee Member',
     rsvpStatus: 'accepted',
     rsvpAt: '2025-02-21T10:00:00Z',
@@ -499,7 +499,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     id: 'part-023',
     meetingId: 'mtg-004',
     userId: 18, // Isaac Chege (Board Secretary)
-    participantType: 'secretary',
+    roleId: 6, // board_secretary
     roleTitle: 'Board Secretary',
     rsvpStatus: 'accepted',
     rsvpAt: '2025-02-20T09:00:00Z',
@@ -525,7 +525,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     id: 'part-024',
     meetingId: 'mtg-004',
     userId: 21, // Winfred Kabuuri (as external auditor guest)
-    participantType: 'guest',
+    roleId: 12, // guest
     roleTitle: 'External Auditor - PwC',
     rsvpStatus: 'accepted',
     rsvpAt: '2025-02-22T08:00:00Z',
@@ -554,7 +554,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     id: 'part-030',
     meetingId: 'mtg-005',
     userId: 5, // Committee Chair
-    participantType: 'chairman',
+    roleId: 4, // chairman
     roleTitle: 'Committee Chair',
     rsvpStatus: 'accepted',
     rsvpAt: '2025-01-21T08:00:00Z',
@@ -579,7 +579,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     id: 'part-031',
     meetingId: 'mtg-005',
     userId: 7,
-    participantType: 'member',
+    roleId: 7, // board_member
     roleTitle: 'Committee Member',
     rsvpStatus: 'accepted',
     rsvpAt: '2025-01-21T09:00:00Z',
@@ -604,7 +604,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     id: 'part-032',
     meetingId: 'mtg-005',
     userId: 8,
-    participantType: 'member',
+    roleId: 7, // board_member
     roleTitle: 'Committee Member',
     rsvpStatus: 'accepted',
     rsvpAt: '2025-01-21T10:00:00Z',
@@ -629,7 +629,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     id: 'part-033',
     meetingId: 'mtg-005',
     userId: 19, // Jane Njeri
-    participantType: 'secretary',
+    roleId: 6, // board_secretary
     roleTitle: 'Board Secretary',
     rsvpStatus: 'accepted',
     rsvpAt: '2025-01-20T10:00:00Z',
@@ -658,7 +658,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     id: 'part-040',
     meetingId: 'mtg-008',
     userId: 3, // Chairman of KETEPA
-    participantType: 'chairman',
+    roleId: 4, // chairman
     roleTitle: 'Chairman',
     rsvpStatus: 'accepted',
     rsvpAt: '2025-01-11T08:00:00Z',
@@ -683,7 +683,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     id: 'part-041',
     meetingId: 'mtg-008',
     userId: 4,
-    participantType: 'member',
+    roleId: 7, // board_member
     roleTitle: 'Board Member',
     rsvpStatus: 'accepted',
     rsvpAt: '2025-01-11T09:00:00Z',
@@ -708,7 +708,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     id: 'part-042',
     meetingId: 'mtg-008',
     userId: 18, // Board Secretary
-    participantType: 'secretary',
+    roleId: 6, // board_secretary
     roleTitle: 'Board Secretary',
     rsvpStatus: 'accepted',
     rsvpAt: '2025-01-10T09:00:00Z',
@@ -734,7 +734,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     id: 'part-043',
     meetingId: 'mtg-008',
     userId: 20, // Brian Mochama as Sales Manager guest
-    participantType: 'presenter',
+    roleId: 11, // presenter
     roleTitle: 'Sales Manager',
     rsvpStatus: 'accepted',
     rsvpAt: '2025-01-12T08:00:00Z',
@@ -763,7 +763,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     id: 'part-050',
     meetingId: 'mtg-011',
     userId: 4,
-    participantType: 'chairman',
+    roleId: 4, // chairman
     roleTitle: 'Factory Board Chairman',
     rsvpStatus: 'accepted',
     rsvpAt: '2025-01-06T08:00:00Z',
@@ -788,7 +788,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     id: 'part-051',
     meetingId: 'mtg-011',
     userId: 17, // Secretary
-    participantType: 'secretary',
+    roleId: 6, // board_secretary
     roleTitle: 'Board Secretary',
     rsvpStatus: 'accepted',
     rsvpAt: '2025-01-05T08:30:00Z',
@@ -817,7 +817,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     id: 'part-060',
     meetingId: 'mtg-014',
     userId: 1, // Chairman
-    participantType: 'chairman',
+    roleId: 4, // chairman
     roleTitle: 'Chairman',
     rsvpStatus: 'accepted',
     rsvpAt: '2025-02-27T16:30:00Z',
@@ -842,7 +842,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     id: 'part-061',
     meetingId: 'mtg-014',
     userId: 2,
-    participantType: 'member',
+    roleId: 7, // board_member
     roleTitle: 'Vice Chairman',
     rsvpStatus: 'accepted',
     rsvpAt: '2025-02-27T16:35:00Z',
@@ -867,7 +867,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     id: 'part-062',
     meetingId: 'mtg-014',
     userId: 3,
-    participantType: 'member',
+    roleId: 7, // board_member
     roleTitle: 'Executive Member',
     rsvpStatus: 'tentative',
     rsvpAt: '2025-02-27T17:00:00Z',
@@ -892,7 +892,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
     id: 'part-063',
     meetingId: 'mtg-014',
     userId: 17, // Secretary
-    participantType: 'secretary',
+    roleId: 6, // board_secretary
     roleTitle: 'Company Secretary',
     rsvpStatus: 'accepted',
     rsvpAt: '2025-02-27T16:15:00Z',

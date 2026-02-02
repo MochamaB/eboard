@@ -24,6 +24,15 @@ import { useBoardContext } from '../../contexts';
 import { useBoard } from '../../hooks/api';
 import { DetailsHeader, HorizontalTabs } from '../../components/common';
 import type { HorizontalTabItem } from '../../components/common';
+import {
+  OverviewTab,
+  MeetingsTab,
+  MembersTab,
+  CommitteesTab,
+  DocumentsTab,
+  SettingsTab,
+  BrandingTab,
+} from './tabs';
 
 export const BoardDetailsPage: React.FC = () => {
   const { targetBoardId } = useParams<{ targetBoardId: string }>();
@@ -179,60 +188,25 @@ export const BoardDetailsPage: React.FC = () => {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'overview':
-        return (
-          <div style={{ padding: 24 }}>
-            {/* TODO: Implement Overview tab content */}
-            <p>Overview tab content - Board statistics, recent activity, quick actions</p>
-          </div>
-        );
+        return <OverviewTab board={board} />;
 
       case 'meetings':
-        return (
-          <div style={{ padding: 24 }}>
-            {/* TODO: Implement Meetings tab content */}
-            <p>Meetings tab content - List of meetings, upcoming/past meetings</p>
-          </div>
-        );
+        return <MeetingsTab boardId={board.id} />;
 
       case 'committees':
-        return (
-          <div style={{ padding: 24 }}>
-            {/* TODO: Implement Committees tab content */}
-            <p>Committees tab content - List of committees with cards</p>
-          </div>
-        );
+        return <CommitteesTab board={board} />;
 
       case 'members':
-        return (
-          <div style={{ padding: 24 }}>
-            {/* TODO: Implement Members tab content */}
-            <p>Members tab content - Members table with add/remove actions</p>
-          </div>
-        );
+        return <MembersTab board={board} />;
 
       case 'documents':
-        return (
-          <div style={{ padding: 24 }}>
-            {/* TODO: Implement Documents tab content */}
-            <p>Documents tab content - Shared documents and files</p>
-          </div>
-        );
+        return <DocumentsTab board={board} />;
 
       case 'settings':
-        return (
-          <div style={{ padding: 24 }}>
-            {/* TODO: Implement Settings tab content */}
-            <p>Settings tab content - Board settings form (quorum, voting threshold, etc.)</p>
-          </div>
-        );
+        return <SettingsTab board={board} />;
 
       case 'branding':
-        return (
-          <div style={{ padding: 24 }}>
-            {/* TODO: Implement Branding tab content */}
-            <p>Branding tab content - Logo upload, color pickers, theme preview</p>
-          </div>
-        );
+        return <BrandingTab board={board} />;
 
       default:
         return null;
@@ -264,7 +238,7 @@ export const BoardDetailsPage: React.FC = () => {
         items={tabItems}
         activeKey={activeTab}
         onChange={setActiveTab}
-        size="large"
+        size="middle"
         style={{ marginBottom: 0 }}
         tabBarStyle={{
           borderBottom: `2px solid ${theme.borderColor}`,
@@ -277,6 +251,7 @@ export const BoardDetailsPage: React.FC = () => {
         backgroundColor: '#fff',
         borderRadius: '0 0 8px 8px',
         minHeight: 400,
+        overflow: 'hidden',
       }}>
         {renderTabContent()}
       </div>

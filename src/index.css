@@ -53,4 +53,21 @@ body {
   .ant-layout-header {
     padding: 0 12px !important;
   }
+  /* Override Ant Design Collapse panel background */
+/* Remove all borders from collapse content */
+.ant-collapse-content {
+  border-left: none !important;
+  border-top: none !important;
+}
+
+.ant-collapse-content-box {
+  padding: 0 !important;
+  border-left: none !important;
+}
+
+/* Remove the indent/border on ghost collapse */
+.ant-collapse-ghost > .ant-collapse-item > .ant-collapse-content {
+  border: none !important;
+  background: transparent !important;
+}
 }

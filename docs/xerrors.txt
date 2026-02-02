@@ -1,97 +1,185 @@
-Failed to create meeting: ZodError: [
-  {
-    "code": "invalid_value",
-    "values": [
-      "chairman",
-      "vice_chairman",
-      "group_company_secretary",
-      "company_secretary",
-      "board_secretary",
-      "board_member",
-      "independent_director",
-      "executive_member",
-      "committee_chairman",
-      "committee_member",
-      "committee_secretary",
-      "observer"
-    ],
-    "path": [
-      "participants",
-      0,
-      "boardRole"
-    ],
-    "message": "Invalid option: expected one of \"chairman\"|\"vice_chairman\"|\"group_company_secretary\"|\"company_secretary\"|\"board_secretary\"|\"board_member\"|\"independent_director\"|\"executive_member\"|\"committee_chairman\"|\"committee_member\"|\"committee_secretary\"|\"observer\""
-  },
-  {
-    "code": "invalid_value",
-    "values": [
-      "chairman",
-      "vice_chairman",
-      "group_company_secretary",
-      "company_secretary",
-      "board_secretary",
-      "board_member",
-      "independent_director",
-      "executive_member",
-      "committee_chairman",
-      "committee_member",
-      "committee_secretary",
-      "observer"
-    ],
-    "path": [
-      "participants",
-      1,
-      "boardRole"
-    ],
-    "message": "Invalid option: expected one of \"chairman\"|\"vice_chairman\"|\"group_company_secretary\"|\"company_secretary\"|\"board_secretary\"|\"board_member\"|\"independent_director\"|\"executive_member\"|\"committee_chairman\"|\"committee_member\"|\"committee_secretary\"|\"observer\""
-  },
-  {
-    "code": "invalid_value",
-    "values": [
-      "chairman",
-      "vice_chairman",
-      "group_company_secretary",
-      "company_secretary",
-      "board_secretary",
-      "board_member",
-      "independent_director",
-      "executive_member",
-      "committee_chairman",
-      "committee_member",
-      "committee_secretary",
-      "observer"
-    ],
-    "path": [
-      "participants",
-      21,
-      "boardRole"
-    ],
-    "message": "Invalid option: expected one of \"chairman\"|\"vice_chairman\"|\"group_company_secretary\"|\"company_secretary\"|\"board_secretary\"|\"board_member\"|\"independent_director\"|\"executive_member\"|\"committee_chairman\"|\"committee_member\"|\"committee_secretary\"|\"observer\""
-  },
-  {
-    "code": "invalid_value",
-    "values": [
-      "chairman",
-      "vice_chairman",
-      "group_company_secretary",
-      "company_secretary",
-      "board_secretary",
-      "board_member",
-      "independent_director",
-      "executive_member",
-      "committee_chairman",
-      "committee_member",
-      "committee_secretary",
-      "observer"
-    ],
-    "path": [
-      "participants",
-      22,
-      "boardRole"
-    ],
-    "message": "Invalid option: expected one of \"chairman\"|\"vice_chairman\"|\"group_company_secretary\"|\"company_secretary\"|\"board_secretary\"|\"board_member\"|\"independent_director\"|\"executive_member\"|\"committee_chairman\"|\"committee_member\"|\"committee_secretary\"|\"observer\""
-  }
-]
-    at Object.createMeeting (meetings.api.ts:74:26)
-    at async handleFinish (MeetingCreatePage.tsx:511:30)
-    at async Object.onClick (WizardForm.tsx:137:7)
+chunk-EUHD4VSW.js?v=526da452:20103 Download the React DevTools for a better development experience: https://react.dev/link/react-devtools
+BlockingPageContent.js:2  action SET_STORAGE_DATA @ 19:04:48.395
+BlockingPageContent.js:2  prev state Object
+BlockingPageContent.js:2  action     Object
+BlockingPageContent.js:2  next state Object
+NotificationContent.js:2  action SET_LOCALE @ 19:04:48.471
+NotificationContent.js:2  prev state Object
+NotificationContent.js:2  action     Object
+NotificationContent.js:2  next state Object
+NotificationContent.js:2  action SET_STORAGE_DATA @ 19:04:48.506
+NotificationContent.js:2  prev state Object
+NotificationContent.js:2  action     Object
+NotificationContent.js:2  next state Object
+msw_browser.js?v=526da452:1054 [MSW] Mocking enabled.
+msw.js?v=526da452:979 [MSW] 19:04:49 GET /api/auth/me (200 OK)
+msw.js?v=526da452:979 [MSW] 19:04:49 GET /api/auth/me (200 OK)
+chunk-Q6DLBCUO.js?v=526da452:1251 Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+warning @ chunk-Q6DLBCUO.js?v=526da452:1251Understand this error
+LoginPage.tsx:85 Warning: [antd: message] Static function can not consume context like dynamic theme. Please use 'App' component instead.
+warning @ chunk-Q6DLBCUO.js?v=526da452:1251
+call @ chunk-Q6DLBCUO.js?v=526da452:1268
+warningOnce @ chunk-Q6DLBCUO.js?v=526da452:1273
+_warning @ antd.js?v=526da452:659
+warnContext @ antd.js?v=526da452:9175
+typeOpen @ antd.js?v=526da452:77336
+staticMethods.<computed> @ antd.js?v=526da452:77379
+handleDevLogin @ LoginPage.tsx:85Understand this error
+msw.js?v=526da452:979 [MSW] 19:04:56 POST /api/auth/login (200 OK)
+chunk-Q6DLBCUO.js?v=526da452:1251 Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+warning @ chunk-Q6DLBCUO.js?v=526da452:1251
+call @ chunk-Q6DLBCUO.js?v=526da452:1268
+warningOnce @ chunk-Q6DLBCUO.js?v=526da452:1273
+_warning @ antd.js?v=526da452:659
+typeWarning @ antd.js?v=526da452:686
+typeWarning.deprecated @ antd.js?v=526da452:691
+(anonymous) @ antd.js?v=526da452:66683
+Drawer2 @ antd.js?v=526da452:66682
+react_stack_bottom_frame @ chunk-EUHD4VSW.js?v=526da452:18509
+renderWithHooks @ chunk-EUHD4VSW.js?v=526da452:5654
+updateFunctionComponent @ chunk-EUHD4VSW.js?v=526da452:7475
+beginWork @ chunk-EUHD4VSW.js?v=526da452:8525
+runWithFiberInDEV @ chunk-EUHD4VSW.js?v=526da452:997
+performUnitOfWork @ chunk-EUHD4VSW.js?v=526da452:12561
+workLoopConcurrentByScheduler @ chunk-EUHD4VSW.js?v=526da452:12557
+renderRootConcurrent @ chunk-EUHD4VSW.js?v=526da452:12539
+performWorkOnRoot @ chunk-EUHD4VSW.js?v=526da452:11766
+performWorkOnRootViaSchedulerTask @ chunk-EUHD4VSW.js?v=526da452:13505
+performWorkUntilDeadline @ chunk-EUHD4VSW.js?v=526da452:36Understand this error
+chunk-Q6DLBCUO.js?v=526da452:1251 Warning: [antd: List] The `List` component is deprecated. And will be removed in next major version.
+warning @ chunk-Q6DLBCUO.js?v=526da452:1251
+call @ chunk-Q6DLBCUO.js?v=526da452:1268
+warningOnce @ chunk-Q6DLBCUO.js?v=526da452:1273
+_warning @ antd.js?v=526da452:659
+typeWarning @ antd.js?v=526da452:686
+InternalList @ antd.js?v=526da452:75703
+react_stack_bottom_frame @ chunk-EUHD4VSW.js?v=526da452:18509
+renderWithHooks @ chunk-EUHD4VSW.js?v=526da452:5654
+updateForwardRef @ chunk-EUHD4VSW.js?v=526da452:7198
+beginWork @ chunk-EUHD4VSW.js?v=526da452:8735
+runWithFiberInDEV @ chunk-EUHD4VSW.js?v=526da452:997
+performUnitOfWork @ chunk-EUHD4VSW.js?v=526da452:12561
+workLoopSync @ chunk-EUHD4VSW.js?v=526da452:12424
+renderRootSync @ chunk-EUHD4VSW.js?v=526da452:12408
+performWorkOnRoot @ chunk-EUHD4VSW.js?v=526da452:11766
+performWorkOnRootViaSchedulerTask @ chunk-EUHD4VSW.js?v=526da452:13505
+performWorkUntilDeadline @ chunk-EUHD4VSW.js?v=526da452:36Understand this error
+msw.js?v=526da452:979 [MSW] 19:05:02 GET /api/meetings (200 OK)
+msw.js?v=526da452:979 [MSW] 19:05:02 GET /api/meetings (200 OK)
+chunk-Q6DLBCUO.js?v=526da452:1251 Warning: [antd: Card] `bordered` is deprecated. Please use `variant` instead.
+warning @ chunk-Q6DLBCUO.js?v=526da452:1251
+call @ chunk-Q6DLBCUO.js?v=526da452:1268
+warningOnce @ chunk-Q6DLBCUO.js?v=526da452:1273
+_warning @ antd.js?v=526da452:659
+typeWarning @ antd.js?v=526da452:686
+typeWarning.deprecated @ antd.js?v=526da452:691
+(anonymous) @ antd.js?v=526da452:51863
+Card @ antd.js?v=526da452:51862
+react_stack_bottom_frame @ chunk-EUHD4VSW.js?v=526da452:18509
+renderWithHooks @ chunk-EUHD4VSW.js?v=526da452:5654
+updateForwardRef @ chunk-EUHD4VSW.js?v=526da452:7198
+beginWork @ chunk-EUHD4VSW.js?v=526da452:8735
+runWithFiberInDEV @ chunk-EUHD4VSW.js?v=526da452:997
+performUnitOfWork @ chunk-EUHD4VSW.js?v=526da452:12561
+workLoopSync @ chunk-EUHD4VSW.js?v=526da452:12424
+renderRootSync @ chunk-EUHD4VSW.js?v=526da452:12408
+performWorkOnRoot @ chunk-EUHD4VSW.js?v=526da452:11766
+performSyncWorkOnRoot @ chunk-EUHD4VSW.js?v=526da452:13517
+flushSyncWorkAcrossRoots_impl @ chunk-EUHD4VSW.js?v=526da452:13414
+processRootScheduleInMicrotask @ chunk-EUHD4VSW.js?v=526da452:13437
+(anonymous) @ chunk-EUHD4VSW.js?v=526da452:13531Understand this error
+msw.js?v=526da452:979 [MSW] 19:05:04 GET /api/meetings/mtg-014 (200 OK)
+:5173/api/meetings/mtg-014/agenda:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+msw.js?v=526da452:979 [MSW] 19:05:04 GET /api/meetings/mtg-014/agenda (404 Not Found)
+msw.js?v=526da452:979 [MSW] 19:05:04 GET /api/meetings/mtg-014/confirmation-history (200 OK)
+chunk-Q6DLBCUO.js?v=526da452:1251 Warning: [antd: Modal] `destroyOnClose` is deprecated. Please use `destroyOnHidden` instead.
+warning @ chunk-Q6DLBCUO.js?v=526da452:1251
+call @ chunk-Q6DLBCUO.js?v=526da452:1268
+warningOnce @ chunk-Q6DLBCUO.js?v=526da452:1273
+_warning @ antd.js?v=526da452:659
+typeWarning @ antd.js?v=526da452:686
+typeWarning.deprecated @ antd.js?v=526da452:691
+(anonymous) @ antd.js?v=526da452:21392
+Modal @ antd.js?v=526da452:21391
+react_stack_bottom_frame @ chunk-EUHD4VSW.js?v=526da452:18509
+renderWithHooks @ chunk-EUHD4VSW.js?v=526da452:5654
+updateFunctionComponent @ chunk-EUHD4VSW.js?v=526da452:7475
+beginWork @ chunk-EUHD4VSW.js?v=526da452:8525
+runWithFiberInDEV @ chunk-EUHD4VSW.js?v=526da452:997
+performUnitOfWork @ chunk-EUHD4VSW.js?v=526da452:12561
+workLoopSync @ chunk-EUHD4VSW.js?v=526da452:12424
+renderRootSync @ chunk-EUHD4VSW.js?v=526da452:12408
+performWorkOnRoot @ chunk-EUHD4VSW.js?v=526da452:11766
+performSyncWorkOnRoot @ chunk-EUHD4VSW.js?v=526da452:13517
+flushSyncWorkAcrossRoots_impl @ chunk-EUHD4VSW.js?v=526da452:13414
+processRootScheduleInMicrotask @ chunk-EUHD4VSW.js?v=526da452:13437
+(anonymous) @ chunk-EUHD4VSW.js?v=526da452:13531Understand this error
+:5173/api/meetings/mtg-014/agenda:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+msw.js?v=526da452:979 [MSW] 19:05:06 GET /api/meetings/mtg-014/agenda (404 Not Found)
+msw.js?v=526da452:979 [MSW] 19:05:06 GET /api/agenda-templates (200 OK)
+documentParser.ts:63 🔍 HTML extraction preview: <p><strong>KTDA SAFETY AND HEALTH COMMITTEE MEETING</strong><br /><strong>Agenda</strong></p><p><strong>Date:</strong> Thursday, 16th October 2025<br /><strong>Time:</strong> 10:00 a.m. – 12:00 p.m.<br /><strong>Venue:</strong> Main Boardroom, KTDA Head Office</p><p><strong>Agenda</strong></p><ol><li><strong>Preliminaries</strong><ol><li>Welcome and Opening Remarks</li><li>Confirmation of Quorum</li><li>Adoption of Previous Minutes</li></ol></li><li><strong>Matters Arising from Previous Meeting</strong></li><li><strong>Reports and Updates</strong><ol><li>Safety Inspections and Audit Findings</li><li>Accident and Incident Reports</li><li>Health and Wellness Activities</li><li>Training and Awareness Sessions</li></ol></li><li><strong>New Business</strong><ol><li>Review of Workplace Risk Asse
+documentParser.ts:256 📄 Extracted text preview: KTDA SAFETY AND HEALTH COMMITTEE MEETING 
+Agenda 
+Date: Thursday, 16th October 2025 
+Time: 10:00 a.m. – 12:00 p.m. 
+Venue: Main Boardroom, KTDA Head Office 
+Agenda 
+1. Preliminaries 
+1.1. Welcome and Opening Remarks 
+1.2. Confirmation of Quorum 
+1.3. Adoption of Previous Minutes 
+2. Matters Arising from Previous Meeting 
+3. Reports and Updates 
+3.1. Safety Inspections and Audit Findings 
+3.2. Accident and Incident Reports 
+3.3. Health and Wellness Activities 
+3.4. Training and Awareness Sessions
+documentParser.ts:267 📊 Total lines: 23
+documentParser.ts:295 ✅ Found main item [1]: Preliminaries
+documentParser.ts:295 ✅ Found sub item [1.1]: Welcome and Opening Remarks
+documentParser.ts:345   └─ Parent: 1 (orderIndex: 0)
+documentParser.ts:295 ✅ Found sub item [1.2]: Confirmation of Quorum
+documentParser.ts:345   └─ Parent: 1 (orderIndex: 0)
+documentParser.ts:295 ✅ Found sub item [1.3]: Adoption of Previous Minutes
+documentParser.ts:345   └─ Parent: 1 (orderIndex: 0)
+documentParser.ts:295 ✅ Found main item [2]: Matters Arising from Previous Meeting
+documentParser.ts:295 ✅ Found main item [3]: Reports and Updates
+documentParser.ts:295 ✅ Found sub item [3.1]: Safety Inspections and Audit Findings
+documentParser.ts:345   └─ Parent: 3 (orderIndex: 5)
+documentParser.ts:295 ✅ Found sub item [3.2]: Accident and Incident Reports
+documentParser.ts:345   └─ Parent: 3 (orderIndex: 5)
+documentParser.ts:295 ✅ Found sub item [3.3]: Health and Wellness Activities
+documentParser.ts:345   └─ Parent: 3 (orderIndex: 5)
+documentParser.ts:295 ✅ Found sub item [3.4]: Training and Awareness Sessions
+documentParser.ts:345   └─ Parent: 3 (orderIndex: 5)
+documentParser.ts:295 ✅ Found main item [4]: New Business
+documentParser.ts:295 ✅ Found sub item [4.1]: Review of Workplace Risk Assessments
+documentParser.ts:345   └─ Parent: 4 (orderIndex: 10)
+documentParser.ts:295 ✅ Found sub item [4.2]: Updates on Corrective Actions
+documentParser.ts:345   └─ Parent: 4 (orderIndex: 10)
+documentParser.ts:295 ✅ Found sub item [4.3]: Any New Safety Concerns
+documentParser.ts:345   └─ Parent: 4 (orderIndex: 10)
+documentParser.ts:295 ✅ Found main item [5]: Recommendations and Action Points
+documentParser.ts:295 ✅ Found main item [6]: Date of Next Meeting
+documentParser.ts:295 ✅ Found main item [7]: Adjournment
+documentParser.ts:355 🎯 Total items found: 17
+documentParser.ts:356 📋 Items structure:
+documentParser.ts:360 → Preliminaries
+documentParser.ts:360   ○ Welcome and Opening Remarks (parent: 0)
+documentParser.ts:360   ○ Confirmation of Quorum (parent: 0)
+documentParser.ts:360   ○ Adoption of Previous Minutes (parent: 0)
+documentParser.ts:360 → Matters Arising from Previous Meeting
+documentParser.ts:360 → Reports and Updates
+documentParser.ts:360   ○ Safety Inspections and Audit Findings (parent: 5)
+documentParser.ts:360   ○ Accident and Incident Reports (parent: 5)
+documentParser.ts:360   ○ Health and Wellness Activities (parent: 5)
+documentParser.ts:360   ○ Training and Awareness Sessions (parent: 5)
+documentParser.ts:360 → New Business
+documentParser.ts:360   ○ Review of Workplace Risk Assessments (parent: 10)
+documentParser.ts:360   ○ Updates on Corrective Actions (parent: 10)
+documentParser.ts:360   ○ Any New Safety Concerns (parent: 10)
+documentParser.ts:360 → Recommendations and Action Points
+documentParser.ts:360 → Date of Next Meeting
+documentParser.ts:360 → Adjournment
+msw.js?v=526da452:979 [MSW] 19:05:14 POST /api/meetings/mtg-014/agenda (200 OK)
+msw.js?v=526da452:979 [MSW] 19:05:15 GET /api/meetings/mtg-014/agenda (200 OK)

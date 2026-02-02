@@ -6,7 +6,8 @@ import { AuthLayout } from '../layouts/AuthLayout';
 import { Dashboard } from '../pages/Dashboard';
 import { UsersIndexPage, CreateUserPage as CreateUserPageComponent } from '../pages/Users';
 import { BoardsIndexPage, BoardDetailsPage, BoardCreatePage as BoardCreatePageComponent } from '../pages/Boards';
-import { MeetingsIndexPage, MeetingCreatePage } from '../pages/Meetings';
+import { MeetingsIndexPage, MeetingCreatePage, MeetingDetailPage } from '../pages/Meetings';
+import { ApprovalsIndexPage, ApprovalReviewPage } from '../pages/Approvals';
 import { LoginPage } from '../pages/Auth';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import { useAuth } from '../contexts/AuthContext';
@@ -114,6 +115,10 @@ export const router = createBrowserRouter([
             element: <MeetingsIndexPage />,
           },
           {
+            path: 'approvals',
+            element: <ApprovalsIndexPage />,
+          },
+          {
             path: 'users',
             element: <UsersIndexPage />,
           },
@@ -174,6 +179,20 @@ export const router = createBrowserRouter([
       {
         path: 'meetings/create',
         element: <MeetingCreatePage />,
+      },
+      {
+        path: 'meetings/:meetingId',
+        element: <MeetingDetailPage />,
+      },
+
+      // Approvals
+      {
+        path: 'approvals',
+        element: <ApprovalsIndexPage />,
+      },
+      {
+        path: 'approvals/:meetingId',
+        element: <ApprovalReviewPage />,
       },
 
       // Documents

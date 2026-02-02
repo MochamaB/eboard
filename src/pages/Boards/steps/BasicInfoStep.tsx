@@ -107,9 +107,10 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                   ? 'Select KTDA Main Board'
                   : 'Select KTDA Main Board'
               }
-              size="large"
               showSearch
-              optionFilterProp="label"
+              filterOption={(input, option) =>
+                (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+              }
               options={availableParentBoards.map(board => ({
                 value: board.id,
                 label: board.name,
@@ -140,7 +141,6 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
           >
             <Select
               placeholder="Select factory zone"
-              size="large"
               options={Object.entries(ZONE_LABELS).map(([key, label]) => ({
                 value: key,
                 label: label,
@@ -157,7 +157,6 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
         >
           <Input
             placeholder="Enter full board name (e.g., 'KTDA Main Board', 'Ketepa Limited')"
-            size="large"
           />
         </Form.Item>
 
@@ -169,7 +168,6 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
         >
           <Input
             placeholder="Enter abbreviated name (e.g., 'KTDA', 'Ketepa')"
-            size="large"
           />
         </Form.Item>
 

@@ -12,6 +12,7 @@ import type {
   UpdateUserPayload,
   UserFilterParams,
   UserActivity,
+  UserSession,
 } from '../../types';
 import type { PaginatedResponse } from '../../types/api.types';
 
@@ -23,6 +24,9 @@ export const userKeys = {
   details: () => [...userKeys.all, 'detail'] as const,
   detail: (id: number) => [...userKeys.details(), id] as const,
   activities: (id: number) => [...userKeys.detail(id), 'activities'] as const,
+  sessions: (userId: number, activeOnly?: boolean) =>
+    [...userKeys.detail(userId), 'sessions', { activeOnly }] as const,
+  session: (sessionId: string) => ['sessions', sessionId] as const,
 };
 
 /**
@@ -152,5 +156,65 @@ export const useUploadAvatar = () => {
 export const useResendWelcomeEmail = () => {
   return useMutation({
     mutationFn: (userId: number) => usersApi.resendWelcomeEmail(userId),
+  });
+};
+
+// ============================================================================
+// SESSION MANAGEMENT HOOKS
+// ============================================================================
+
+/**
+ * Hook to fetch all sessions for a user
+ */
+export const useUserSessions = (userId: number, activeOnly: boolean = false) => {
+  return useQuery<{ data: UserSession[]; total: number }>({
+    queryKey: userKeys.sessions(userId, activeOnly),
+    queryFn: () => usersApi.getUserSessions(userId, activeOnly),
+    enabled: !!userId,
+  });
+};
+
+/**
+ * Hook to fetch a single session by ID
+ */
+export const useSession = (sessionId: string) => {
+  return useQuery<UserSession>({
+    queryKey: userKeys.session(sessionId),
+    queryFn: () => usersApi.getSession(sessionId),
+    enabled: !!sessionId,
+  });
+};
+
+/**
+ * Hook to terminate a specific session (logout single device)
+ */
+export const useTerminateSession = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (sessionId: string) => usersApi.terminateSession(sessionId),
+    onSuccess: (_, sessionId) => {
+      // Invalidate the specific session
+      queryClient.invalidateQueries({ queryKey: userKeys.session(sessionId) });
+      // Invalidate all sessions queries to refetch updated lists
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
+};
+
+/**
+ * Hook to terminate all sessions for a user (force logout all devices)
+ */
+export const useTerminateAllUserSessions = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (userId: number) => usersApi.terminateAllUserSessions(userId),
+    onSuccess: (_, userId) => {
+      // Invalidate all sessions for this user
+      queryClient.invalidateQueries({ queryKey: userKeys.detail(userId) });
+      // Invalidate all sessions queries
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
   });
 };

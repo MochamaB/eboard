@@ -18,8 +18,10 @@ import {
   Segmented,
   Flex,
   Badge,
+  Dropdown,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table/interface';
+import type { MenuProps } from 'antd';
 import {
   EyeOutlined,
   EditOutlined,
@@ -40,6 +42,7 @@ import {
   PlayCircleOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
+  MoreOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -47,7 +50,7 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import { useBoardContext } from '../../contexts';
 import { useMeetings } from '../../hooks/api';
 import { DataTable, IndexPageLayout, type TabItem } from '../../components/common';
-import { MeetingCard, MeetingsCalendarView } from '../../components/Meetings';
+import { BoardCommitteeSelector, MeetingCard, MeetingDateTimeCard, MeetingsCalendarView, BoardPackStatusCell } from '../../components/Meetings';
 import type {
   MeetingListItem,
   MeetingStatus,
@@ -216,26 +219,10 @@ export const MeetingsIndexPage: React.FC = () => {
       title: 'Date & Time',
       dataIndex: 'meetingDate',
       key: 'meetingDate',
-      width: 130,
+      width: 160,
       sorter: true,
       render: (_: string, record) => {
-        // Calculate end time from startTime + duration and format with AM/PM
-        const startDateTime = dayjs(`${record.startDate} ${record.startTime}`);
-        const endDateTime = startDateTime.add(record.duration, 'minute');
-        const startTimeFormatted = startDateTime.format('h:mm A');
-        const endTimeFormatted = endDateTime.format('h:mm A');
-        
-        return (
-          <Space orientation="vertical" size={2}>
-            <div style={{ fontWeight: 500 }}>{dayjs(record.startDate).format('DD MMM YYYY')}</div>
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              {startTimeFormatted} - {endTimeFormatted}
-            </Text>
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              ({record.duration}min)
-            </Text>
-          </Space>
-        );
+        return <MeetingDateTimeCard meeting={record} />;
       },
     },
     {
@@ -311,6 +298,21 @@ export const MeetingsIndexPage: React.FC = () => {
         </Tooltip>
       ),
     },
+    // Board Pack column
+    {
+      title: 'Board Pack',
+      key: 'boardPack',
+      width: 140,
+      align: 'center',
+      render: (_, record) => (
+        <BoardPackStatusCell
+          meetingId={record.id}
+          boardId={currentBoard?.id || record.boardId}
+          boardPackStatus={record.boardPackStatus}
+          meetingStatus={record.status}
+        />
+      ),
+    },
     // Status column - only visible on 'all' tab
     ...(statusFilter === 'all' ? [{
       title: 'Status',
@@ -324,249 +326,194 @@ export const MeetingsIndexPage: React.FC = () => {
         />
       ),
     }] : []),
+    // Actions dropdown
     {
       title: '',
       key: 'actions',
-      width: 140,
+      width: 50,
       align: 'center',
       render: (_, record) => {
         const status = record.status;
         
-        // Define action handlers
-        const handleView = (e: React.MouseEvent) => {
-          e.stopPropagation();
-          navigate(`/${currentBoard?.id}/meetings/${record.id}`);
-        };
-        
-        const handleEdit = (e: React.MouseEvent) => {
-          e.stopPropagation();
-          navigate(`/${currentBoard?.id}/meetings/${record.id}/edit`);
-        };
-        
-        const handleDelete = (e: React.MouseEvent) => {
-          e.stopPropagation();
-          message.info('Delete meeting functionality coming soon');
-        };
-        
-        const handleSubmit = (e: React.MouseEvent) => {
-          e.stopPropagation();
-          message.info('Submit for approval functionality coming soon');
-        };
-        
-        const handleApprove = (e: React.MouseEvent) => {
-          e.stopPropagation();
-          message.info('Approve meeting functionality coming soon');
-        };
-        
-        const handleReject = (e: React.MouseEvent) => {
-          e.stopPropagation();
-          message.info('Reject meeting functionality coming soon');
-        };
-        
-        const handleCancel = (e: React.MouseEvent) => {
-          e.stopPropagation();
-          message.info('Cancel meeting functionality coming soon');
-        };
-        
-        const handleReschedule = (e: React.MouseEvent) => {
-          e.stopPropagation();
-          message.info('Reschedule meeting functionality coming soon');
-        };
-        
-        const handleStart = (e: React.MouseEvent) => {
-          e.stopPropagation();
-          message.info('Start meeting functionality coming soon');
-        };
-        
-        const handleEnd = (e: React.MouseEvent) => {
-          e.stopPropagation();
-          message.info('End meeting functionality coming soon');
+        // Build menu items based on status
+        const getMenuItems = (): MenuProps['items'] => {
+          const items: MenuProps['items'] = [
+            {
+              key: 'view',
+              label: 'View Details',
+              icon: <EyeOutlined />,
+              onClick: () => navigate(`/${currentBoard?.id}/meetings/${record.id}`),
+            },
+          ];
+
+          // Draft actions
+          if (status === 'draft') {
+            items.push(
+              { type: 'divider' },
+              {
+                key: 'edit',
+                label: 'Edit',
+                icon: <EditOutlined />,
+                onClick: () => navigate(`/${currentBoard?.id}/meetings/${record.id}/edit`),
+              },
+              {
+                key: 'submit',
+                label: 'Submit for Approval',
+                icon: <SendOutlined />,
+                onClick: () => message.info('Submit for approval functionality coming soon'),
+              },
+              { type: 'divider' },
+              {
+                key: 'delete',
+                label: 'Delete',
+                icon: <DeleteOutlined />,
+                danger: true,
+                onClick: () => message.info('Delete meeting functionality coming soon'),
+              },
+            );
+          }
+
+          // Pending confirmation actions
+          if (status === 'pending_confirmation') {
+            items.push(
+              { type: 'divider' },
+              {
+                key: 'edit',
+                label: 'Edit',
+                icon: <EditOutlined />,
+                onClick: () => navigate(`/${currentBoard?.id}/meetings/${record.id}/edit`),
+              },
+              {
+                key: 'approve',
+                label: 'Approve',
+                icon: <CheckOutlined style={{ color: '#52c41a' }} />,
+                onClick: () => message.info('Approve meeting functionality coming soon'),
+              },
+              {
+                key: 'reject',
+                label: 'Reject',
+                icon: <CloseOutlined />,
+                danger: true,
+                onClick: () => message.info('Reject meeting functionality coming soon'),
+              },
+            );
+          }
+
+          // Confirmed actions
+          if (status === 'confirmed') {
+            items.push(
+              { type: 'divider' },
+              {
+                key: 'edit',
+                label: 'Edit',
+                icon: <EditOutlined />,
+                onClick: () => navigate(`/${currentBoard?.id}/meetings/${record.id}/edit`),
+              },
+              {
+                key: 'reschedule',
+                label: 'Reschedule',
+                icon: <CalendarOutlined />,
+                onClick: () => message.info('Reschedule meeting functionality coming soon'),
+              },
+              { type: 'divider' },
+              {
+                key: 'cancel',
+                label: 'Cancel Meeting',
+                icon: <StopOutlined />,
+                danger: true,
+                onClick: () => message.info('Cancel meeting functionality coming soon'),
+              },
+            );
+          }
+
+          // Scheduled actions
+          if (status === 'scheduled') {
+            items.push(
+              { type: 'divider' },
+              {
+                key: 'start',
+                label: 'Start Meeting',
+                icon: <PlayCircleOutlined style={{ color: '#52c41a' }} />,
+                onClick: () => message.info('Start meeting functionality coming soon'),
+              },
+              {
+                key: 'edit',
+                label: 'Edit',
+                icon: <EditOutlined />,
+                onClick: () => navigate(`/${currentBoard?.id}/meetings/${record.id}/edit`),
+              },
+              {
+                key: 'reschedule',
+                label: 'Reschedule',
+                icon: <CalendarOutlined />,
+                onClick: () => message.info('Reschedule meeting functionality coming soon'),
+              },
+              { type: 'divider' },
+              {
+                key: 'cancel',
+                label: 'Cancel Meeting',
+                icon: <StopOutlined />,
+                danger: true,
+                onClick: () => message.info('Cancel meeting functionality coming soon'),
+              },
+            );
+          }
+
+          // In progress actions
+          if (status === 'in_progress') {
+            items.push(
+              { type: 'divider' },
+              {
+                key: 'end',
+                label: 'End Meeting',
+                icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
+                onClick: () => message.info('End meeting functionality coming soon'),
+              },
+            );
+          }
+
+          // Completed actions
+          if (status === 'completed') {
+            items.push(
+              { type: 'divider' },
+              {
+                key: 'download',
+                label: 'Download Minutes',
+                icon: <DownloadOutlined />,
+                onClick: () => message.info('Download minutes functionality coming soon'),
+              },
+            );
+          }
+
+          // Cancelled/Rejected actions
+          if (status === 'cancelled' || status === 'rejected') {
+            items.push(
+              { type: 'divider' },
+              {
+                key: 'reschedule',
+                label: 'Reschedule (Create New)',
+                icon: <CalendarOutlined />,
+                onClick: () => message.info('Reschedule meeting functionality coming soon'),
+              },
+            );
+          }
+
+          return items;
         };
 
-        // Render actions based on status
         return (
-          <Space size={0}>
-            {/* View - Always visible */}
-            <Tooltip title="View Details">
-              <Button
-                type="text"
-                size="small"
-                icon={<EyeOutlined style={{ color: theme.primaryColor }} />}
-                onClick={handleView}
-              />
-            </Tooltip>
-
-            {/* Draft actions */}
-            {status === 'draft' && (
-              <>
-                <Tooltip title="Edit">
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<EditOutlined style={{ color: '#1890ff' }} />}
-                    onClick={handleEdit}
-                  />
-                </Tooltip>
-                <Tooltip title="Submit for Approval">
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<SendOutlined style={{ color: '#52c41a' }} />}
-                    onClick={handleSubmit}
-                  />
-                </Tooltip>
-                <Tooltip title="Delete">
-                  <Button
-                    type="text"
-                    size="small"
-                    danger
-                    icon={<DeleteOutlined />}
-                    onClick={handleDelete}
-                  />
-                </Tooltip>
-              </>
-            )}
-
-            {/* Pending confirmation actions */}
-            {status === 'pending_confirmation' && (
-              <>
-                <Tooltip title="Edit">
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<EditOutlined style={{ color: '#1890ff' }} />}
-                    onClick={handleEdit}
-                  />
-                </Tooltip>
-                <Tooltip title="Approve">
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<CheckOutlined style={{ color: '#52c41a' }} />}
-                    onClick={handleApprove}
-                  />
-                </Tooltip>
-                <Tooltip title="Reject">
-                  <Button
-                    type="text"
-                    size="small"
-                    danger
-                    icon={<CloseOutlined />}
-                    onClick={handleReject}
-                  />
-                </Tooltip>
-              </>
-            )}
-
-            {/* Confirmed actions */}
-            {status === 'confirmed' && (
-              <>
-                <Tooltip title="Edit">
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<EditOutlined style={{ color: '#1890ff' }} />}
-                    onClick={handleEdit}
-                  />
-                </Tooltip>
-                <Tooltip title="Reschedule">
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<CalendarOutlined style={{ color: '#faad14' }} />}
-                    onClick={handleReschedule}
-                  />
-                </Tooltip>
-                <Tooltip title="Cancel">
-                  <Button
-                    type="text"
-                    size="small"
-                    danger
-                    icon={<StopOutlined />}
-                    onClick={handleCancel}
-                  />
-                </Tooltip>
-              </>
-            )}
-
-            {/* Scheduled actions */}
-            {status === 'scheduled' && (
-              <>
-                <Tooltip title="Edit">
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<EditOutlined style={{ color: '#1890ff' }} />}
-                    onClick={handleEdit}
-                  />
-                </Tooltip>
-                <Tooltip title="Start Meeting">
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<PlayCircleOutlined style={{ color: '#52c41a' }} />}
-                    onClick={handleStart}
-                  />
-                </Tooltip>
-                <Tooltip title="Reschedule">
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<CalendarOutlined style={{ color: '#faad14' }} />}
-                    onClick={handleReschedule}
-                  />
-                </Tooltip>
-                <Tooltip title="Cancel">
-                  <Button
-                    type="text"
-                    size="small"
-                    danger
-                    icon={<StopOutlined />}
-                    onClick={handleCancel}
-                  />
-                </Tooltip>
-              </>
-            )}
-
-            {/* In progress actions */}
-            {status === 'in_progress' && (
-              <Tooltip title="End Meeting">
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
-                  onClick={handleEnd}
-                />
-              </Tooltip>
-            )}
-
-            {/* Completed - View only, add download minutes */}
-            {status === 'completed' && (
-              <Tooltip title="Download Minutes">
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<DownloadOutlined style={{ color: '#1890ff' }} />}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    message.info('Download minutes functionality coming soon');
-                  }}
-                />
-              </Tooltip>
-            )}
-
-            {/* Cancelled/Rejected - can reschedule (create new) */}
-            {(status === 'cancelled' || status === 'rejected') && (
-              <Tooltip title="Reschedule (Create New)">
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<CalendarOutlined style={{ color: '#faad14' }} />}
-                  onClick={handleReschedule}
-                />
-              </Tooltip>
-            )}
-          </Space>
+          <Dropdown
+            menu={{ items: getMenuItems() }}
+            trigger={['click']}
+            placement="bottomRight"
+          >
+            <Button
+              type="text"
+              size="small"
+              icon={<MoreOutlined style={{ fontSize: 16 }} />}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </Dropdown>
         );
       },
     },
@@ -713,6 +660,7 @@ export const MeetingsIndexPage: React.FC = () => {
           loading={isLoading}
           rowKey="id"
           showSearch={false}
+          scroll={{ x: 900 }}
           pagination={{
             current: page,
             pageSize: pageSize,

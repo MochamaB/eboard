@@ -17,3 +17,6 @@ export * from './useBoards';
 
 // Meeting hooks
 export * from './useMeetings';
+
+// Agenda hooks
+export * from './useAgenda';

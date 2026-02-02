@@ -27,6 +27,7 @@
 ### 🎯 Meetings Module (Phase 1)
 - `meetings` - Meeting records
 - `meetingParticipants` - Meeting participants with role-based permissions
+- `meetingConfirmationHistory` - Confirmation workflow audit trail
 
 ### 📄 Documents Module (Polymorphic)
 - `documents` - File storage with polymorphic attachments
@@ -299,6 +300,53 @@ Meeting participants with unified role-based permissions (includes members, gues
 - **secretary**: Full access, cannot vote, manages meeting
 - **guest/presenter**: Limited access, cannot vote, time-restricted
 - **observer**: View-only, cannot vote, cannot upload
+
+### meetingConfirmationHistory
+Audit trail for meeting confirmation workflow events.
+
+```typescript
+{
+  id: string (PK)
+  meetingId: string (FK → meetings)
+
+  // Event type
+  eventType: 'submitted' | 'confirmed' | 'rejected' | 'superseded' | 'resubmitted'
+
+  // Actor
+  performedBy: number (FK → users)
+  performedAt: string
+
+  // Submission details (for 'submitted' and 'resubmitted' events)
+  submissionNotes: string | null  // Custom notes from secretary
+
+  // Confirmation details (for 'confirmed' events)
+  signatureId: string | null      // Reference to digital signature record
+
+  // Rejection details (for 'rejected' events)
+  rejectionReason: 'incomplete_information' | 'scheduling_conflict' | 'agenda_not_approved' | 'quorum_concerns' | 'other' | null
+  rejectionComments: string | null
+
+  // Documents
+  unsignedDocumentId: string | null (FK → documents)  // Generated confirmation document
+  signedDocumentId: string | null (FK → documents)    // Digitally signed version
+
+  // Metadata
+  createdAt: string
+}
+```
+
+**Relationships:**
+- Belongs to: `meetings` (many-to-one)
+- Belongs to: `users` via performedBy (many-to-one)
+- Has one: `documents` via unsignedDocumentId
+- Has one: `documents` via signedDocumentId
+
+**Event Types:**
+- **submitted**: Secretary submits meeting for confirmation
+- **confirmed**: Approver signs and confirms meeting
+- **rejected**: Approver rejects with reason
+- **superseded**: Previous confirmation invalidated due to meeting changes
+- **resubmitted**: Secretary resubmits after rejection or changes
 
 ---
 

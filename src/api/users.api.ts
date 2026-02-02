@@ -12,12 +12,14 @@ import {
   UpdateUserPayloadSchema,
   EmailCheckResponseSchema,
   UserActivitySchema,
+  UserSessionSchema,
   type User,
   type UserListItem,
   type CreateUserPayload,
   type UpdateUserPayload,
   type EmailCheckResponse,
   type UserActivity,
+  type UserSession,
   type UserFilterParams,
 } from '../types/user.types';
 import type { PaginatedResponse } from '../types/api.types';
@@ -37,6 +39,11 @@ const UserActivitiesResponseSchema = z.object({
   page: z.number(),
   pageSize: z.number(),
   totalPages: z.number(),
+});
+
+const UserSessionsResponseSchema = z.object({
+  data: z.array(UserSessionSchema),
+  total: z.number(),
 });
 
 export const usersApi = {
@@ -160,6 +167,43 @@ export const usersApi = {
    */
   resendWelcomeEmail: async (userId: number): Promise<void> => {
     await apiClient.post(`/users/${userId}/resend-welcome`);
+  },
+
+  // ============================================================================
+  // SESSION MANAGEMENT ENDPOINTS
+  // ============================================================================
+
+  /**
+   * Get all sessions for a user
+   */
+  getUserSessions: async (userId: number, activeOnly: boolean = false): Promise<{ data: UserSession[]; total: number }> => {
+    const response = await apiClient.get(`/users/${userId}/sessions`, {
+      params: { activeOnly },
+    });
+    return UserSessionsResponseSchema.parse(response.data);
+  },
+
+  /**
+   * Get single session by ID
+   */
+  getSession: async (sessionId: string): Promise<UserSession> => {
+    const response = await apiClient.get(`/sessions/${sessionId}`);
+    return UserSessionSchema.parse(response.data);
+  },
+
+  /**
+   * Terminate a specific session (logout single device)
+   */
+  terminateSession: async (sessionId: string): Promise<void> => {
+    await apiClient.delete(`/sessions/${sessionId}`);
+  },
+
+  /**
+   * Terminate all sessions for a user (force logout all devices)
+   */
+  terminateAllUserSessions: async (userId: number): Promise<{ count: number }> => {
+    const response = await apiClient.delete(`/users/${userId}/sessions`);
+    return response.data;
   },
 };
 

@@ -1,0 +1,230 @@
+/**
+ * MeetingNoticeDocument Styles
+ * Print-friendly and display styles for the meeting notice document
+ */
+
+/* Base Document Styles */
+.meeting-notice-document {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.5;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+/* Mode-specific styles */
+.meeting-notice-document--email {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.meeting-notice-document--print {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Header styles */
+.notice-header {
+  page-break-inside: avoid;
+}
+
+/* Meeting details grid */
+.notice-meeting-details {
+  page-break-inside: avoid;
+}
+
+/* Participants list */
+.notice-participants {
+  page-break-inside: avoid;
+}
+
+/* Signature block */
+.notice-signature-block {
+  page-break-inside: avoid;
+}
+
+/* RSVP section - hide in print */
+.notice-rsvp-section {
+  page-break-inside: avoid;
+}
+
+/* Print Media Queries */
+@media print {
+  .meeting-notice-document {
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    background: white !important;
+  }
+
+  .meeting-notice-document--print {
+    padding: 0;
+  }
+
+  /* Hide interactive elements in print */
+  .notice-rsvp-section {
+    display: none !important;
+  }
+
+  /* Ensure proper page breaks */
+  .notice-header {
+    page-break-after: avoid;
+  }
+
+  .notice-meeting-details {
+    page-break-before: avoid;
+    page-break-after: avoid;
+  }
+
+  .notice-agenda {
+    page-break-inside: avoid;
+  }
+
+  .notice-participants {
+    page-break-before: avoid;
+  }
+
+  .notice-signature-block {
+    page-break-before: avoid;
+  }
+
+  /* Ensure backgrounds print */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Page setup */
+  @page {
+    margin: 1cm;
+    size: A4;
+  }
+
+  /* Hide buttons and interactive elements */
+  button,
+  .ant-btn {
+    display: none !important;
+  }
+
+  /* Ensure links are visible */
+  a {
+    text-decoration: underline;
+  }
+
+  /* Show URL after links */
+  a[href]:after {
+    content: " (" attr(href) ")";
+    font-size: 10px;
+    color: #666;
+  }
+}
+
+/* Email mode - inline-friendly styles */
+.meeting-notice-document--email .notice-header {
+  border-radius: 0;
+}
+
+.meeting-notice-document--email .notice-rsvp-section {
+  display: none;
+}
+
+/* Compact mode adjustments */
+.meeting-notice-document .notice-meeting-details {
+  transition: padding 0.2s ease;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .meeting-notice-document {
+    border-radius: 0;
+  }
+
+  .notice-meeting-details {
+    grid-template-columns: 1fr !important;
+  }
+
+  .notice-participants > div {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Execution mode - minimal styling */
+.meeting-notice-document--execution .notice-signature-block {
+  display: none;
+}
+
+.meeting-notice-document--execution .notice-notes {
+  display: none;
+}
+
+/* ============================================================================
+   WATERMARK STYLES
+   ============================================================================ */
+
+/* Watermark container */
+.notice-watermark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-45deg);
+  pointer-events: none;
+  z-index: 1;
+  white-space: nowrap;
+}
+
+/* Draft watermark */
+.notice-watermark--draft {
+  font-size: 48px;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.15);
+  letter-spacing: 8px;
+  text-transform: uppercase;
+}
+
+/* Pending/Awaiting signature watermark */
+.notice-watermark--pending {
+  font-size: 36px;
+  font-weight: 700;
+  color: rgba(250, 173, 20, 0.25);
+  letter-spacing: 4px;
+  text-transform: uppercase;
+}
+
+/* Rejected watermark */
+.notice-watermark--rejected {
+  font-size: 56px;
+  font-weight: 700;
+  color: rgba(255, 77, 79, 0.20);
+  letter-spacing: 8px;
+  text-transform: uppercase;
+}
+
+/* Document wrapper for watermark positioning */
+.meeting-notice-document--with-watermark {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Ensure content is above watermark */
+.meeting-notice-document--with-watermark > *:not(.notice-watermark) {
+  position: relative;
+  z-index: 2;
+}
+
+/* Print watermarks */
+@media print {
+  .notice-watermark {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .notice-watermark--draft {
+    color: rgba(0, 0, 0, 0.18);
+  }
+
+  .notice-watermark--pending {
+    color: rgba(250, 173, 20, 0.30);
+  }
+
+  .notice-watermark--rejected {
+    color: rgba(255, 77, 79, 0.25);
+  }
+}

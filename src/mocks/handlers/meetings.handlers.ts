@@ -23,6 +23,12 @@ import {
   getAllMeetingObjects,
   getAllMeetingListItems,
   toMeetingListItem,
+  getMeetingConfirmationHistory,
+  getLatestMeetingConfirmationEvent,
+  submitMeetingForConfirmation,
+  confirmMeeting,
+  rejectMeetingConfirmation,
+  resubmitMeetingForConfirmation,
 } from '../db/queries/meetingQueries';
 import { getBoardById, getBoardMembers } from '../db/queries/boardQueries';
 import { boardsTable } from '../db/tables/boards';
@@ -64,13 +70,6 @@ const getBoardMembersAsParticipants = (boardId: string) => {
       receiveMinutes: true,
     };
   });
-};
-
-// Helper to get parent board name
-const getParentBoardName = (parentId: string | null): string | undefined => {
-  if (!parentId) return undefined;
-  const parent = boardsTable.find(b => b.id === parentId);
-  return parent?.name;
 };
 
 // Helper to calculate pagination
@@ -253,6 +252,44 @@ export const meetingsHandlers = [
     return HttpResponse.json(paginated);
   }),
 
+  // Get upcoming meetings (for dashboard) - MUST be before /:id route
+  http.get('/api/meetings/upcoming', ({ request }) => {
+    const url = new URL(request.url);
+    const limit = parseInt(url.searchParams.get('limit') || '5');
+
+    const upcoming = getUpcomingMeetings(limit);
+    const listItems = upcoming.map(row => toMeetingListItem(row));
+
+    return HttpResponse.json({ data: listItems, total: listItems.length });
+  }),
+
+  // Get pending confirmations - MUST be before /:id route
+  http.get('/api/meetings/pending-confirmation', ({ request }) => {
+    const url = new URL(request.url);
+    const boardId = url.searchParams.get('boardId') || undefined;
+    const includeCommittees = url.searchParams.get('includeCommittees') === 'true';
+
+    let pending = getPendingConfirmationMeetings();
+    
+    // Filter by boardId if provided
+    if (boardId) {
+      pending = pending.filter(m => {
+        // Match direct board
+        if (m.boardId === boardId) return true;
+        // If includeCommittees, also match committees of this board (NOT subsidiaries or factories)
+        if (includeCommittees) {
+          const board = boardsTable.find(b => b.id === m.boardId);
+          return board?.parentId === boardId && board?.type === 'committee';
+        }
+        return false;
+      });
+    }
+
+    const listItems = pending.map(row => toMeetingListItem(row));
+
+    return HttpResponse.json({ data: listItems, total: listItems.length });
+  }),
+
   // Get single meeting
   http.get('/api/meetings/:id', ({ params }) => {
     const { id } = params;
@@ -330,6 +367,7 @@ export const meetingsHandlers = [
       quorumRequired,
       expectedAttendees: participants.length,
       requiresConfirmation,
+      confirmationStatus: requiresConfirmation ? 'pending' : undefined,
       status: initialStatus,
       isRecurring: payload.isRecurring || false,
       recurrencePattern: payload.recurrencePattern,
@@ -387,10 +425,14 @@ export const meetingsHandlers = [
 
     const existingMeeting = meetings[meetingIndex];
 
-    // Update meeting
+    // Destructure boardId out since it can't be changed after creation
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { boardId: _ignoredBoardId, ...updateFields } = payload;
+
+    // Update meeting - ensure required fields are preserved from existing meeting
     const updatedMeeting: Meeting = {
       ...existingMeeting,
-      ...payload,
+      ...updateFields,
       updatedAt: new Date().toISOString(),
     };
 
@@ -566,70 +608,9 @@ export const meetingsHandlers = [
     return HttpResponse.json(meeting);
   }),
 
-  // Confirm meeting (sign)
-  http.post('/api/meetings/:id/confirm', ({ params }) => {
-    const { id } = params;
-
-    const meetingIndex = meetings.findIndex(m => m.id === id);
-    if (meetingIndex === -1) {
-      return HttpResponse.json(
-        { error: 'Meeting not found' },
-        { status: 404 }
-      );
-    }
-
-    const meeting = meetings[meetingIndex];
-    meeting.status = 'confirmed';
-    meeting.confirmationStatus = 'approved';
-    meeting.confirmedBy = '17'; // Mock Company Secretary - Kenneth Muhia
-    meeting.confirmedByName = 'Kenneth Mwangi Muhia';
-    meeting.confirmedAt = new Date().toISOString();
-    meeting.updatedAt = new Date().toISOString();
-
-    // Update list item
-    const listIndex = meetingListItems.findIndex(m => m.id === id);
-    if (listIndex !== -1) {
-      meetingListItems[listIndex].status = 'confirmed';
-      meetingListItems[listIndex].confirmationStatus = 'approved';
-    }
-
-    console.log('✅ Meeting confirmed:', meeting.title);
-    console.log(`📧 Would send invitations to ${meeting.participants.length} participants`);
-
-    return HttpResponse.json(meeting);
-  }),
-
-  // Reject meeting
-  http.post('/api/meetings/:id/reject', async ({ params, request }) => {
-    const { id } = params;
-    const { reason } = await request.json() as { reason: string };
-
-    const meetingIndex = meetings.findIndex(m => m.id === id);
-    if (meetingIndex === -1) {
-      return HttpResponse.json(
-        { error: 'Meeting not found' },
-        { status: 404 }
-      );
-    }
-
-    const meeting = meetings[meetingIndex];
-    meeting.status = 'rejected';
-    meeting.confirmationStatus = 'rejected';
-    meeting.rejectionReason = reason;
-    meeting.updatedAt = new Date().toISOString();
-
-    // Update list item
-    const listIndex = meetingListItems.findIndex(m => m.id === id);
-    if (listIndex !== -1) {
-      meetingListItems[listIndex].status = 'rejected';
-      meetingListItems[listIndex].confirmationStatus = 'rejected';
-    }
-
-    console.log('❌ Meeting rejected:', meeting.title, `Reason: ${reason}`);
-    console.log('📧 Would notify secretary of rejection');
-
-    return HttpResponse.json(meeting);
-  }),
+  // REMOVED DUPLICATE HANDLERS (lines 611-674)
+  // The correct confirm/reject handlers are defined later in the file (lines 842+)
+  // and properly return { success, data, message } format
 
   // Update RSVP
   http.put('/api/meetings/:id/rsvp', async ({ params, request }) => {
@@ -738,23 +719,183 @@ export const meetingsHandlers = [
     return HttpResponse.json({ success: true });
   }),
 
-  // Get upcoming meetings (for dashboard)
-  http.get('/api/meetings/upcoming', ({ request }) => {
-    const url = new URL(request.url);
-    const limit = parseInt(url.searchParams.get('limit') || '5');
+  // ============================================================================
+  // CONFIRMATION WORKFLOW ENDPOINTS
+  // ============================================================================
 
-    const upcoming = getUpcomingMeetings(limit);
-    const listItems = upcoming.map(row => toMeetingListItem(row));
-
-    return HttpResponse.json({ data: listItems, total: listItems.length });
+  // Get confirmation history for a meeting
+  http.get('/api/meetings/:id/confirmation-history', ({ params }) => {
+    const { id } = params;
+    const history = getMeetingConfirmationHistory(id as string);
+    
+    return HttpResponse.json({ data: history, total: history.length });
   }),
 
-  // Get pending confirmations
-  http.get('/api/meetings/pending-confirmation', () => {
-    const pending = getPendingConfirmationMeetings();
-    const listItems = pending.map(row => toMeetingListItem(row));
+  // Get latest confirmation event for a meeting
+  http.get('/api/meetings/:id/confirmation-status', ({ params }) => {
+    const { id } = params;
+    const latest = getLatestMeetingConfirmationEvent(id as string);
+    
+    if (!latest) {
+      return HttpResponse.json({ data: null, message: 'No confirmation history found' });
+    }
+    
+    return HttpResponse.json({ data: latest });
+  }),
 
-    return HttpResponse.json({ data: listItems, total: listItems.length });
+  // Submit meeting for confirmation
+  http.post('/api/meetings/:id/submit-for-confirmation', async ({ params, request }) => {
+    const { id } = params;
+    const body = await request.json() as { notes?: string; submittedBy: number };
+    
+    const result = submitMeetingForConfirmation(
+      id as string,
+      body.submittedBy,
+      body.notes
+    );
+    
+    if (!result) {
+      return HttpResponse.json(
+        { error: 'Meeting not found or cannot be submitted' },
+        { status: 400 }
+      );
+    }
+    
+    console.log('📝 Meeting submitted for confirmation:', id);
+    
+    // Update in-memory meetings list
+    const meetingIndex = meetings.findIndex(m => m.id === id);
+    if (meetingIndex !== -1) {
+      meetings[meetingIndex].status = 'pending_confirmation';
+      meetings[meetingIndex].updatedAt = new Date().toISOString();
+    }
+    
+    return HttpResponse.json({ 
+      success: true, 
+      data: result,
+      message: 'Meeting submitted for confirmation' 
+    });
+  }),
+
+  // Confirm (approve) a meeting
+  http.post('/api/meetings/:id/confirm', async ({ params, request }) => {
+    const { id } = params;
+    const body = await request.json() as { 
+      confirmedBy: number; 
+      pin: string;
+      signatureId?: string;
+      signatureImage?: string; // Base64 data URL of drawn signature
+    };
+    
+    // In a real app, we'd verify the PIN here
+    // For mock, we just generate a signature ID
+    const signatureId = body.signatureId || `sig-${Date.now()}`;
+    
+    const result = confirmMeeting(
+      id as string,
+      body.confirmedBy,
+      signatureId,
+      body.signatureImage // Pass signature image to be stored
+    );
+    
+    if (!result) {
+      return HttpResponse.json(
+        { error: 'Meeting not found or not pending confirmation' },
+        { status: 400 }
+      );
+    }
+    
+    console.log('✅ Meeting confirmed:', id);
+    
+    // Update in-memory meetings list
+    const meetingIndex = meetings.findIndex(m => m.id === id);
+    if (meetingIndex !== -1) {
+      meetings[meetingIndex].status = 'confirmed';
+      meetings[meetingIndex].confirmedBy = String(body.confirmedBy);
+      meetings[meetingIndex].confirmedAt = new Date().toISOString();
+      meetings[meetingIndex].updatedAt = new Date().toISOString();
+    }
+    
+    return HttpResponse.json({ 
+      success: true, 
+      data: result,
+      message: 'Meeting confirmed successfully' 
+    });
+  }),
+
+  // Reject a meeting confirmation
+  http.post('/api/meetings/:id/reject', async ({ params, request }) => {
+    const { id } = params;
+    const body = await request.json() as { 
+      rejectedBy: number; 
+      reason: 'incomplete_information' | 'scheduling_conflict' | 'agenda_not_approved' | 'quorum_concerns' | 'other';
+      comments?: string;
+    };
+    
+    const result = rejectMeetingConfirmation(
+      id as string,
+      body.rejectedBy,
+      body.reason,
+      body.comments
+    );
+    
+    if (!result) {
+      return HttpResponse.json(
+        { error: 'Meeting not found or not pending confirmation' },
+        { status: 400 }
+      );
+    }
+    
+    console.log('❌ Meeting confirmation rejected:', id, '-', body.reason);
+    
+    // Update in-memory meetings list
+    const meetingIndex = meetings.findIndex(m => m.id === id);
+    if (meetingIndex !== -1) {
+      meetings[meetingIndex].status = 'rejected';
+      meetings[meetingIndex].rejectionReason = body.comments || body.reason;
+      meetings[meetingIndex].updatedAt = new Date().toISOString();
+    }
+    
+    return HttpResponse.json({ 
+      success: true, 
+      data: result,
+      message: 'Meeting confirmation rejected' 
+    });
+  }),
+
+  // Resubmit meeting for confirmation (after rejection)
+  http.post('/api/meetings/:id/resubmit-for-confirmation', async ({ params, request }) => {
+    const { id } = params;
+    const body = await request.json() as { notes?: string; submittedBy: number };
+    
+    const result = resubmitMeetingForConfirmation(
+      id as string,
+      body.submittedBy,
+      body.notes
+    );
+    
+    if (!result) {
+      return HttpResponse.json(
+        { error: 'Meeting not found or not in rejected status' },
+        { status: 400 }
+      );
+    }
+    
+    console.log('🔄 Meeting resubmitted for confirmation:', id);
+    
+    // Update in-memory meetings list
+    const meetingIndex = meetings.findIndex(m => m.id === id);
+    if (meetingIndex !== -1) {
+      meetings[meetingIndex].status = 'pending_confirmation';
+      meetings[meetingIndex].rejectionReason = undefined;
+      meetings[meetingIndex].updatedAt = new Date().toISOString();
+    }
+    
+    return HttpResponse.json({ 
+      success: true, 
+      data: result,
+      message: 'Meeting resubmitted for confirmation' 
+    });
   }),
 ];
 

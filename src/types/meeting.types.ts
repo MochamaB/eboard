@@ -43,6 +43,22 @@ export const RSVPStatusSchema = z.enum([
   'no_response',
 ]);
 
+export const ConfirmationEventTypeSchema = z.enum([
+  'submitted',      // Secretary submits meeting for confirmation
+  'confirmed',      // Approver signs and confirms meeting
+  'rejected',       // Approver rejects with reason
+  'superseded',     // Previous confirmation invalidated due to meeting changes
+  'resubmitted',    // Secretary resubmits after rejection or changes
+]);
+
+export const RejectionReasonSchema = z.enum([
+  'incomplete_information',
+  'scheduling_conflict',
+  'agenda_not_approved',
+  'quorum_concerns',
+  'other',
+]);
+
 // ============================================================================
 // NESTED SCHEMAS
 // ============================================================================
@@ -75,6 +91,39 @@ export const RecurrencePatternSchema = z.object({
   endDate: z.string().optional(),
   occurrences: z.number().optional(),
   excludeDates: z.array(z.string()).optional(),
+});
+
+// Meeting confirmation history event
+export const MeetingConfirmationHistorySchema = z.object({
+  id: z.string(),
+  meetingId: z.string(),
+
+  // Event type
+  eventType: ConfirmationEventTypeSchema,
+
+  // Actor
+  performedBy: z.number(),
+  performedByName: z.string(),
+  performedAt: z.string(),
+
+  // Submission details (for 'submitted' and 'resubmitted' events)
+  submissionNotes: z.string().nullable().optional(),
+
+  // Confirmation details (for 'confirmed' events)
+  signatureId: z.string().nullable().optional(),
+
+  // Rejection details (for 'rejected' events)
+  rejectionReason: RejectionReasonSchema.nullable().optional(),
+  rejectionComments: z.string().nullable().optional(),
+
+  // Documents
+  unsignedDocumentId: z.string().nullable().optional(),
+  unsignedDocumentUrl: z.string().nullable().optional(),
+  signedDocumentId: z.string().nullable().optional(),
+  signedDocumentUrl: z.string().nullable().optional(),
+
+  // Metadata
+  createdAt: z.string(),
 });
 
 // ============================================================================
@@ -141,6 +190,20 @@ export const MeetingSchema = z.object({
   cancellationReason: z.string().optional(),
 });
 
+// Board Pack Status (for meeting list display)
+export const BoardPackStatusSchema = z.object({
+  agenda: z.object({
+    status: z.enum(['none', 'draft', 'published']),
+    itemCount: z.number(),
+  }),
+  documents: z.object({
+    count: z.number(),
+  }),
+  minutes: z.object({
+    status: z.enum(['none', 'draft', 'published']),
+  }),
+});
+
 // Meeting list item (lighter for tables)
 export const MeetingListItemSchema = z.object({
   id: z.string(),
@@ -165,6 +228,8 @@ export const MeetingListItemSchema = z.object({
   confirmationStatus: z.string().optional(),
   createdByName: z.string(),
   createdAt: z.string(),
+  // Board Pack status for quick overview
+  boardPackStatus: BoardPackStatusSchema.optional(),
 });
 
 // ============================================================================
@@ -294,9 +359,13 @@ export type MeetingStatus = z.infer<typeof MeetingStatusSchema>;
 export type MeetingType = z.infer<typeof MeetingTypeSchema>;
 export type LocationType = z.infer<typeof LocationTypeSchema>;
 export type RSVPStatus = z.infer<typeof RSVPStatusSchema>;
+export type ConfirmationEventType = z.infer<typeof ConfirmationEventTypeSchema>;
+export type RejectionReason = z.infer<typeof RejectionReasonSchema>;
 export type MeetingParticipant = z.infer<typeof MeetingParticipantSchema>;
 export type RecurrencePattern = z.infer<typeof RecurrencePatternSchema>;
+export type MeetingConfirmationHistory = z.infer<typeof MeetingConfirmationHistorySchema>;
 export type Meeting = z.infer<typeof MeetingSchema>;
+export type BoardPackStatus = z.infer<typeof BoardPackStatusSchema>;
 export type MeetingListItem = z.infer<typeof MeetingListItemSchema>;
 export type CreateMeetingPayload = z.infer<typeof CreateMeetingPayloadSchema>;
 export type UpdateMeetingPayload = z.infer<typeof UpdateMeetingPayloadSchema>;
@@ -369,4 +438,30 @@ export const DEFAULT_MEETING_DURATIONS: Record<MeetingType, number> = {
   agm: 240,          // 4 hours
   emergency: 90,     // 1.5 hours
   committee: 120,    // 2 hours
+};
+
+// Confirmation event type labels
+export const CONFIRMATION_EVENT_LABELS: Record<ConfirmationEventType, string> = {
+  submitted: 'Submitted for Confirmation',
+  confirmed: 'Confirmed',
+  rejected: 'Rejected',
+  superseded: 'Superseded',
+  resubmitted: 'Resubmitted',
+};
+
+export const CONFIRMATION_EVENT_COLORS: Record<ConfirmationEventType, string> = {
+  submitted: 'blue',
+  confirmed: 'success',
+  rejected: 'error',
+  superseded: 'default',
+  resubmitted: 'warning',
+};
+
+// Rejection reason labels
+export const REJECTION_REASON_LABELS: Record<RejectionReason, string> = {
+  incomplete_information: 'Incomplete Information',
+  scheduling_conflict: 'Scheduling Conflict',
+  agenda_not_approved: 'Agenda Not Approved',
+  quorum_concerns: 'Quorum Concerns',
+  other: 'Other',
 };
