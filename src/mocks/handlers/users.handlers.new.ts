@@ -4,7 +4,7 @@
  */
 
 import { http, HttpResponse, delay } from 'msw';
-import { filterUsers, getUserById } from '../db/queries/userQueries';
+import { filterUsers, getUserById, getUserPrimaryRole } from '../db/queries/userQueries';
 import { usersTable } from '../db/tables/users';
 import { getUserMemberships } from '../db/queries/userQueries';
 
@@ -39,8 +39,8 @@ export const usersHandlers = [
       fullName: user.fullName,
       phone: user.phone,
       avatar: user.avatar,
-      primaryRole: user.primaryRole,
-      status: user.status,
+      primaryRole: getUserPrimaryRole(user.id) as any, // Compute from userBoardRoles
+      status: user.status as 'active' | 'inactive' | 'pending', // Type cast to valid statuses only
       boardCount: user.boardMemberships?.length || 0,
       mfaEnabled: user.mfaEnabled,
       lastLogin: user.lastLoginAt,
@@ -59,25 +59,34 @@ export const usersHandlers = [
   // GET /api/users/:id - Get single user
   http.get('/api/users/:id', async ({ params }) => {
     await delay(200);
-    
+
     const { id } = params;
     const user = getUserById(parseInt(id as string));
-    
+
     if (!user) {
       return HttpResponse.json(
         { message: 'User not found' },
         { status: 404 }
       );
     }
-    
+
     // Get memberships
     const memberships = getUserMemberships(user.id);
-    
+
+    // Compute primary role
+    const primaryRole = getUserPrimaryRole(user.id);
+
+    // Return user directly (not wrapped in data) with computed primaryRole
+    // Map UserRow fields to UserSchema fields and provide defaults for missing fields
     return HttpResponse.json({
-      data: {
-        ...user,
-        boardMemberships: memberships,
-      },
+      ...user,
+      primaryRole: primaryRole as any,
+      boardMemberships: memberships,
+      lastLogin: user.lastLoginAt || null,        // Map lastLoginAt → lastLogin
+      lastPasswordChange: null,                    // Not in UserRow, default to null
+      failedLoginAttempts: 0,                     // Not in UserRow, default to 0
+      lockedUntil: null,                          // Not in UserRow, default to null
+      createdBy: null,                            // Not in UserRow, default to null
     });
   }),
 
@@ -102,8 +111,10 @@ export const usersHandlers = [
     }
     
     // Create new user (in real app, this would insert into DB)
+    const userId = Math.max(...usersTable.map(u => u.id)) + 1;
+
     const newUser = {
-      id: Math.max(...usersTable.map(u => u.id)) + 1,
+      id: userId,
       email: body.email,
       firstName: body.firstName,
       lastName: body.lastName,
@@ -120,15 +131,19 @@ export const usersHandlers = [
       mfaSetupComplete: false,
       hasCertificate: false,
       certificateExpiry: null,
+      boardMemberships: [], // New user has no board memberships initially
+      lastLoginAt: null, // UserRow field
+      lastLogin: null,    // UserSchema field
+      lastPasswordChange: null,
+      failedLoginAttempts: 0,
+      lockedUntil: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      lastLoginAt: null,
+      createdBy: null,
     };
-    
-    return HttpResponse.json({
-      data: newUser,
-      message: 'User created successfully',
-    }, { status: 201 });
+
+    // Return user directly (not wrapped in data)
+    return HttpResponse.json(newUser, { status: 201 });
   }),
 
   // PUT /api/users/:id - Update user
@@ -146,11 +161,26 @@ export const usersHandlers = [
     }
     
     const body = await request.json() as Partial<typeof user>;
-    
-    return HttpResponse.json({
-      data: { ...user, ...body, updatedAt: new Date().toISOString() },
-      message: 'User updated successfully',
-    });
+
+    // Get memberships and compute primary role for updated user
+    const memberships = getUserMemberships(user.id);
+    const primaryRole = getUserPrimaryRole(user.id);
+
+    const updatedUser = {
+      ...user,
+      ...body,
+      primaryRole: primaryRole as any,
+      boardMemberships: memberships,
+      updatedAt: new Date().toISOString(),
+      lastLogin: user.lastLoginAt || null,        // Map lastLoginAt → lastLogin
+      lastPasswordChange: null,                    // Not in UserRow, default to null
+      failedLoginAttempts: 0,                     // Not in UserRow, default to 0
+      lockedUntil: null,                          // Not in UserRow, default to null
+      createdBy: null,                            // Not in UserRow, default to null
+    };
+
+    // Return user directly (not wrapped in data)
+    return HttpResponse.json(updatedUser);
   }),
 
   // DELETE /api/users/:id - Delete user

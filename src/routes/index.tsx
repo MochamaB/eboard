@@ -4,10 +4,11 @@ import { RootLayout } from '../layouts/RootLayout';
 import { AppLayout } from '../layouts/AppLayout';
 import { AuthLayout } from '../layouts/AuthLayout';
 import { Dashboard } from '../pages/Dashboard';
-import { UsersIndexPage, CreateUserPage as CreateUserPageComponent } from '../pages/Users';
+import { UsersIndexPage, CreateUserPage as CreateUserPageComponent, UserDetailsPage } from '../pages/Users';
 import { BoardsIndexPage, BoardDetailsPage, BoardCreatePage as BoardCreatePageComponent } from '../pages/Boards';
 import { MeetingsIndexPage, MeetingCreatePage, MeetingDetailPage } from '../pages/Meetings';
 import { ApprovalsIndexPage, ApprovalReviewPage } from '../pages/Approvals';
+import { DocumentsIndexPage } from '../pages/Documents';
 import { LoginPage } from '../pages/Auth';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import { useAuth } from '../contexts/AuthContext';
@@ -26,7 +27,6 @@ const ForgotPasswordPage = () => <PlaceholderPage title="Forgot Password" />;
 // Main pages (placeholders)
 const MeetingsCalendarPage = () => <PlaceholderPage title="Meetings Calendar" />;
 
-const DocumentsPage = () => <PlaceholderPage title="Documents" />;
 const BoardPacksPage = () => <PlaceholderPage title="Board Packs" />;
 const TemplatesPage = () => <PlaceholderPage title="Document Templates" />;
 
@@ -124,7 +124,7 @@ export const router = createBrowserRouter([
           },
           {
             path: 'documents',
-            element: <DocumentsPage />,
+            element: <DocumentsIndexPage />,
           },
           {
             path: 'boards',
@@ -198,7 +198,7 @@ export const router = createBrowserRouter([
       // Documents
       {
         path: 'documents',
-        element: <DocumentsPage />,
+        element: <DocumentsIndexPage />,
       },
       {
         path: 'documents/board-packs',
@@ -243,8 +243,8 @@ export const router = createBrowserRouter([
         element: <CreateUserPageComponent />,
       },
       {
-        path: 'users/:id',
-        element: <UserDetailPage />,
+        path: 'users/:userId',
+        element: <UserDetailsPage />,
       },
       {
         path: 'users/:id/edit',

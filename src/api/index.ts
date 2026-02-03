@@ -8,3 +8,7 @@ export { default as usersApi } from './users.api';
 export { default as rolesApi } from './roles.api';
 export { default as authApi } from './auth.api';
 export { default as boardsApi } from './boards.api';
+export * as documentsApi from './documents.api';
+export * from './documents.api';
+export * as documentCategoriesApi from './documentCategories.api';
+export * from './documentCategories.api';

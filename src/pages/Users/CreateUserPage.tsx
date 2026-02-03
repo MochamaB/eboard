@@ -43,8 +43,10 @@ interface UserFormData {
   lastName: string;
   email: string;
   phone: string;
+  alternatePhone?: string;
+  alternateEmail?: string;
   employeeId?: string;
-  
+
   // Step 2: Role
   primaryRole: string;
   
@@ -113,6 +115,18 @@ export const CreateUserPage: React.FC = () => {
       type: 'phone',
       required: true,
       placeholder: '+254712345678',
+    },
+    {
+      name: 'alternatePhone',
+      label: 'Alternate Phone Number (Optional)',
+      type: 'phone',
+      placeholder: '+254712345678',
+    },
+    {
+      name: 'alternateEmail',
+      label: 'Alternate Email (Optional)',
+      type: 'email',
+      placeholder: 'alternate@example.com',
     },
     {
       name: 'employeeId',
@@ -234,7 +248,7 @@ export const CreateUserPage: React.FC = () => {
                   >
                     <Select
                       placeholder="Select board or committee"
-                      size="large"
+                      size="middle"
                       options={[
                         { label: 'KTDA Main Board', value: 'ktda-main' },
                         { label: 'Ketepa Ltd', value: 'ketepa' },
@@ -254,7 +268,7 @@ export const CreateUserPage: React.FC = () => {
                   >
                     <Select
                       placeholder="Select role"
-                      size="large"
+                      size="middle"
                       options={[
                         { label: 'Chairman', value: 'chairman' },
                         { label: 'Vice Chairman', value: 'vice_chairman' },
@@ -273,7 +287,7 @@ export const CreateUserPage: React.FC = () => {
                   >
                     <DatePicker
                       style={{ width: '100%' }}
-                      size="large"
+                      size="middle"
                       format="YYYY-MM-DD"
                     />
                   </Form.Item>
@@ -285,7 +299,7 @@ export const CreateUserPage: React.FC = () => {
                 onClick={() => add()}
                 block
                 icon={<TeamOutlined />}
-                size="large"
+                size="middle"
               >
                 Add Board Assignment
               </Button>
@@ -330,7 +344,7 @@ export const CreateUserPage: React.FC = () => {
             accept=".pfx,.p12"
             beforeUpload={() => false}
           >
-            <Button icon={<UploadOutlined />} size="large">
+            <Button icon={<UploadOutlined />} size="middle">
               Select Certificate File
             </Button>
           </Upload>

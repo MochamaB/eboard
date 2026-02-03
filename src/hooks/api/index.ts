@@ -20,3 +20,7 @@ export * from './useMeetings';
 
 // Agenda hooks
 export * from './useAgenda';
+
+// Document hooks
+export * from './useDocuments';
+export * from './useDocumentCategories';

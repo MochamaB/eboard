@@ -18,6 +18,7 @@ import {
 import { useBoardContext } from '../../../../contexts';
 import { AgendaHeader, ItemNumberBadge, ItemTypeTag, Accordion, type AccordionItem, InlineEditableField } from '../../../../components/common';
 import type { Agenda, AgendaItem } from '../../../../types/agenda.types';
+import { AgendaItemDocuments } from './AgendaItemDocuments';
 import { generateHierarchicalNumber, hasChildren as checkHasChildren, getChildItems as getChildren, getItemDepth, getDepthStyles } from '../../../../utils/agendaHierarchy';
 import { calculateTotalDuration, calculateItemDurationWithChildren, formatDuration as formatDurationUtil } from '../../../../utils/agendaTimeManagement';
 
@@ -34,6 +35,10 @@ interface AgendaAccordionViewProps {
   meetingDuration?: number;
   /** Meeting participants for presenter selection */
   participants?: Array<{ userId: number; name: string; roleName: string; avatar?: string }>;
+  /** Meeting ID for document operations */
+  meetingId?: string;
+  /** Board ID for document operations */
+  boardId?: string;
   /** Edit handler (shows for draft agendas) */
   onEdit?: () => void;
   /** Publish handler (shows for draft agendas) */
@@ -58,6 +63,8 @@ export const AgendaAccordionView: React.FC<AgendaAccordionViewProps> = ({
   mode = 'view',
   meetingDuration,
   participants = [],
+  meetingId,
+  boardId,
   onEdit,
   onPublish,
   onUnpublish,
@@ -67,7 +74,7 @@ export const AgendaAccordionView: React.FC<AgendaAccordionViewProps> = ({
   onDeleteItem,
   onAddItem,
 }) => {
-  const { theme } = useBoardContext();
+  const { theme, currentBoard } = useBoardContext();
   
   // Get parent items (items without parentItemId)
   const parentItems = useMemo(() => {
@@ -380,33 +387,12 @@ export const AgendaAccordionView: React.FC<AgendaAccordionViewProps> = ({
         )}
 
         {/* Documents */}
-        {docCount > 0 && (
-          <div style={{ marginBottom: '16px' }}>
-            <Text style={{ display: 'block', marginBottom: '8px', fontSize: '13px', color: theme.textSecondary }}>
-              Documents
-            </Text>
-            <Space direction="vertical" size="small" style={{ width: '100%' }}>
-              {item.attachedDocumentIds.map((docId, index) => (
-                <div
-                  key={docId}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '8px 12px',
-                    backgroundColor: theme.backgroundTertiary,
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <FileTextOutlined style={{ color: theme.primaryColor }} />
-                  <Text style={{ flex: 1, fontSize: '12px' }}>Document {index + 1}</Text>
-                  <DownloadOutlined style={{ color: theme.textSecondary }} />
-                </div>
-              ))}
-            </Space>
-          </div>
-        )}
+        <AgendaItemDocuments
+          agendaItemId={item.id}
+          mode={mode}
+          boardId={boardId || currentBoard?.id || item.meetingId}
+          meetingId={meetingId || item.meetingId}
+        />
 
         {/* No content message */}
         {!item.description && docCount === 0 && (

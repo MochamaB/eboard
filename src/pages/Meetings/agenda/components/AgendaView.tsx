@@ -20,6 +20,7 @@ import type { AgendaItem, UpdateAgendaItemPayload } from '../../../../types/agen
 import { AgendaAccordionView } from './AgendaAccordionView';
 import { AgendaEmptyState } from '../../../../components/common';
 import { useAuth } from '../../../../contexts/AuthContext';
+import { useBoardContext } from '../../../../contexts';
 
 export interface AgendaViewProps {
   /** Meeting ID to load agenda for */
@@ -55,6 +56,9 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
 
   // Get current user from auth context
   const { user } = useAuth();
+
+  // Get current board from context
+  const { currentBoard } = useBoardContext();
 
   // Fetch agenda data
   const {
@@ -371,6 +375,8 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
       mode={actualMode}
       meetingDuration={meetingDuration}
       participants={participants}
+      meetingId={meetingId}
+      boardId={currentBoard?.id}
       onEdit={agenda?.status === 'published' ? handleEdit : undefined}
       onPublish={agenda?.status === 'draft' ? handlePublish : undefined}
       onUnpublish={agenda?.status === 'published' ? handleUnpublish : undefined}

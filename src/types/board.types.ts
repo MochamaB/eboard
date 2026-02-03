@@ -293,9 +293,12 @@ export const BoardMembershipSchema = z.object({
   boardName: z.string(),
   boardType: BoardTypeSchema,
   role: BoardRoleSchema,
+  roleName: z.string().optional(), // Human-readable role name (e.g., "Company Secretary")
+  roleId: z.number().optional(), // FK to roles table
   startDate: z.string(),
   endDate: z.string().nullable(),
   isActive: z.boolean().default(true),
+  isDefault: z.boolean().optional(), // Whether this is the user's default board
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
 });

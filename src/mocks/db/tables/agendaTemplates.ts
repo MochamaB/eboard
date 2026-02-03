@@ -3,8 +3,9 @@
  * Stores reusable agenda templates for different board types
  */
 
+import type { AgendaItemType } from './agendaItems';
+
 export type BoardType = 'main' | 'subsidiary' | 'factory' | 'committee' | 'all';
-export type AgendaItemType = 'discussion' | 'decision' | 'information' | 'committee_report';
 
 export interface AgendaTemplateItemData {
   orderIndex: number;

@@ -4,7 +4,7 @@
  * Actions: Edit, Cancel, Reschedule, Confirm, Join Meeting
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { message } from 'antd';
 import {
@@ -23,6 +23,8 @@ import type { MenuProps } from 'antd';
 
 import { useBoardContext } from '../../contexts';
 import { useMeeting } from '../../hooks/api';
+import { useMeetingDocuments } from '../../hooks/api/useDocuments';
+import { useTabNavigation } from '../../hooks/useTabNavigation';
 import { DetailPageLayout } from '../../components/common';
 import type { MetadataItem, ActionButton } from '../../components/common';
 import type { HorizontalTabItem } from '../../components/common';
@@ -39,10 +41,15 @@ export const MeetingDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const { currentBoard, theme } = useBoardContext();
   
-  const [activeTab, setActiveTab] = useState<string>('notice');
+  const [activeTab, setActiveTab] = useTabNavigation('notice');
 
   // Fetch meeting data from API
   const { data: meeting, isLoading, error } = useMeeting(meetingId || '');
+  
+  // Fetch meeting documents for count badge
+  const { data: meetingDocuments = [] } = useMeetingDocuments(meetingId || '', {
+    enabled: !!meetingId,
+  });
 
   // Tab items
   const tabItems: HorizontalTabItem[] = useMemo(() => {
@@ -69,6 +76,7 @@ export const MeetingDetailPage: React.FC = () => {
         key: 'documents',
         label: 'Documents',
         icon: <FileTextOutlined />,
+        badge: meetingDocuments.length,
       },
       {
         key: 'activity',
@@ -76,7 +84,7 @@ export const MeetingDetailPage: React.FC = () => {
         icon: <ClockCircleOutlined />,
       },
     ];
-  }, [meeting]);
+  }, [meeting, meetingDocuments.length]);
 
   // Header metadata
   const metadata: MetadataItem[] = useMemo(() => {

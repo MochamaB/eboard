@@ -17,6 +17,7 @@ import { boardsTable } from '../tables/boards';
 import { getRoleById } from '../tables/roles';
 import { agendasTable } from '../tables/agendas';
 import { agendaItemsTable } from '../tables/agendaItems';
+import { documentAttachmentsTable } from '../tables/documentAttachments';
 import type { Meeting, MeetingListItem, MeetingParticipant, MeetingConfirmationHistory, BoardPackStatus } from '../../../types/meeting.types';
 
 /**
@@ -54,19 +55,24 @@ const getBoardPackStatus = (meetingId: string, meetingStatus: string): BoardPack
     }
   }
   
-  // Document count - count unique documents attached to agenda items
-  // For now, we derive this from agenda items' attachedDocumentIds
-  let documentCount = 0;
+  // Document count - count unique documents from DocumentAttachments table
+  // Count documents attached directly to the meeting
+  const meetingDocuments = documentAttachmentsTable.filter(
+    att => att.entityType === 'meeting' && att.entityId === meetingId
+  );
+  
+  // Also count documents attached to agenda items of this meeting
+  const agendaItemIds = agendaItems.map(item => item.id);
+  const agendaItemDocuments = documentAttachmentsTable.filter(
+    att => att.entityType === 'agenda_item' && agendaItemIds.includes(att.entityId)
+  );
+  
+  // Get unique document IDs (a document might be attached to multiple items)
   const documentIds = new Set<string>();
-  agendaItems.forEach(item => {
-    try {
-      const docIds = JSON.parse(item.attachedDocumentIds || '[]') as string[];
-      docIds.forEach(id => documentIds.add(id));
-    } catch {
-      // Ignore parse errors
-    }
-  });
-  documentCount = documentIds.size;
+  meetingDocuments.forEach(att => documentIds.add(att.documentId));
+  agendaItemDocuments.forEach(att => documentIds.add(att.documentId));
+  
+  const documentCount = documentIds.size;
   
   // Minutes status - for now, derive from meeting status
   // Completed meetings have published minutes, in_progress may have draft

@@ -4,7 +4,7 @@
  * Based on docs/MODULES/Module02_BoardManagement/02_BOARDS_PAGES.md
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button, message } from 'antd';
 import {
@@ -22,6 +22,7 @@ import type { MenuProps } from 'antd';
 
 import { useBoardContext } from '../../contexts';
 import { useBoard } from '../../hooks/api';
+import { useTabNavigation } from '../../hooks/useTabNavigation';
 import { DetailsHeader, HorizontalTabs } from '../../components/common';
 import type { HorizontalTabItem } from '../../components/common';
 import {
@@ -39,7 +40,7 @@ export const BoardDetailsPage: React.FC = () => {
   const navigate = useNavigate();
   const { currentBoard, theme } = useBoardContext();
   
-  const [activeTab, setActiveTab] = useState<string>('overview');
+  const [activeTab, setActiveTab] = useTabNavigation('overview');
 
   // Fetch board data from API
   const { data: board, isLoading, error } = useBoard(targetBoardId || '');

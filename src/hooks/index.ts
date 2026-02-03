@@ -4,3 +4,4 @@
  */
 
 export * from './api';
+export { useTabNavigation } from './useTabNavigation';

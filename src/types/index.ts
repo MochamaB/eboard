@@ -17,3 +17,6 @@ export * from './role.types';
 
 // Board types
 export * from './board.types';
+
+// Document types
+export * from './document.types';

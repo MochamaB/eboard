@@ -50,27 +50,32 @@ export const getUsersByRole = (roleCode: string): UserRow[] => {
 
 /**
  * Get user's board memberships with role information
+ * Only returns board-scoped roles (excludes global roles with null boardId)
  */
 export const getUserMemberships = (userId: number) => {
   const boardRoles = getUserBoardRoles(userId);
-  
-  return boardRoles.map(br => {
-    const board = boardsTable.find(b => b.id === br.boardId);
-    const role = getRoleById(br.roleId);
-    return {
-      id: br.id,
-      boardId: br.boardId,
-      boardName: board?.name || '',
-      boardType: board?.type || 'main',
-      role: role?.code || 'unknown',
-      roleName: role?.name || 'Unknown',
-      roleId: br.roleId,
-      startDate: br.startDate,
-      endDate: br.endDate,
-      isActive: br.endDate === null,
-      isDefault: br.isDefault,
-    };
-  });
+
+  // Filter to only board-scoped roles (exclude global roles with null boardId)
+  // BoardMembershipSchema expects boardId to be a string, not null
+  return boardRoles
+    .filter(br => br.scope === 'board' && br.boardId !== null)
+    .map(br => {
+      const board = boardsTable.find(b => b.id === br.boardId);
+      const role = getRoleById(br.roleId);
+      return {
+        id: br.id,
+        boardId: br.boardId as string, // Safe to assert as string since we filtered out nulls
+        boardName: board?.name || '',
+        boardType: board?.type || 'main',
+        role: role?.code || 'unknown',
+        roleName: role?.name || 'Unknown',
+        roleId: br.roleId,
+        startDate: br.startDate,
+        endDate: br.endDate,
+        isActive: br.endDate === null,
+        isDefault: br.isDefault,
+      };
+    });
 };
 
 /**
@@ -229,4 +234,37 @@ export const filterUsers = (options: UserFilterOptions) => {
     pageSize,
     totalPages,
   };
+};
+
+/**
+ * Get user's primary role code for display in lists
+ * Uses same logic as jobTitle in toAuthUser:
+ * 1. Global role (if exists)
+ * 2. Default board role
+ * 3. First board membership role
+ * 4. Default to 'board_member'
+ */
+export const getUserPrimaryRole = (userId: number): string => {
+  // Check for global role first
+  const globalRoleAssignment = getUserGlobalRoleAssignment(userId);
+  if (globalRoleAssignment) {
+    const role = getRoleById(globalRoleAssignment.roleId);
+    if (role) return role.code;
+  }
+
+  // Check for default board role
+  const defaultBoardRole = getUserDefaultBoardRole(userId);
+  if (defaultBoardRole) {
+    const role = getRoleById(defaultBoardRole.roleId);
+    if (role) return role.code;
+  }
+
+  // Fallback to first membership role
+  const memberships = getUserMemberships(userId);
+  if (memberships.length > 0) {
+    return memberships[0].role || 'board_member';
+  }
+
+  // Ultimate fallback
+  return 'board_member';
 };
