@@ -20,3 +20,6 @@ export * from './board.types';
 
 // Document types
 export * from './document.types';
+
+// Voting types
+export * from './voting.types';

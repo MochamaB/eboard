@@ -12,6 +12,10 @@ import { agendaHandlers } from './agenda.handlers';
 import { userSessionsHandlers } from './userSessions.handlers';
 import { documentHandlers } from './documents.handlers';
 import { documentCategoriesHandlers } from './documentCategories.handlers';
+import { votingHandlers } from './voting.handlers';
+import { minutesHandlers } from './minutes.handlers';
+import { actionItemsHandlers } from './actionItems.handlers';
+import { resolutionsHandlers } from './resolutions.handlers';
 
 export const handlers = [
   ...usersHandlers,
@@ -23,6 +27,10 @@ export const handlers = [
   ...userSessionsHandlers,
   ...documentCategoriesHandlers, // Must come before documentHandlers to avoid path conflicts
   ...documentHandlers,
+  ...votingHandlers,
+  ...minutesHandlers,
+  ...actionItemsHandlers,
+  ...resolutionsHandlers,
 ];
 
 export default handlers;

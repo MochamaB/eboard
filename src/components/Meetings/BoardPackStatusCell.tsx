@@ -1,6 +1,6 @@
 /**
  * BoardPackStatusCell Component
- * Displays compact icons for Agenda, Documents, and Minutes status in meeting list
+ * Displays compact icons for Agenda, Documents, Minutes, and Votes status in meeting list
  * Each icon is clickable and navigates to the corresponding meeting tab
  */
 
@@ -10,6 +10,7 @@ import {
   FileTextOutlined,
   FolderOutlined,
   FormOutlined,
+  TrophyOutlined,
   CheckCircleFilled,
   EditFilled,
   MinusCircleOutlined,
@@ -74,6 +75,7 @@ export const BoardPackStatusCell: React.FC<BoardPackStatusCellProps> = ({
   const agendaItemCount = boardPackStatus?.agenda?.itemCount || 0;
   const documentCount = boardPackStatus?.documents?.count || 0;
   const minutesStatus = boardPackStatus?.minutes?.status || 'none';
+  const votesCount = boardPackStatus?.votes?.count || 0;
 
   // Only show minutes for completed or in_progress meetings
   const showMinutes = meetingStatus === 'completed' || meetingStatus === 'in_progress';
@@ -197,6 +199,48 @@ export const BoardPackStatusCell: React.FC<BoardPackStatusCellProps> = ({
           </div>
         </Tooltip>
       )}
+
+      {/* Votes */}
+      <Tooltip
+        title={
+          <div>
+            <div style={{ fontWeight: 500 }}>Votes</div>
+            <div>{votesCount} conducted</div>
+          </div>
+        }
+      >
+        <div
+          onClick={handleClick('votes')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            cursor: 'pointer',
+            padding: '2px 6px',
+            borderRadius: 4,
+            backgroundColor: votesCount > 0 ? '#fa8c1615' : '#f5f5f5',
+            border: `1px solid ${votesCount > 0 ? '#fa8c16' : '#e8e8e8'}`,
+            transition: 'all 0.2s',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'scale(1.05)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
+        >
+          <TrophyOutlined style={{ color: votesCount > 0 ? '#fa8c16' : '#bfbfbf', fontSize: 14 }} />
+          <span style={{
+            fontSize: 11,
+            fontWeight: 500,
+            color: votesCount > 0 ? '#fa8c16' : '#bfbfbf',
+            minWidth: 12,
+            textAlign: 'center',
+          }}>
+            {votesCount}
+          </span>
+        </div>
+      </Tooltip>
     </Space>
   );
 };

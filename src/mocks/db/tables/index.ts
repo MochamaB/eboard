@@ -31,5 +31,21 @@ export * from './agendas';
 export * from './agendaItems';
 export * from './agendaTemplates';
 
+// Voting tables (multi-table architecture)
+export * from './votes';
+export * from './voteConfigurations';
+export * from './voteOptions';
+export * from './voteEligibility';
+export * from './votesCast';
+export * from './voteActions';
+export * from './voteResults';
+
+// Minutes tables
+export * from './minutes';
+export * from './minutesComments';
+export * from './minutesSignatures';
+export * from './actionItems';
+export * from './resolutions';
+
 // DEPRECATED: boardMemberships.ts - replaced by userBoardRoles.ts
 // export * from './boardMemberships';

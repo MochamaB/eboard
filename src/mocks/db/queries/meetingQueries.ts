@@ -18,6 +18,7 @@ import { getRoleById } from '../tables/roles';
 import { agendasTable } from '../tables/agendas';
 import { agendaItemsTable } from '../tables/agendaItems';
 import { documentAttachmentsTable } from '../tables/documentAttachments';
+import { votesTable } from '../tables/votes';
 import type { Meeting, MeetingListItem, MeetingParticipant, MeetingConfirmationHistory, BoardPackStatus } from '../../../types/meeting.types';
 
 /**
@@ -88,7 +89,11 @@ const getBoardPackStatus = (meetingId: string, meetingStatus: string): BoardPack
       minutesStatus = 'draft';
     }
   }
-  
+
+  // Votes count - count all votes for this meeting
+  const meetingVotes = votesTable.filter(v => v.meetingId === meetingId);
+  const votesCount = meetingVotes.length;
+
   return {
     agenda: {
       status: agendaStatus,
@@ -99,6 +104,9 @@ const getBoardPackStatus = (meetingId: string, meetingStatus: string): BoardPack
     },
     minutes: {
       status: minutesStatus,
+    },
+    votes: {
+      count: votesCount,
     },
   };
 };

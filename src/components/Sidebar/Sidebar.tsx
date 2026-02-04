@@ -253,6 +253,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
         top: 0,
         bottom: 0,
         background: theme.sidebarBgGradient || theme.sidebarBg,
+        transition: 'all 0.15s ease-in-out',
         // CSS variables for dynamic primary color
         ['--sidebar-primary-color' as string]: theme.primaryColor,
         ['--sidebar-primary-color-hover' as string]: theme.primaryHover || theme.primaryColor,

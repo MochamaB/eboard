@@ -24,3 +24,6 @@ export * from './useAgenda';
 // Document hooks
 export * from './useDocuments';
 export * from './useDocumentCategories';
+
+// Voting hooks
+export * from './useVoting';

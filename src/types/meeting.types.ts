@@ -202,6 +202,9 @@ export const BoardPackStatusSchema = z.object({
   minutes: z.object({
     status: z.enum(['none', 'draft', 'published']),
   }),
+  votes: z.object({
+    count: z.number(),
+  }),
 });
 
 // Meeting list item (lighter for tables)

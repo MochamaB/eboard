@@ -4,7 +4,7 @@ import { Outlet, useParams, useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header/Header';
 import { Sidebar } from '../components/Sidebar/Sidebar';
 import { NavigationBar } from '../components/NavigationBar';
-import { useBoardContext } from '../contexts';
+import { useBoardContext, MeetingPhaseProvider, useIsInMeetingDetail } from '../contexts';
 import { getBoardById } from '../mocks/db';
 
 const { Content } = Layout;
@@ -13,23 +13,32 @@ const { useBreakpoint } = Grid;
 const SIDEBAR_WIDTH_EXPANDED = 256;
 const SIDEBAR_WIDTH_COLLAPSED = 80;
 
-export const AppLayout: React.FC = () => {
-  const [collapsed, setCollapsed] = useState(false);
+const AppLayoutInner: React.FC = () => {
   const screens = useBreakpoint();
   const isMobile = !screens.md; // md breakpoint = 768px
+  
+  // Initialize collapsed state based on screen size to prevent transition flash
+  const [collapsed, setCollapsed] = useState(() => isMobile);
+  const [userCollapsed, setUserCollapsed] = useState(false); // Track if user manually collapsed
   const sidebarWidth = collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED;
   const { boardId } = useParams<{ boardId: string }>();
   const navigate = useNavigate();
   const { currentBoard, setCurrentBoard } = useBoardContext();
+  const isInMeetingDetail = useIsInMeetingDetail();
 
-  // Auto-close sidebar drawer on mobile (but keep it ready to open)
+  // Auto-collapse sidebar when entering meeting detail (unless user manually expanded it)
   useEffect(() => {
     if (isMobile) {
-      setCollapsed(true); // Closed by default on mobile
+      setCollapsed(true); // Always closed on mobile
+    } else if (isInMeetingDetail) {
+      if (!userCollapsed) {
+        setCollapsed(true); // Auto-collapse for meeting detail
+      }
     } else {
-      setCollapsed(false); // Expanded by default on desktop
+      setCollapsed(false); // Expand when leaving meeting detail
+      setUserCollapsed(false); // Reset user preference
     }
-  }, [isMobile]);
+  }, [isMobile, isInMeetingDetail, userCollapsed]);
 
   // Sync URL boardId with context on mount and URL change
   useEffect(() => {
@@ -53,7 +62,7 @@ export const AppLayout: React.FC = () => {
       <Layout
         style={{
           marginLeft: isMobile ? 0 : sidebarWidth,
-          transition: 'margin-left 0.2s',
+          transition: 'margin-left 0.15s ease-in-out',
         }}
       >
         <Header collapsed={collapsed} onToggleCollapse={() => setCollapsed(!collapsed)} />
@@ -73,6 +82,14 @@ export const AppLayout: React.FC = () => {
         </Content>
       </Layout>
     </Layout>
+  );
+};
+
+export const AppLayout: React.FC = () => {
+  return (
+    <MeetingPhaseProvider>
+      <AppLayoutInner />
+    </MeetingPhaseProvider>
   );
 };
 

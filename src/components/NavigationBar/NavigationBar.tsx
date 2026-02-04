@@ -10,8 +10,9 @@ import {
   ArrowLeftOutlined,
 } from '@ant-design/icons';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useBoardContext } from '../../contexts';
+import { useBoardContext, useMeetingPhase } from '../../contexts';
 import { generateBreadcrumbs } from '../../utils/breadcrumbs';
+import { MeetingPhaseIndicator } from '../common';
 
 const { Text } = Typography;
 
@@ -46,6 +47,7 @@ export const NavigationBar: React.FC = () => {
     setActiveCommittee, 
     theme, 
   } = useBoardContext();
+  const { isInMeetingDetail, phaseInfo } = useMeetingPhase();
   
   const breadcrumbs = generateBreadcrumbs(location.pathname);
   
@@ -76,10 +78,10 @@ export const NavigationBar: React.FC = () => {
         marginTop: 10,
       }}
     >
-      {/* ROW 1: Breadcrumbs + Back Button */}
+      {/* ROW 1: Breadcrumbs + Phase Indicator + Back Button */}
       <Row align="middle" justify="space-between" style={{ paddingBottom: 12, borderBottom: '1px solid #dfdfe4' }}>
         {/* LEFT: Breadcrumbs */}
-        <Col>
+        <Col flex="auto">
           <Breadcrumb
             separator={
               <span style={{ fontSize: 16, color: theme.textSecondary, margin: '0 4px' }}>›</span>
@@ -97,8 +99,19 @@ export const NavigationBar: React.FC = () => {
           />
         </Col>
 
+        {/* CENTER: Meeting Phase Indicator (only show in meeting detail) */}
+        {isInMeetingDetail && phaseInfo && (
+          <Col flex="none" style={{ marginLeft: 24, marginRight: 24 }}>
+            <MeetingPhaseIndicator 
+              phase={phaseInfo.phase} 
+              status={phaseInfo.status}
+              compact
+            />
+          </Col>
+        )}
+
         {/* RIGHT: Back Button */}
-        <Col>
+        <Col flex="none">
           <Button
             type="default"
             icon={<ArrowLeftOutlined />}

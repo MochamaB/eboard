@@ -18,10 +18,11 @@ import {
   TeamOutlined,
   FileTextOutlined,
   ClockCircleOutlined,
+  TrophyOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 
-import { useBoardContext } from '../../contexts';
+import { useBoardContext, useMeetingPhase } from '../../contexts';
 import { useMeeting } from '../../hooks/api';
 import { useMeetingDocuments } from '../../hooks/api/useDocuments';
 import { useTabNavigation } from '../../hooks/useTabNavigation';
@@ -33,13 +34,16 @@ import {
   MeetingParticipantsTab,
   MeetingAgendaTab,
   MeetingDocumentsTab,
+  MeetingVotesTab,
   MeetingActivityTab,
+  MeetingMinutesTab,
 } from './tabs';
 
 export const MeetingDetailPage: React.FC = () => {
   const { meetingId } = useParams<{ meetingId: string }>();
   const navigate = useNavigate();
   const { currentBoard, theme } = useBoardContext();
+  const meetingPhase = useMeetingPhase();
   
   const [activeTab, setActiveTab] = useTabNavigation('notice');
 
@@ -50,6 +54,16 @@ export const MeetingDetailPage: React.FC = () => {
   const { data: meetingDocuments = [] } = useMeetingDocuments(meetingId || '', {
     enabled: !!meetingId,
   });
+
+  // Set meeting in phase context when data loads
+  React.useEffect(() => {
+    if (meeting) {
+      meetingPhase.setMeeting(meeting);
+    }
+    return () => {
+      meetingPhase.clearMeeting();
+    };
+  }, [meeting, meetingPhase]);
 
   // Tab items
   const tabItems: HorizontalTabItem[] = useMemo(() => {
@@ -77,6 +91,16 @@ export const MeetingDetailPage: React.FC = () => {
         label: 'Documents',
         icon: <FileTextOutlined />,
         badge: meetingDocuments.length,
+      },
+      {
+        key: 'votes',
+        label: 'Votes',
+        icon: <TrophyOutlined />,
+      },
+      {
+        key: 'minutes',
+        label: 'Minutes',
+        icon: <FileTextOutlined />,
       },
       {
         key: 'activity',
@@ -257,6 +281,12 @@ export const MeetingDetailPage: React.FC = () => {
 
       case 'documents':
         return <MeetingDocumentsTab meeting={meeting} themeColor={theme.primaryColor} />;
+
+      case 'votes':
+        return <MeetingVotesTab meeting={meeting} themeColor={theme.primaryColor} />;
+
+      case 'minutes':
+        return <MeetingMinutesTab meeting={meeting} themeColor={theme.primaryColor} />;
 
       case 'activity':
         return <MeetingActivityTab meeting={meeting} themeColor={theme.primaryColor} />;

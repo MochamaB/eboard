@@ -6,6 +6,9 @@ export * from './boardQueries';
 export * from './userQueries';
 export * from './userBoardQueries';
 export * from './meetingQueries';
+export * from './minutesQueries';
+export * from './actionItemsQueries';
+export * from './resolutionsQueries';
 
 // Re-export roleQueries selectively to avoid conflicts with getBoardMembers
 export {

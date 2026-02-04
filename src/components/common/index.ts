@@ -33,6 +33,9 @@ export { IndexPageLayout, type IndexPageLayoutProps, type TabItem } from './Inde
 // DetailPageLayout
 export { DetailPageLayout, type DetailPageLayoutProps } from './DetailPageLayout';
 
+// MeetingPhaseIndicator
+export { MeetingPhaseIndicator } from './MeetingPhaseIndicator';
+
 // ParticipantSelector
 export { ParticipantSelector, type ParticipantSelectorProps, type SelectedParticipant } from './ParticipantSelector';
 
