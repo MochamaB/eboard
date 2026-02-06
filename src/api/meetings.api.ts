@@ -9,7 +9,7 @@ import {
   MeetingSchema,
   MeetingListItemSchema,
   MeetingListResponseSchema,
-  MeetingConfirmationHistorySchema,
+  MeetingEventSchema,
   type Meeting,
   type MeetingListItem,
   type MeetingFilterParams,
@@ -19,7 +19,7 @@ import {
   type UpdateRSVPPayload,
   type CancelMeetingPayload,
   type RescheduleMeetingPayload,
-  type MeetingConfirmationHistory,
+  type MeetingEvent,
   type RejectionReason,
 } from '../types/meeting.types';
 import type { PaginatedResponse } from '../types/api.types';
@@ -33,19 +33,19 @@ const UpcomingMeetingsResponseSchema = z.object({
   total: z.number(),
 });
 
-const ConfirmationHistoryResponseSchema = z.object({
-  data: z.array(MeetingConfirmationHistorySchema),
+const MeetingEventsResponseSchema = z.object({
+  data: z.array(MeetingEventSchema),
   total: z.number(),
 });
 
-const ConfirmationStatusResponseSchema = z.object({
-  data: MeetingConfirmationHistorySchema.nullable(),
+const LatestEventResponseSchema = z.object({
+  data: MeetingEventSchema.nullable(),
   message: z.string().optional(),
 });
 
-const ConfirmationActionResponseSchema = z.object({
+const ApprovalActionResponseSchema = z.object({
   success: z.boolean(),
-  data: MeetingConfirmationHistorySchema.optional(),
+  data: MeetingEventSchema.optional(),
   message: z.string(),
 });
 
@@ -183,67 +183,67 @@ export const meetingsApi = {
   },
 
   // ==========================================================================
-  // CONFIRMATION WORKFLOW
+  // APPROVAL WORKFLOW
   // ==========================================================================
 
   /**
-   * Get confirmation history for a meeting
+   * Get all meeting events (audit trail)
    */
-  getConfirmationHistory: async (meetingId: string): Promise<{ data: MeetingConfirmationHistory[]; total: number }> => {
-    const response = await apiClient.get(`/meetings/${meetingId}/confirmation-history`);
-    return ConfirmationHistoryResponseSchema.parse(response.data);
+  getMeetingEvents: async (meetingId: string): Promise<{ data: MeetingEvent[]; total: number }> => {
+    const response = await apiClient.get(`/meetings/${meetingId}/events`);
+    return MeetingEventsResponseSchema.parse(response.data);
   },
 
   /**
-   * Get latest confirmation status for a meeting
+   * Get latest approval event for a meeting
    */
-  getConfirmationStatus: async (meetingId: string): Promise<{ data: MeetingConfirmationHistory | null; message?: string }> => {
-    const response = await apiClient.get(`/meetings/${meetingId}/confirmation-status`);
-    return ConfirmationStatusResponseSchema.parse(response.data);
+  getLatestApprovalEvent: async (meetingId: string): Promise<{ data: MeetingEvent | null; message?: string }> => {
+    const response = await apiClient.get(`/meetings/${meetingId}/latest-approval-event`);
+    return LatestEventResponseSchema.parse(response.data);
   },
 
   /**
-   * Submit meeting for confirmation
+   * Submit meeting for approval
    */
-  submitForConfirmation: async (
+  submitForApproval: async (
     meetingId: string, 
     payload: { submittedBy: number; notes?: string }
-  ): Promise<{ success: boolean; data?: MeetingConfirmationHistory; message: string }> => {
-    const response = await apiClient.post(`/meetings/${meetingId}/submit-for-confirmation`, payload);
-    return ConfirmationActionResponseSchema.parse(response.data);
+  ): Promise<{ success: boolean; data?: MeetingEvent; message: string }> => {
+    const response = await apiClient.post(`/meetings/${meetingId}/submit-for-approval`, payload);
+    return ApprovalActionResponseSchema.parse(response.data);
   },
 
   /**
-   * Confirm (approve) a meeting
+   * Approve a meeting
    */
-  confirmMeeting: async (
+  approveMeeting: async (
     meetingId: string,
-    payload: { confirmedBy: number; pin: string; signatureId?: string; signatureImage?: string }
-  ): Promise<{ success: boolean; data?: MeetingConfirmationHistory; message: string }> => {
-    const response = await apiClient.post(`/meetings/${meetingId}/confirm`, payload);
-    return ConfirmationActionResponseSchema.parse(response.data);
+    payload: { approvedBy: number; pin: string; signatureId?: string; signatureImage?: string }
+  ): Promise<{ success: boolean; data?: MeetingEvent; message: string }> => {
+    const response = await apiClient.post(`/meetings/${meetingId}/approve`, payload);
+    return ApprovalActionResponseSchema.parse(response.data);
   },
 
   /**
-   * Reject a meeting confirmation
+   * Reject a meeting
    */
   rejectMeeting: async (
     meetingId: string,
     payload: { rejectedBy: number; reason: RejectionReason; comments?: string }
-  ): Promise<{ success: boolean; data?: MeetingConfirmationHistory; message: string }> => {
+  ): Promise<{ success: boolean; data?: MeetingEvent; message: string }> => {
     const response = await apiClient.post(`/meetings/${meetingId}/reject`, payload);
-    return ConfirmationActionResponseSchema.parse(response.data);
+    return ApprovalActionResponseSchema.parse(response.data);
   },
 
   /**
-   * Resubmit meeting for confirmation (after rejection)
+   * Resubmit meeting for approval (after rejection)
    */
-  resubmitForConfirmation: async (
+  resubmitForApproval: async (
     meetingId: string,
     payload: { submittedBy: number; notes?: string }
-  ): Promise<{ success: boolean; data?: MeetingConfirmationHistory; message: string }> => {
-    const response = await apiClient.post(`/meetings/${meetingId}/resubmit-for-confirmation`, payload);
-    return ConfirmationActionResponseSchema.parse(response.data);
+  ): Promise<{ success: boolean; data?: MeetingEvent; message: string }> => {
+    const response = await apiClient.post(`/meetings/${meetingId}/resubmit-for-approval`, payload);
+    return ApprovalActionResponseSchema.parse(response.data);
   },
 };
 

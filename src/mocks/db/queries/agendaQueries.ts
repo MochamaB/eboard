@@ -7,16 +7,17 @@ import { agendasTable, AgendaRow } from '../tables/agendas';
 import { agendaItemsTable, AgendaItemRow } from '../tables/agendaItems';
 import { agendaTemplatesTable, AgendaTemplateRow, AgendaTemplateItemData } from '../tables/agendaTemplates';
 import type { Agenda, AgendaItem, AgendaTemplate } from '../../../types/agenda.types';
+import { idsMatch } from '../utils/idUtils';
 
 /**
  * Get agenda with items by meeting ID
  */
 export function getAgendaByMeetingId(meetingId: string): Agenda | null {
-  const agendaRow = agendasTable.find(a => a.meetingId === meetingId);
+  const agendaRow = agendasTable.find(a => idsMatch(a.meetingId, meetingId));
   if (!agendaRow) return null;
 
   const items = agendaItemsTable
-    .filter(item => item.agendaId === agendaRow.id)
+    .filter(item => idsMatch(item.agendaId, agendaRow.id))
     .sort((a, b) => a.orderIndex - b.orderIndex)
     .map(mapAgendaItemRowToType);
 
@@ -33,11 +34,11 @@ export function getAgendaByMeetingId(meetingId: string): Agenda | null {
  * Get agenda by ID
  */
 export function getAgendaById(agendaId: string): Agenda | null {
-  const agendaRow = agendasTable.find(a => a.id === agendaId);
+  const agendaRow = agendasTable.find(a => idsMatch(a.id, agendaId));
   if (!agendaRow) return null;
 
   const items = agendaItemsTable
-    .filter(item => item.agendaId === agendaId)
+    .filter(item => idsMatch(item.agendaId, agendaId))
     .sort((a, b) => a.orderIndex - b.orderIndex)
     .map(mapAgendaItemRowToType);
 
@@ -54,7 +55,7 @@ export function getAgendaById(agendaId: string): Agenda | null {
  * Get single agenda item by ID
  */
 export function getAgendaItemById(itemId: string): AgendaItem | null {
-  const itemRow = agendaItemsTable.find(item => item.id === itemId);
+  const itemRow = agendaItemsTable.find(item => idsMatch(item.id, itemId));
   if (!itemRow) return null;
 
   return mapAgendaItemRowToType(itemRow);
@@ -77,7 +78,7 @@ export function getAllAgendaTemplates(boardType?: string): AgendaTemplate[] {
  * Get template by ID
  */
 export function getTemplateById(templateId: string): AgendaTemplate | null {
-  const template = agendaTemplatesTable.find(t => t.id === templateId);
+  const template = agendaTemplatesTable.find(t => idsMatch(t.id, templateId));
   if (!template) return null;
 
   return mapTemplateRowToType(template);
@@ -155,7 +156,7 @@ export function createAgendaFromTemplate(
   });
 
   // Calculate item numbers
-  const items = agendaItemsTable.filter(item => item.agendaId === agendaId);
+  const items = agendaItemsTable.filter(item => idsMatch(item.agendaId, agendaId));
   calculateItemNumbers(items);
 
   return { agendaId, itemIds };
@@ -176,7 +177,7 @@ export function calculateItemNumbers(items: AgendaItemRow[]): void {
       item.itemNumber = num.toString();
     } else {
       // Sub-item
-      const parent = sortedItems.find(i => i.id === item.parentItemId);
+      const parent = sortedItems.find(i => item.parentItemId && idsMatch(i.id, item.parentItemId));
       if (parent) {
         const subNum = (numberMap.get(item.parentItemId) || 0) + 1;
         numberMap.set(item.parentItemId, subNum);
@@ -223,7 +224,7 @@ export function updateAgendaStatus(
   publishedBy?: number,
   publishedByName?: string
 ): void {
-  const agenda = agendasTable.find(a => a.id === agendaId);
+  const agenda = agendasTable.find(a => idsMatch(a.id, agendaId));
   if (!agenda) {
     throw new Error(`Agenda ${agendaId} not found`);
   }
@@ -248,12 +249,12 @@ export function addAgendaItem(
   meetingId: string,
   itemData: Partial<AgendaItemRow>
 ): string {
-  const agenda = agendasTable.find(a => a.id === agendaId);
+  const agenda = agendasTable.find(a => idsMatch(a.id, agendaId));
   if (!agenda) {
     throw new Error(`Agenda ${agendaId} not found`);
   }
 
-  const existingItems = agendaItemsTable.filter(item => item.agendaId === agendaId);
+  const existingItems = agendaItemsTable.filter(item => idsMatch(item.agendaId, agendaId));
   const nextOrderIndex = Math.max(0, ...existingItems.map(i => i.orderIndex)) + 1;
 
   const itemId = `item-${agendaId}-${String(nextOrderIndex).padStart(3, '0')}`;
@@ -285,7 +286,7 @@ export function addAgendaItem(
   agendaItemsTable.push(newItem);
 
   // Recalculate item numbers
-  const items = agendaItemsTable.filter(item => item.agendaId === agendaId);
+  const items = agendaItemsTable.filter(item => idsMatch(item.agendaId, agendaId));
   calculateItemNumbers(items);
 
   // Update agenda timestamp
@@ -298,7 +299,7 @@ export function addAgendaItem(
  * Update agenda item
  */
 export function updateAgendaItem(itemId: string, updates: Partial<AgendaItemRow>): void {
-  const item = agendaItemsTable.find(i => i.id === itemId);
+  const item = agendaItemsTable.find(i => idsMatch(i.id, itemId));
   if (!item) {
     throw new Error(`Agenda item ${itemId} not found`);
   }
@@ -307,7 +308,7 @@ export function updateAgendaItem(itemId: string, updates: Partial<AgendaItemRow>
 
   // If order changed, recalculate numbers
   if (updates.orderIndex !== undefined || updates.parentItemId !== undefined) {
-    const items = agendaItemsTable.filter(i => i.agendaId === item.agendaId);
+    const items = agendaItemsTable.filter(i => idsMatch(i.agendaId, item.agendaId));
     calculateItemNumbers(items);
   }
 }
@@ -316,7 +317,7 @@ export function updateAgendaItem(itemId: string, updates: Partial<AgendaItemRow>
  * Delete agenda item
  */
 export function deleteAgendaItem(itemId: string): void {
-  const index = agendaItemsTable.findIndex(i => i.id === itemId);
+  const index = agendaItemsTable.findIndex(i => idsMatch(i.id, itemId));
   if (index === -1) {
     throw new Error(`Agenda item ${itemId} not found`);
   }
@@ -325,7 +326,7 @@ export function deleteAgendaItem(itemId: string): void {
   agendaItemsTable.splice(index, 1);
 
   // Recalculate item numbers
-  const items = agendaItemsTable.filter(i => i.agendaId === item.agendaId);
+  const items = agendaItemsTable.filter(i => idsMatch(i.agendaId, item.agendaId));
   calculateItemNumbers(items);
 }
 
@@ -337,7 +338,7 @@ export function reorderAgendaItems(
   itemOrders: Array<{ itemId: string; orderIndex: number; parentItemId?: string | null }>
 ): void {
   itemOrders.forEach(({ itemId, orderIndex, parentItemId }) => {
-    const item = agendaItemsTable.find(i => i.id === itemId);
+    const item = agendaItemsTable.find(i => idsMatch(i.id, itemId));
     if (item) {
       item.orderIndex = orderIndex;
       item.parentItemId = parentItemId !== undefined ? parentItemId : item.parentItemId;
@@ -346,6 +347,6 @@ export function reorderAgendaItems(
   });
 
   // Recalculate item numbers
-  const items = agendaItemsTable.filter(item => item.agendaId === agendaId);
+  const items = agendaItemsTable.filter(item => idsMatch(item.agendaId, agendaId));
   calculateItemNumbers(items);
 }

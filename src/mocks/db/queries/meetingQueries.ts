@@ -1,16 +1,11 @@
 /**
- * Meeting Queries - Helper functions for meeting operations
+ * Meeting Queries - Clean implementation for Status+SubStatus model
+ * Uses meetingEvents for audit trail instead of deprecated meetingConfirmationHistory
  */
 
 import { meetingsTable, type MeetingRow } from '../tables/meetings';
 import { meetingParticipantsTable, type MeetingParticipantRow } from '../tables/meetingParticipants';
-import { 
-  meetingConfirmationHistoryTable, 
-  type MeetingConfirmationHistoryRow,
-  getConfirmationHistoryByMeetingId,
-  getLatestConfirmationEvent,
-  getMeetingConfirmationStatus,
-} from '../tables/meetingConfirmationHistory';
+import { meetingEventsTable, type MeetingEventRow } from '../tables/meetingEvents';
 import { boardRequiresConfirmation } from '../tables/boardSettings';
 import { usersTable } from '../tables/users';
 import { boardsTable } from '../tables/boards';
@@ -19,151 +14,46 @@ import { agendasTable } from '../tables/agendas';
 import { agendaItemsTable } from '../tables/agendaItems';
 import { documentAttachmentsTable } from '../tables/documentAttachments';
 import { votesTable } from '../tables/votes';
-import type { Meeting, MeetingListItem, MeetingParticipant, MeetingConfirmationHistory, BoardPackStatus } from '../../../types/meeting.types';
-
-/**
- * Get the board role code for a participant using roleId FK
- */
-const getParticipantBoardRole = (participant: MeetingParticipantRow): string => {
-  const role = getRoleById(participant.roleId);
-  return role?.code || 'board_member';
-};
-
-/**
- * Check if participant is a guest/presenter (non-voting, temporary access)
- */
-const isGuestParticipant = (roleId: number): boolean => {
-  // roleId 11 = presenter, roleId 12 = guest
-  return roleId === 11 || roleId === 12;
-};
-
-/**
- * Get board pack status for a meeting
- * Returns agenda status, document count, and minutes status
- */
-const getBoardPackStatus = (meetingId: string, meetingStatus: string): BoardPackStatus => {
-  // Get agenda for this meeting
-  const agenda = agendasTable.find(a => a.meetingId === meetingId);
-  const agendaItems = agendaItemsTable.filter(i => i.meetingId === meetingId);
-  
-  // Agenda status
-  let agendaStatus: 'none' | 'draft' | 'published' = 'none';
-  if (agenda) {
-    if (agenda.status === 'published' || agenda.status === 'archived') {
-      agendaStatus = 'published';
-    } else if (agenda.status === 'draft') {
-      agendaStatus = 'draft';
-    }
-  }
-  
-  // Document count - count unique documents from DocumentAttachments table
-  // Count documents attached directly to the meeting
-  const meetingDocuments = documentAttachmentsTable.filter(
-    att => att.entityType === 'meeting' && att.entityId === meetingId
-  );
-  
-  // Also count documents attached to agenda items of this meeting
-  const agendaItemIds = agendaItems.map(item => item.id);
-  const agendaItemDocuments = documentAttachmentsTable.filter(
-    att => att.entityType === 'agenda_item' && agendaItemIds.includes(att.entityId)
-  );
-  
-  // Get unique document IDs (a document might be attached to multiple items)
-  const documentIds = new Set<string>();
-  meetingDocuments.forEach(att => documentIds.add(att.documentId));
-  agendaItemDocuments.forEach(att => documentIds.add(att.documentId));
-  
-  const documentCount = documentIds.size;
-  
-  // Minutes status - for now, derive from meeting status
-  // Completed meetings have published minutes, in_progress may have draft
-  let minutesStatus: 'none' | 'draft' | 'published' = 'none';
-  if (meetingStatus === 'completed') {
-    // Check if this is one of our known completed meetings with minutes
-    if (meetingId === 'mtg-008') {
-      minutesStatus = 'published';
-    } else if (meetingId === 'mtg-002') {
-      minutesStatus = 'draft';
-    } else {
-      // Default: completed meetings should have at least draft minutes
-      minutesStatus = 'draft';
-    }
-  }
-
-  // Votes count - count all votes for this meeting
-  const meetingVotes = votesTable.filter(v => v.meetingId === meetingId);
-  const votesCount = meetingVotes.length;
-
-  return {
-    agenda: {
-      status: agendaStatus,
-      itemCount: agendaItems.length,
-    },
-    documents: {
-      count: documentCount,
-    },
-    minutes: {
-      status: minutesStatus,
-    },
-    votes: {
-      count: votesCount,
-    },
-  };
-};
+import type { Meeting, MeetingListItem, MeetingParticipant, MeetingEvent, BoardPackStatus } from '../../../types/meeting.types';
+import { normalizeId, idsMatch } from '../utils/idUtils';
 
 // ============================================================================
 // BASIC QUERIES
 // ============================================================================
 
-/**
- * Get meeting by ID
- */
 export const getMeetingById = (id: string): MeetingRow | undefined => {
-  return meetingsTable.find(m => m.id === id);
+  return meetingsTable.find(m => idsMatch(m.id, id));
 };
 
-/**
- * Get all meetings
- */
 export const getAllMeetings = (): MeetingRow[] => {
   return [...meetingsTable];
 };
 
-/**
- * Get meetings by board
- */
 export const getMeetingsByBoard = (boardId: string): MeetingRow[] => {
-  return meetingsTable.filter(m => m.boardId === boardId);
+  return meetingsTable.filter(m => idsMatch(m.boardId, boardId));
 };
 
-/**
- * Get meetings by board with committees
- */
 export const getMeetingsByBoardWithCommittees = (boardId: string): MeetingRow[] => {
-  const board = boardsTable.find(b => b.id === boardId);
+  const board = boardsTable.find(b => idsMatch(b.id, boardId));
   if (!board) return [];
 
-  // Get all committees for this board
-  const committees = boardsTable.filter(
-    b => b.parentId === boardId && b.type === 'committee'
-  );
-  const committeeIds = committees.map(c => c.id);
+  const committees = boardsTable.filter(b => b.parentId && idsMatch(b.parentId, boardId) && b.type === 'committee');
+  const committeeIds = committees.map(c => normalizeId(c.id));
 
-  return meetingsTable.filter(
-    m => m.boardId === boardId || committeeIds.includes(m.boardId)
-  );
+  return meetingsTable.filter(m => idsMatch(m.boardId, boardId) || committeeIds.includes(normalizeId(m.boardId)));
 };
 
-/**
- * Get meetings by status
- */
 export const getMeetingsByStatus = (status: MeetingRow['status']): MeetingRow[] => {
   return meetingsTable.filter(m => m.status === status);
 };
 
-/**
- * Get upcoming meetings
- */
+export const getMeetingsByStatusAndSubStatus = (
+  status: MeetingRow['status'],
+  subStatus: string | null
+): MeetingRow[] => {
+  return meetingsTable.filter(m => m.status === status && m.subStatus === subStatus);
+};
+
 export const getUpcomingMeetings = (limit?: number): MeetingRow[] => {
   const now = new Date().toISOString().split('T')[0];
   const upcoming = meetingsTable
@@ -173,69 +63,180 @@ export const getUpcomingMeetings = (limit?: number): MeetingRow[] => {
   return limit ? upcoming.slice(0, limit) : upcoming;
 };
 
-/**
- * Get pending confirmation meetings
- */
-export const getPendingConfirmationMeetings = (): MeetingRow[] => {
-  return meetingsTable.filter(m => m.status === 'pending_confirmation');
+export const getPendingApprovalMeetings = (): MeetingRow[] => {
+  return meetingsTable.filter(m => m.status === 'scheduled' && m.subStatus === 'pending_approval');
 };
 
-/**
- * Get meetings by date range
- */
 export const getMeetingsByDateRange = (startDate: string, endDate: string): MeetingRow[] => {
-  return meetingsTable.filter(
-    m => m.scheduledDate >= startDate && m.scheduledDate <= endDate
-  );
+  return meetingsTable.filter(m => m.scheduledDate >= startDate && m.scheduledDate <= endDate);
 };
 
 // ============================================================================
 // PARTICIPANT QUERIES
 // ============================================================================
 
-/**
- * Get participants for a meeting
- */
 export const getMeetingParticipants = (meetingId: string): MeetingParticipantRow[] => {
-  return meetingParticipantsTable.filter(p => p.meetingId === meetingId);
+  return meetingParticipantsTable.filter(p => idsMatch(p.meetingId, meetingId));
 };
 
-/**
- * Get user's meetings
- */
 export const getUserMeetings = (userId: number): MeetingRow[] => {
   const participations = meetingParticipantsTable.filter(p => p.userId === userId);
-  const meetingIds = participations.map(p => p.meetingId);
-  
-  return meetingsTable.filter(m => meetingIds.includes(m.id));
+  const meetingIds = participations.map(p => normalizeId(p.meetingId));
+  return meetingsTable.filter(m => meetingIds.includes(normalizeId(m.id)));
 };
 
-/**
- * Check if user is participant in meeting
- */
 export const isUserParticipant = (meetingId: string, userId: number): boolean => {
-  return meetingParticipantsTable.some(
-    p => p.meetingId === meetingId && p.userId === userId
+  return meetingParticipantsTable.some(p => idsMatch(p.meetingId, meetingId) && p.userId === userId);
+};
+
+// ============================================================================
+// EVENT QUERIES
+// ============================================================================
+
+export const getMeetingEvents = (meetingId: string): MeetingEventRow[] => {
+  return meetingEventsTable
+    .filter(e => idsMatch(e.meetingId, meetingId))
+    .sort((a, b) => new Date(a.performedAt).getTime() - new Date(b.performedAt).getTime());
+};
+
+export const getLatestMeetingEvent = (meetingId: string): MeetingEventRow | null => {
+  const events = getMeetingEvents(meetingId);
+  return events.length > 0 ? events[events.length - 1] : null;
+};
+
+export const getMeetingEventsByType = (
+  meetingId: string,
+  eventType: MeetingEventRow['eventType']
+): MeetingEventRow[] => {
+  return meetingEventsTable
+    .filter(e => idsMatch(e.meetingId, meetingId) && e.eventType === eventType)
+    .sort((a, b) => new Date(a.performedAt).getTime() - new Date(b.performedAt).getTime());
+};
+
+export const getApprovalEvents = (meetingId: string): MeetingEventRow[] => {
+  const approvalEventTypes = ['submitted_for_approval', 'approved', 'rejected', 'resubmitted'];
+  return meetingEventsTable
+    .filter(e => idsMatch(e.meetingId, meetingId) && approvalEventTypes.includes(e.eventType))
+    .sort((a, b) => new Date(a.performedAt).getTime() - new Date(b.performedAt).getTime());
+};
+
+export const getLatestApprovalEvent = (meetingId: string): MeetingEventRow | null => {
+  const events = getApprovalEvents(meetingId);
+  return events.length > 0 ? events[events.length - 1] : null;
+};
+
+// ============================================================================
+// STATUS HELPERS
+// ============================================================================
+
+export const hasMeetingStatus = (
+  meetingId: string,
+  status: string,
+  subStatus?: string | null
+): boolean => {
+  const meeting = getMeetingById(meetingId);
+  if (!meeting) return false;
+
+  if (subStatus !== undefined) {
+    return meeting.status === status && meeting.subStatus === subStatus;
+  }
+  return meeting.status === status;
+};
+
+export const isDraftMeeting = (meetingId: string): boolean => hasMeetingStatus(meetingId, 'draft');
+export const isScheduledMeeting = (meetingId: string): boolean => hasMeetingStatus(meetingId, 'scheduled');
+export const isInProgressMeeting = (meetingId: string): boolean => hasMeetingStatus(meetingId, 'in_progress');
+export const isCompletedMeeting = (meetingId: string): boolean => hasMeetingStatus(meetingId, 'completed');
+export const isCancelledMeeting = (meetingId: string): boolean => hasMeetingStatus(meetingId, 'cancelled');
+
+export const isMeetingApproved = (meetingId: string): boolean => {
+  return hasMeetingStatus(meetingId, 'scheduled', 'approved');
+};
+
+export const isMeetingRejected = (meetingId: string): boolean => {
+  return hasMeetingStatus(meetingId, 'scheduled', 'rejected');
+};
+
+export const isMeetingPendingApproval = (meetingId: string): boolean => {
+  return hasMeetingStatus(meetingId, 'scheduled', 'pending_approval');
+};
+
+// ============================================================================
+// BOARD PACK STATUS
+// ============================================================================
+
+const getBoardPackStatus = (meetingId: string, meetingStatus: string): BoardPackStatus => {
+  const agenda = agendasTable.find(a => idsMatch(a.meetingId, meetingId));
+  const agendaItems = agendaItemsTable.filter(i => idsMatch(i.meetingId, meetingId));
+
+  let agendaStatus: 'none' | 'draft' | 'published' = 'none';
+  if (agenda) {
+    if (agenda.status === 'published' || agenda.status === 'archived') {
+      agendaStatus = 'published';
+    } else if (agenda.status === 'draft') {
+      agendaStatus = 'draft';
+    }
+  }
+
+  const meetingDocuments = documentAttachmentsTable.filter(
+    att => att.entityType === 'meeting' && idsMatch(att.entityId, meetingId)
   );
+
+  const agendaItemIds = agendaItems.map(item => normalizeId(item.id));
+  const agendaItemDocuments = documentAttachmentsTable.filter(
+    att => att.entityType === 'agenda_item' && agendaItemIds.includes(normalizeId(att.entityId))
+  );
+
+  const documentIds = new Set<string>();
+  meetingDocuments.forEach(att => documentIds.add(att.documentId));
+  agendaItemDocuments.forEach(att => documentIds.add(att.documentId));
+
+  let minutesStatus: 'none' | 'draft' | 'published' = 'none';
+  if (meetingStatus === 'completed') {
+    minutesStatus = idsMatch(meetingId, 'MTG-008') ? 'published' : 'draft';
+  }
+
+  const meetingVotes = votesTable.filter(v => idsMatch(v.meetingId, meetingId));
+
+  return {
+    agenda: {
+      status: agendaStatus,
+      itemCount: agendaItems.length,
+    },
+    documents: {
+      count: documentIds.size,
+    },
+    minutes: {
+      status: minutesStatus,
+    },
+    votes: {
+      count: meetingVotes.length,
+    },
+  };
 };
 
 // ============================================================================
 // TRANSFORMATION FUNCTIONS
 // ============================================================================
 
-/**
- * Convert MeetingRow to full Meeting object with participants
- */
+const getParticipantBoardRole = (participant: MeetingParticipantRow): string => {
+  const role = getRoleById(participant.roleId);
+  return role?.code || 'board_member';
+};
+
+const isGuestParticipant = (roleId: number): boolean => {
+  return roleId === 11 || roleId === 12;
+};
+
 export const toMeetingObject = (row: MeetingRow): Meeting => {
-  const board = boardsTable.find(b => b.id === row.boardId);
+  const board = boardsTable.find(b => idsMatch(b.id, row.boardId));
   const participants = getMeetingParticipants(row.id);
-  
-  // Transform participants to Meeting type format
+
   const meetingParticipants: MeetingParticipant[] = participants.map(p => {
     const user = usersTable.find(u => u.id === p.userId);
-    // Get board role code from roleId FK
     const boardRole = getParticipantBoardRole(p);
     const isGuest = isGuestParticipant(p.roleId);
+
     return {
       id: p.id,
       userId: p.userId,
@@ -258,21 +259,14 @@ export const toMeetingObject = (row: MeetingRow): Meeting => {
     } as MeetingParticipant;
   });
 
-  // Calculate end date time
   const [hours, minutes] = row.startTime.split(':').map(Number);
   const date = new Date(row.scheduledDate);
   date.setHours(hours, minutes, 0, 0);
   date.setMinutes(date.getMinutes() + row.duration);
   const endDateTime = date.toISOString();
 
-  // Get confirmation status from history (single source of truth)
-  const confirmationStatus = getMeetingConfirmationStatus(row.id);
+  const approvalEvent = getLatestApprovalEvent(row.id);
   const requiresConfirmation = boardRequiresConfirmation(row.boardId) && row.meetingType !== 'emergency';
-  
-  // Get confirmer name if confirmed
-  const confirmerName = confirmationStatus.confirmedBy 
-    ? usersTable.find(u => u.id === confirmationStatus.confirmedBy)?.fullName 
-    : undefined;
 
   return {
     id: row.id,
@@ -281,17 +275,18 @@ export const toMeetingObject = (row: MeetingRow): Meeting => {
     boardType: board?.type || 'main',
     title: row.title,
     description: row.description,
-    meetingType: (row.meetingType === 'annual' ? 'agm' : row.meetingType) as Meeting['meetingType'],
+    meetingType: row.meetingType as Meeting['meetingType'],
     startDate: row.scheduledDate,
     startTime: row.startTime,
     duration: row.duration,
     endDateTime,
     timezone: row.timezone,
     locationType: row.locationType,
-    locationDetails: row.locationType === 'hybrid' 
-      ? `${row.physicalLocation} + Virtual` 
-      : row.locationType === 'physical' 
-        ? row.physicalLocation || '' 
+    locationDetails:
+      row.locationType === 'hybrid'
+        ? `${row.physicalLocation} + Virtual`
+        : row.locationType === 'physical'
+        ? row.physicalLocation || ''
         : 'Virtual',
     virtualMeetingLink: row.meetingLink || undefined,
     physicalAddress: row.physicalLocation || undefined,
@@ -299,15 +294,30 @@ export const toMeetingObject = (row: MeetingRow): Meeting => {
     quorumPercentage: row.quorumPercentage,
     quorumRequired: row.quorumRequired,
     expectedAttendees: participants.filter(p => p.isRequired).length,
-    // Confirmation data derived from MeetingConfirmationHistory
     requiresConfirmation,
-    confirmationStatus: confirmationStatus.isConfirmed ? 'approved' : confirmationStatus.isRejected ? 'rejected' : 'pending',
-    confirmedBy: confirmationStatus.confirmedBy?.toString() || undefined,
-    confirmedByName: confirmerName,
-    confirmedAt: confirmationStatus.confirmedAt || undefined,
-    confirmationDocumentUrl: confirmationStatus.signedDocumentUrl || undefined,
-    rejectionReason: confirmationStatus.rejectionComments || undefined,
+    confirmationStatus:
+      row.subStatus === 'approved'
+        ? 'approved'
+        : row.subStatus === 'rejected'
+        ? 'rejected'
+        : row.subStatus === 'pending_approval'
+        ? 'pending'
+        : 'pending',
+    confirmedBy: approvalEvent?.eventType === 'approved' ? approvalEvent.performedBy.toString() : undefined,
+    confirmedByName: approvalEvent?.eventType === 'approved' ? approvalEvent.performedByName : undefined,
+    confirmedAt: approvalEvent?.eventType === 'approved' ? approvalEvent.performedAt : undefined,
+    confirmationDocumentUrl: approvalEvent?.metadata?.signedDocumentId
+      ? `/api/documents/${approvalEvent.metadata.signedDocumentId}`
+      : undefined,
+    rejectionReason:
+      approvalEvent?.eventType === 'rejected'
+        ? (approvalEvent.metadata?.rejectionComments as string)
+        : undefined,
     status: row.status,
+    subStatus: row.subStatus,
+    statusUpdatedAt: row.statusUpdatedAt,
+    overrides: row.overrides,
+    overrideReason: row.overrideReason,
     isRecurring: false,
     createdBy: row.createdBy.toString(),
     createdByName: usersTable.find(u => u.id === row.createdBy)?.fullName || 'Unknown',
@@ -316,22 +326,14 @@ export const toMeetingObject = (row: MeetingRow): Meeting => {
   };
 };
 
-/**
- * Convert MeetingRow to MeetingListItem (lightweight)
- */
 export const toMeetingListItem = (row: MeetingRow): MeetingListItem => {
-  const board = boardsTable.find(b => b.id === row.boardId);
-  const parentBoard = board?.parentId ? boardsTable.find(b => b.id === board.parentId) : undefined;
+  const board = boardsTable.find(b => idsMatch(b.id, row.boardId));
+  const parentBoard = board?.parentId ? boardsTable.find(b => board.parentId && idsMatch(b.id, board.parentId)) : undefined;
   const participants = getMeetingParticipants(row.id);
   const requiredParticipants = participants.filter(p => p.isRequired);
-  
-  // Get confirmation status from history (single source of truth)
-  const confirmationStatus = getMeetingConfirmationStatus(row.id);
   const requiresConfirmation = boardRequiresConfirmation(row.boardId) && row.meetingType !== 'emergency';
-  
-  // Get board pack status (agenda, documents, minutes)
   const boardPackStatus = getBoardPackStatus(row.id, row.status);
-  
+
   return {
     id: row.id,
     boardId: row.boardId,
@@ -339,7 +341,7 @@ export const toMeetingListItem = (row: MeetingRow): MeetingListItem => {
     boardType: board?.type || 'main',
     parentBoardName: parentBoard?.name,
     title: row.title,
-    meetingType: (row.meetingType === 'annual' ? 'agm' : row.meetingType) as MeetingListItem['meetingType'],
+    meetingType: row.meetingType as MeetingListItem['meetingType'],
     startDate: row.scheduledDate,
     startTime: row.startTime,
     duration: row.duration,
@@ -347,41 +349,40 @@ export const toMeetingListItem = (row: MeetingRow): MeetingListItem => {
     physicalLocation: row.physicalLocation,
     meetingLink: row.meetingLink,
     status: row.status,
+    subStatus: row.subStatus,
+    statusUpdatedAt: row.statusUpdatedAt,
     participantCount: participants.length,
     expectedAttendees: requiredParticipants.length || participants.length || row.quorumRequired * 2,
     quorumPercentage: row.quorumPercentage,
     quorumRequired: row.quorumRequired,
-    // Confirmation data derived from MeetingConfirmationHistory
     requiresConfirmation,
-    confirmationStatus: confirmationStatus.isConfirmed ? 'approved' : confirmationStatus.isRejected ? 'rejected' : 'pending',
     createdByName: usersTable.find(u => u.id === row.createdBy)?.fullName || 'Unknown',
     createdAt: row.createdAt,
-    // Board pack status for quick overview
     boardPackStatus,
   };
 };
 
-/**
- * Get all meetings as full Meeting objects
- */
 export const getAllMeetingObjects = (): Meeting[] => {
   return meetingsTable.map(toMeetingObject);
 };
 
-/**
- * Get all meetings as list items
- */
 export const getAllMeetingListItems = (): MeetingListItem[] => {
   return meetingsTable.map(toMeetingListItem);
 };
 
-/**
- * Filter meetings with advanced options
- */
+export const getPendingApprovalMeetingListItems = (): MeetingListItem[] => {
+  return getPendingApprovalMeetings().map(toMeetingListItem);
+};
+
+// ============================================================================
+// FILTERING
+// ============================================================================
+
 export interface MeetingFilterOptions {
   boardId?: string;
   includeCommittees?: boolean;
   status?: MeetingRow['status'];
+  subStatus?: string | null;
   meetingType?: MeetingRow['meetingType'];
   startDate?: string;
   endDate?: string;
@@ -391,39 +392,36 @@ export interface MeetingFilterOptions {
 export const filterMeetings = (options: MeetingFilterOptions): MeetingRow[] => {
   let filtered = [...meetingsTable];
 
-  // Board filter
   if (options.boardId) {
-    if (options.includeCommittees) {
-      filtered = getMeetingsByBoardWithCommittees(options.boardId);
-    } else {
-      filtered = filtered.filter(m => m.boardId === options.boardId);
-    }
+    filtered = options.includeCommittees
+      ? getMeetingsByBoardWithCommittees(options.boardId)
+      : filtered.filter(m => idsMatch(m.boardId, options.boardId!));
   }
 
-  // Status filter
   if (options.status) {
     filtered = filtered.filter(m => m.status === options.status);
   }
 
-  // Meeting type filter
+  if (options.subStatus !== undefined) {
+    filtered = filtered.filter(m => m.subStatus === options.subStatus);
+  }
+
   if (options.meetingType) {
     filtered = filtered.filter(m => m.meetingType === options.meetingType);
   }
 
-  // Date range filter
   if (options.startDate) {
     filtered = filtered.filter(m => m.scheduledDate >= options.startDate!);
   }
+
   if (options.endDate) {
     filtered = filtered.filter(m => m.scheduledDate <= options.endDate!);
   }
 
-  // Search filter
   if (options.search) {
     const searchLower = options.search.toLowerCase();
-    filtered = filtered.filter(m =>
-      m.title.toLowerCase().includes(searchLower) ||
-      m.description.toLowerCase().includes(searchLower)
+    filtered = filtered.filter(
+      m => m.title.toLowerCase().includes(searchLower) || m.description.toLowerCase().includes(searchLower)
     );
   }
 
@@ -431,254 +429,160 @@ export const filterMeetings = (options: MeetingFilterOptions): MeetingRow[] => {
 };
 
 // ============================================================================
-// CONFIRMATION QUERIES
+// STATE TRANSITIONS (Emit events to meetingEvents table)
 // ============================================================================
 
-/**
- * Transform confirmation history row to API response format
- */
-const toConfirmationHistoryObject = (row: MeetingConfirmationHistoryRow): MeetingConfirmationHistory => {
-  const user = usersTable.find(u => u.id === row.performedBy);
-  
-  return {
-    id: row.id,
-    meetingId: row.meetingId,
-    eventType: row.eventType,
-    performedBy: row.performedBy,
-    performedByName: user ? `${user.firstName} ${user.lastName}` : 'Unknown User',
-    performedAt: row.performedAt,
-    submissionNotes: row.submissionNotes,
-    signatureId: row.signatureId,
-    rejectionReason: row.rejectionReason,
-    rejectionComments: row.rejectionComments,
-    unsignedDocumentId: row.unsignedDocumentId,
-    unsignedDocumentUrl: row.unsignedDocumentId ? `/api/documents/${row.unsignedDocumentId}` : null,
-    signedDocumentId: row.signedDocumentId,
-    signedDocumentUrl: row.signedDocumentId ? `/api/documents/${row.signedDocumentId}` : null,
-    createdAt: row.createdAt,
-  };
-};
-
-/**
- * Get meetings pending confirmation as list items
- */
-export const getPendingConfirmationMeetingListItems = (): MeetingListItem[] => {
-  const pendingMeetings = getPendingConfirmationMeetings();
-  return pendingMeetings.map(toMeetingListItem);
-};
-
-/**
- * Get confirmation history for a meeting (transformed to API format)
- */
-export const getMeetingConfirmationHistory = (meetingId: string): MeetingConfirmationHistory[] => {
-  const history = getConfirmationHistoryByMeetingId(meetingId);
-  return history.map(toConfirmationHistoryObject);
-};
-
-/**
- * Get the latest confirmation event for a meeting (transformed to API format)
- */
-export const getLatestMeetingConfirmationEvent = (meetingId: string): MeetingConfirmationHistory | null => {
-  const latest = getLatestConfirmationEvent(meetingId);
-  return latest ? toConfirmationHistoryObject(latest) : null;
-};
-
-/**
- * Submit meeting for confirmation
- */
-export const submitMeetingForConfirmation = (
-  meetingId: string,
-  submittedBy: number,
-  notes?: string
-): MeetingConfirmationHistory | null => {
-  const meeting = getMeetingById(meetingId);
-  if (!meeting) return null;
-
-  // Update meeting status
-  const meetingIndex = meetingsTable.findIndex(m => m.id === meetingId);
-  if (meetingIndex !== -1) {
-    meetingsTable[meetingIndex].status = 'pending_confirmation';
-    meetingsTable[meetingIndex].updatedAt = new Date().toISOString();
-  }
-
-  // Create confirmation history entry with document URLs
-  const unsignedDocId = `doc-conf-${meetingId}-unsigned`;
-  const newEntry: MeetingConfirmationHistoryRow = {
-    id: `conf-hist-${Date.now()}`,
-    meetingId,
-    eventType: 'submitted',
-    performedBy: submittedBy,
-    performedAt: new Date().toISOString(),
-    submissionNotes: notes || null,
-    signatureId: null,
-    rejectionReason: null,
-    rejectionComments: null,
-    unsignedDocumentId: unsignedDocId,
-    unsignedDocumentUrl: `/api/documents/${unsignedDocId}/download`,
-    signedDocumentId: null,
-    signedDocumentUrl: null,
-    createdAt: new Date().toISOString(),
-  };
-
-  meetingConfirmationHistoryTable.push(newEntry);
-
-  // Return the entry with performedByName for API response
-  return {
-    ...newEntry,
-    performedByName: getUserName(submittedBy),
-  };
-};
-
-/**
- * Helper: Get user name by ID
- */
 const getUserName = (userId: number): string => {
   const user = usersTable.find(u => u.id === userId);
   return user ? `${user.firstName} ${user.lastName}` : 'Unknown User';
 };
 
-/**
- * Confirm a meeting (approve)
- */
-export const confirmMeeting = (
-  meetingId: string,
-  confirmedBy: number,
-  signatureId: string,
-  signatureImageUrl?: string // Base64 data URL of drawn signature
-): MeetingConfirmationHistory | null => {
-  const meeting = getMeetingById(meetingId);
-  if (!meeting || meeting.status !== 'pending_confirmation') return null;
-
-  // Update meeting status only (confirmation details now in history)
-  const meetingIndex = meetingsTable.findIndex(m => m.id === meetingId);
-  if (meetingIndex !== -1) {
-    meetingsTable[meetingIndex].status = 'scheduled'; // Confirmed meetings become scheduled
-    meetingsTable[meetingIndex].updatedAt = new Date().toISOString();
-  }
-
-  // Get the latest submission entry to reference the unsigned document
-  const latestSubmission = getLatestConfirmationEvent(meetingId);
-  const signedDocId = `doc-conf-${meetingId}-signed`;
-
-  // Create confirmation history entry with document URLs
-  const newEntry: MeetingConfirmationHistoryRow = {
-    id: `conf-hist-${Date.now()}`,
-    meetingId,
-    eventType: 'confirmed',
-    performedBy: confirmedBy,
-    performedAt: new Date().toISOString(),
-    submissionNotes: null,
-    signatureId,
-    signatureImageUrl: signatureImageUrl || null,
-    rejectionReason: null,
-    rejectionComments: null,
-    unsignedDocumentId: latestSubmission?.unsignedDocumentId || null,
-    unsignedDocumentUrl: latestSubmission?.unsignedDocumentUrl || null,
-    signedDocumentId: signedDocId,
-    signedDocumentUrl: `/api/documents/${signedDocId}/download`,
-    createdAt: new Date().toISOString(),
-  };
-
-  meetingConfirmationHistoryTable.push(newEntry);
-
-  // Return the entry with performedByName for API response
-  return {
-    ...newEntry,
-    performedByName: getUserName(confirmedBy),
-  };
-};
-
-/**
- * Reject a meeting confirmation
- */
-export const rejectMeetingConfirmation = (
-  meetingId: string,
-  rejectedBy: number,
-  reason: MeetingConfirmationHistoryRow['rejectionReason'],
-  comments?: string
-): MeetingConfirmationHistory | null => {
-  const meeting = getMeetingById(meetingId);
-  if (!meeting || meeting.status !== 'pending_confirmation') return null;
-
-  // Update meeting status only (rejection details now in history)
-  const meetingIndex = meetingsTable.findIndex(m => m.id === meetingId);
-  if (meetingIndex !== -1) {
-    meetingsTable[meetingIndex].status = 'rejected';
-    meetingsTable[meetingIndex].updatedAt = new Date().toISOString();
-  }
-
-  // Get the latest submission entry to reference the unsigned document
-  const latestSubmission = getLatestConfirmationEvent(meetingId);
-
-  // Create confirmation history entry with document URLs
-  const newEntry: MeetingConfirmationHistoryRow = {
-    id: `conf-hist-${Date.now()}`,
-    meetingId,
-    eventType: 'rejected',
-    performedBy: rejectedBy,
-    performedAt: new Date().toISOString(),
-    submissionNotes: null,
-    signatureId: null,
-    rejectionReason: reason,
-    rejectionComments: comments || null,
-    unsignedDocumentId: latestSubmission?.unsignedDocumentId || null,
-    unsignedDocumentUrl: latestSubmission?.unsignedDocumentUrl || null,
-    signedDocumentId: null,
-    signedDocumentUrl: null,
-    createdAt: new Date().toISOString(),
-  };
-
-  meetingConfirmationHistoryTable.push(newEntry);
-
-  // Return the entry with performedByName for API response
-  return {
-    ...newEntry,
-    performedByName: getUserName(rejectedBy),
-  };
-};
-
-/**
- * Resubmit meeting for confirmation (after rejection)
- */
-export const resubmitMeetingForConfirmation = (
+export const submitMeetingForApproval = (
   meetingId: string,
   submittedBy: number,
   notes?: string
-): MeetingConfirmationHistory | null => {
+): MeetingEvent | null => {
   const meeting = getMeetingById(meetingId);
-  if (!meeting || meeting.status !== 'rejected') return null;
+  if (!meeting || meeting.status !== 'draft' || meeting.subStatus !== 'complete') return null;
 
-  // Update meeting status back to pending (rejection details remain in history)
   const meetingIndex = meetingsTable.findIndex(m => m.id === meetingId);
   if (meetingIndex !== -1) {
-    meetingsTable[meetingIndex].status = 'pending_confirmation';
+    meetingsTable[meetingIndex].status = 'scheduled';
+    meetingsTable[meetingIndex].subStatus = 'pending_approval';
+    meetingsTable[meetingIndex].statusUpdatedAt = new Date().toISOString();
     meetingsTable[meetingIndex].updatedAt = new Date().toISOString();
   }
 
-  // Create confirmation history entry with new document version
-  const unsignedDocId = `doc-conf-${meetingId}-v${Date.now()}-unsigned`;
-  const newEntry: MeetingConfirmationHistoryRow = {
-    id: `conf-hist-${Date.now()}`,
+  const performedAt = new Date().toISOString();
+  const newEvent: MeetingEventRow = {
+    id: `evt-${meetingId}-${Date.now()}`,
+    meetingId,
+    eventType: 'submitted_for_approval',
+    fromStatus: 'draft',
+    fromSubStatus: 'complete',
+    toStatus: 'scheduled',
+    toSubStatus: 'pending_approval',
+    performedBy: submittedBy,
+    performedByName: getUserName(submittedBy),
+    performedAt,
+    metadata: {
+      submissionNotes: notes || null,
+      unsignedDocumentId: `doc-conf-${meetingId}-unsigned`,
+    },
+    createdAt: performedAt,
+  };
+
+  meetingEventsTable.push(newEvent);
+  return newEvent as MeetingEvent;
+};
+
+export const approveMeeting = (
+  meetingId: string,
+  approvedBy: number,
+  signatureId: string
+): MeetingEvent | null => {
+  const meeting = getMeetingById(meetingId);
+  if (!meeting || meeting.status !== 'scheduled' || meeting.subStatus !== 'pending_approval') return null;
+
+  const meetingIndex = meetingsTable.findIndex(m => m.id === meetingId);
+  if (meetingIndex !== -1) {
+    meetingsTable[meetingIndex].status = 'scheduled';
+    meetingsTable[meetingIndex].subStatus = 'approved';
+    meetingsTable[meetingIndex].statusUpdatedAt = new Date().toISOString();
+    meetingsTable[meetingIndex].updatedAt = new Date().toISOString();
+  }
+
+  const performedAt = new Date().toISOString();
+  const newEvent: MeetingEventRow = {
+    id: `evt-${meetingId}-${Date.now()}`,
+    meetingId,
+    eventType: 'approved',
+    fromStatus: 'scheduled',
+    fromSubStatus: 'pending_approval',
+    toStatus: 'scheduled',
+    toSubStatus: 'approved',
+    performedBy: approvedBy,
+    performedByName: getUserName(approvedBy),
+    performedAt,
+    metadata: {
+      signatureId,
+      // signedDocumentId will be set by the handler after document creation
+    },
+    createdAt: performedAt,
+  };
+
+  meetingEventsTable.push(newEvent);
+  return newEvent as MeetingEvent;
+};
+
+export const rejectMeeting = (
+  meetingId: string,
+  rejectedBy: number,
+  reason: string,
+  comments?: string
+): MeetingEvent | null => {
+  const meeting = getMeetingById(meetingId);
+  if (!meeting || meeting.status !== 'scheduled' || meeting.subStatus !== 'pending_approval') return null;
+
+  const meetingIndex = meetingsTable.findIndex(m => m.id === meetingId);
+  if (meetingIndex !== -1) {
+    meetingsTable[meetingIndex].status = 'scheduled';
+    meetingsTable[meetingIndex].subStatus = 'rejected';
+    meetingsTable[meetingIndex].statusUpdatedAt = new Date().toISOString();
+    meetingsTable[meetingIndex].updatedAt = new Date().toISOString();
+  }
+
+  const performedAt = new Date().toISOString();
+  const newEvent: MeetingEventRow = {
+    id: `evt-${meetingId}-${Date.now()}`,
+    meetingId,
+    eventType: 'rejected',
+    fromStatus: 'scheduled',
+    fromSubStatus: 'pending_approval',
+    toStatus: 'scheduled',
+    toSubStatus: 'rejected',
+    performedBy: rejectedBy,
+    performedByName: getUserName(rejectedBy),
+    performedAt,
+    metadata: {
+      rejectionReason: reason,
+      rejectionComments: comments || null,
+    },
+    createdAt: performedAt,
+  };
+
+  meetingEventsTable.push(newEvent);
+  return newEvent as MeetingEvent;
+};
+
+export const startRevision = (meetingId: string, userId: number): MeetingEvent | null => {
+  const meeting = getMeetingById(meetingId);
+  if (!meeting || meeting.status !== 'scheduled' || meeting.subStatus !== 'rejected') return null;
+
+  const meetingIndex = meetingsTable.findIndex(m => m.id === meetingId);
+  if (meetingIndex !== -1) {
+    meetingsTable[meetingIndex].status = 'draft';
+    meetingsTable[meetingIndex].subStatus = 'incomplete';
+    meetingsTable[meetingIndex].statusUpdatedAt = new Date().toISOString();
+    meetingsTable[meetingIndex].updatedAt = new Date().toISOString();
+  }
+
+  const performedAt = new Date().toISOString();
+  const newEvent: MeetingEventRow = {
+    id: `evt-${meetingId}-${Date.now()}`,
     meetingId,
     eventType: 'resubmitted',
-    performedBy: submittedBy,
-    performedAt: new Date().toISOString(),
-    submissionNotes: notes || null,
-    signatureId: null,
-    rejectionReason: null,
-    rejectionComments: null,
-    unsignedDocumentId: unsignedDocId,
-    unsignedDocumentUrl: `/api/documents/${unsignedDocId}/download`,
-    signedDocumentId: null,
-    signedDocumentUrl: null,
-    createdAt: new Date().toISOString(),
+    fromStatus: 'scheduled',
+    fromSubStatus: 'rejected',
+    toStatus: 'draft',
+    toSubStatus: 'incomplete',
+    performedBy: userId,
+    performedByName: getUserName(userId),
+    performedAt,
+    metadata: null,
+    createdAt: performedAt,
   };
 
-  meetingConfirmationHistoryTable.push(newEntry);
-
-  // Return the entry with performedByName for API response
-  return {
-    ...newEntry,
-    performedByName: getUserName(submittedBy),
-  };
+  meetingEventsTable.push(newEvent);
+  return newEvent as MeetingEvent;
 };

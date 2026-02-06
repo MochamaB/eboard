@@ -8,22 +8,11 @@ import React from 'react';
 import { Typography } from 'antd';
 import { ClockCircleOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import type { MeetingListItem, MeetingStatus } from '../../types/meeting.types';
-import { MEETING_STATUS_LABELS, MEETING_STATUS_COLORS } from '../../types/meeting.types';
+import type { MeetingListItem } from '../../types/meeting.types';
 import { useBoardContext } from '../../contexts';
+import { MeetingStatusBadge } from './MeetingStatusBadge';
 
 const { Text } = Typography;
-
-// Map Ant Design preset colors to actual hex values for badge dot
-const STATUS_DOT_COLORS: Record<string, string> = {
-  default: '#d9d9d9',
-  warning: '#faad14',
-  blue: '#1890ff',
-  cyan: '#13c2c2',
-  processing: '#52c41a',
-  success: '#52c41a',
-  error: '#ff4d4f',
-};
 
 interface MeetingDateTimeCardProps {
   meeting: MeetingListItem;
@@ -76,11 +65,6 @@ export const MeetingDateTimeCard: React.FC<MeetingDateTimeCardProps> = ({
     );
   }
   
-  // Get status color
-  const statusColor = MEETING_STATUS_COLORS[meeting.status as MeetingStatus] || 'default';
-  const dotColor = STATUS_DOT_COLORS[statusColor] || STATUS_DOT_COLORS.default;
-  const statusLabel = MEETING_STATUS_LABELS[meeting.status as MeetingStatus] || meeting.status;
-  
   // Full version for table view
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
@@ -116,35 +100,13 @@ export const MeetingDateTimeCard: React.FC<MeetingDateTimeCardProps> = ({
         <Text type="secondary" style={{ fontSize: 11, display: 'block', marginLeft: 18, marginBottom: 4 }}>
           ({meeting.duration}min)
         </Text>
-        {/* Status Badge */}
-        <div 
-          style={{ 
-            display: 'inline-flex', 
-            alignItems: 'center', 
-            gap: 6,
-            padding: '2px 8px',
-            borderRadius: 4,
-            backgroundColor: `${dotColor}15`,
-          }}
-        >
-          <span 
-            style={{ 
-              width: 6, 
-              height: 6, 
-              borderRadius: '50%', 
-              backgroundColor: dotColor,
-            }} 
+        {/* Status Badge - Using MeetingStatusBadge component */}
+        <div style={{ marginLeft: 18 }}>
+          <MeetingStatusBadge
+            status={meeting.status}
+            subStatus={meeting.subStatus}
+            style={{ fontSize: 11 }}
           />
-          <Text 
-            style={{ 
-              fontSize: 11, 
-              fontWeight: 500,
-              color: dotColor, 
-              textTransform: 'uppercase',
-            }}
-          >
-            {statusLabel}
-          </Text>
         </div>
       </div>
     </div>

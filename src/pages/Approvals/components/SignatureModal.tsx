@@ -15,7 +15,7 @@ import {
   EditOutlined,
   ArrowLeftOutlined,
 } from '@ant-design/icons';
-import { useConfirmMeeting } from '../../../hooks/api/useMeetings';
+import { useApproveMeeting } from '../../../hooks/api/useMeetings';
 import { useAuth } from '../../../contexts/AuthContext';
 import {
   canUserApproveMeeting,
@@ -52,7 +52,7 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
   const { user } = useAuth();
   
-  const confirmMutation = useConfirmMeeting(meetingId);
+  const approveMutation = useApproveMeeting(meetingId);
 
   // Get approver info and certificate status
   const approverInfo = user ? canUserApproveMeeting(user.id, boardId) : null;
@@ -83,14 +83,14 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
     setError(null);
 
     try {
-      console.log('🔄 Submitting signature confirmation...');
-      const result = await confirmMutation.mutateAsync({
-        confirmedBy: user?.id || 0,
+      console.log('🔄 Submitting signature for approval...');
+      const result = await approveMutation.mutateAsync({
+        approvedBy: user?.id || 0,
         pin: form.getFieldValue('pin'),
         signatureImage: signatureDataUrl,
       });
 
-      console.log('✅ Confirmation successful:', result);
+      console.log('✅ Approval successful:', result);
 
       // Show success state
       setStep('success');
@@ -325,7 +325,7 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
                 type="primary"
                 icon={<CheckCircleOutlined />}
                 onClick={handleSignatureSubmit}
-                loading={confirmMutation.isPending}
+                loading={approveMutation.isPending}
                 disabled={!signatureDataUrl}
               >
                 Confirm & Sign

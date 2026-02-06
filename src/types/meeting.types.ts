@@ -11,15 +11,78 @@ import { BoardTypeSchema, BoardRoleSchema } from './board.types';
 // ENUMS
 // ============================================================================
 
+// Status + SubStatus Model (5 primary statuses)
 export const MeetingStatusSchema = z.enum([
-  'draft',
-  'pending_confirmation',
-  'confirmed',
-  'scheduled',
-  'in_progress',
-  'completed',
-  'cancelled',
-  'rejected',
+  'draft',       // Being prepared
+  'scheduled',   // Confirmed and scheduled
+  'in_progress', // Currently happening
+  'completed',   // Finished
+  'cancelled',   // Terminal state
+]);
+
+// SubStatus schemas (contextual to primary status)
+export const DraftSubStatusSchema = z.enum([
+  'incomplete', // Missing required fields/validations
+  'complete',   // All validations passed, ready for approval
+]);
+
+export const ScheduledSubStatusSchema = z.enum([
+  'pending_approval', // Awaiting confirmation/approval
+  'approved',         // Confirmed and approved
+  'rejected',         // Rejected, needs revision
+]);
+
+export const CompletedSubStatusSchema = z.enum([
+  'recent',   // Active post-meeting work (minutes, action items)
+  'archived', // Read-only historical record
+]);
+
+// Union of all substatus types (nullable)
+export const MeetingSubStatusSchema = z.union([
+  DraftSubStatusSchema,
+  ScheduledSubStatusSchema,
+  CompletedSubStatusSchema,
+  z.null(),
+]).optional();
+
+// Meeting Event Types (31 lifecycle events across all phases)
+export const MeetingEventTypeSchema = z.enum([
+  // Pre-Meeting Phase (13 events)
+  'meeting_created',           // Initial draft creation
+  'configuration_complete',    // All required fields filled
+  'submitted_for_approval',    // Secretary submits for confirmation
+  'approved',                  // Approver signs and confirms
+  'rejected',                  // Approver rejects with reason
+  'resubmitted',               // After rejection, resubmitted
+  'scheduled',                 // Meeting scheduled (if skip approval)
+  'rescheduled',               // Date/time changed
+  'participant_added',         // Board member/guest added
+  'participant_removed',       // Participant removed
+  'agenda_published',          // Agenda finalized
+  'documents_uploaded',        // Documents added
+  'reminder_sent',             // Notification sent to participants
+
+  // During-Meeting Phase (10 events)
+  'meeting_started',           // Meeting begins
+  'participant_joined',        // Attendee joins
+  'participant_left',          // Attendee leaves
+  'quorum_achieved',           // Minimum attendance met
+  'quorum_lost',               // Dropped below minimum
+  'vote_started',              // Voting initiated
+  'vote_closed',               // Voting completed
+  'presentation_started',      // Presenter begins
+  'presentation_ended',        // Presenter finishes
+  'meeting_ended',             // Meeting concludes
+
+  // Post-Meeting Phase (8 events)
+  'minutes_created',           // Draft minutes generated
+  'minutes_approved',          // Minutes signed and approved
+  'action_item_created',       // Action item assigned
+  'action_item_completed',     // Action item resolved
+  'resolution_passed',         // Board resolution passed
+  'follow_up_scheduled',       // Next meeting scheduled
+  'archived',                  // Meeting archived
+  'meeting_cancelled',         // Terminal cancellation (can happen in any phase)
 ]);
 
 export const MeetingTypeSchema = z.enum([
@@ -93,7 +156,39 @@ export const RecurrencePatternSchema = z.object({
   excludeDates: z.array(z.string()).optional(),
 });
 
-// Meeting confirmation history event
+// Meeting validation overrides (for special circumstances)
+export const MeetingOverridesSchema = z.object({
+  skipAgenda: z.boolean().optional(),             // Allow meeting without agenda
+  skipDocuments: z.boolean().optional(),          // Allow meeting without documents
+  skipApproval: z.boolean().optional(),           // Skip confirmation workflow
+  customMinParticipants: z.number().optional(),   // Override quorum calculation
+}).nullable();
+
+// Meeting event (replaces meetingConfirmationHistory)
+export const MeetingEventSchema = z.object({
+  id: z.string(),
+  meetingId: z.string(),
+  eventType: MeetingEventTypeSchema,
+
+  // Status transition (null for non-status-changing events)
+  fromStatus: MeetingStatusSchema.nullable().optional(),
+  fromSubStatus: z.string().nullable().optional(),
+  toStatus: MeetingStatusSchema.nullable().optional(),
+  toSubStatus: z.string().nullable().optional(),
+
+  // Actor
+  performedBy: z.number(),
+  performedByName: z.string(),
+  performedAt: z.string(),
+
+  // Event-specific metadata (polymorphic JSON)
+  metadata: z.record(z.string(), z.unknown()).nullable().optional(),
+
+  // Audit
+  createdAt: z.string(),
+});
+
+// Meeting confirmation history event (DEPRECATED - use MeetingEventSchema)
 export const MeetingConfirmationHistorySchema = z.object({
   id: z.string(),
   meetingId: z.string(),
@@ -173,8 +268,14 @@ export const MeetingSchema = z.object({
   rejectionReason: z.string().optional(),
   confirmationDocumentUrl: z.string().optional(),
 
-  // Status
+  // Status (Status + SubStatus model)
   status: MeetingStatusSchema,
+  subStatus: z.string().nullable().optional(), // Contextual substatus
+  statusUpdatedAt: z.string(),                  // Last status change timestamp
+
+  // Validation overrides (for special circumstances)
+  overrides: MeetingOverridesSchema.optional(),
+  overrideReason: z.string().nullable().optional(),
 
   // Recurrence
   isRecurring: z.boolean().default(false),
@@ -223,12 +324,13 @@ export const MeetingListItemSchema = z.object({
   physicalLocation: z.string().nullable().optional(), // Physical location address
   meetingLink: z.string().nullable().optional(), // Virtual meeting link
   status: MeetingStatusSchema,
+  subStatus: z.string().nullable().optional(), // Contextual substatus
+  statusUpdatedAt: z.string(),
   participantCount: z.number(),
   expectedAttendees: z.number(), // Total expected participants
   quorumPercentage: z.number(),
   quorumRequired: z.number(), // Calculated quorum number
   requiresConfirmation: z.boolean(),
-  confirmationStatus: z.string().optional(),
   createdByName: z.string(),
   createdAt: z.string(),
   // Board Pack status for quick overview
@@ -308,6 +410,7 @@ export interface MeetingFilterParams {
   // Status & Type
   search?: string;
   status?: string | string[];
+  subStatus?: string | string[];
   meetingType?: string;
 
   // Date filtering
@@ -359,6 +462,11 @@ export const CalendarDataResponseSchema = z.object({
 // ============================================================================
 
 export type MeetingStatus = z.infer<typeof MeetingStatusSchema>;
+export type DraftSubStatus = z.infer<typeof DraftSubStatusSchema>;
+export type ScheduledSubStatus = z.infer<typeof ScheduledSubStatusSchema>;
+export type CompletedSubStatus = z.infer<typeof CompletedSubStatusSchema>;
+export type MeetingSubStatus = z.infer<typeof MeetingSubStatusSchema>;
+export type MeetingEventType = z.infer<typeof MeetingEventTypeSchema>;
 export type MeetingType = z.infer<typeof MeetingTypeSchema>;
 export type LocationType = z.infer<typeof LocationTypeSchema>;
 export type RSVPStatus = z.infer<typeof RSVPStatusSchema>;
@@ -366,6 +474,8 @@ export type ConfirmationEventType = z.infer<typeof ConfirmationEventTypeSchema>;
 export type RejectionReason = z.infer<typeof RejectionReasonSchema>;
 export type MeetingParticipant = z.infer<typeof MeetingParticipantSchema>;
 export type RecurrencePattern = z.infer<typeof RecurrencePatternSchema>;
+export type MeetingOverrides = z.infer<typeof MeetingOverridesSchema>;
+export type MeetingEvent = z.infer<typeof MeetingEventSchema>;
 export type MeetingConfirmationHistory = z.infer<typeof MeetingConfirmationHistorySchema>;
 export type Meeting = z.infer<typeof MeetingSchema>;
 export type BoardPackStatus = z.infer<typeof BoardPackStatusSchema>;
@@ -384,26 +494,140 @@ export type CalendarDataResponse = z.infer<typeof CalendarDataResponseSchema>;
 // CONSTANTS
 // ============================================================================
 
+// Status labels (5 primary statuses)
 export const MEETING_STATUS_LABELS: Record<MeetingStatus, string> = {
   draft: 'Draft',
-  pending_confirmation: 'Pending Confirmation',
-  confirmed: 'Confirmed',
   scheduled: 'Scheduled',
   in_progress: 'In Progress',
   completed: 'Completed',
   cancelled: 'Cancelled',
-  rejected: 'Rejected',
 };
 
+// Status colors (Ant Design color names)
 export const MEETING_STATUS_COLORS: Record<MeetingStatus, string> = {
   draft: 'default',
-  pending_confirmation: 'warning',
-  confirmed: 'blue',
   scheduled: 'cyan',
   in_progress: 'processing',
   completed: 'success',
   cancelled: 'error',
+};
+
+// SubStatus labels (contextual)
+export const DRAFT_SUBSTATUS_LABELS: Record<'incomplete' | 'complete', string> = {
+  incomplete: 'Incomplete',
+  complete: 'Complete',
+};
+
+export const SCHEDULED_SUBSTATUS_LABELS: Record<'pending_approval' | 'approved' | 'rejected', string> = {
+  pending_approval: 'Pending Approval',
+  approved: 'Approved',
+  rejected: 'Rejected',
+};
+
+export const COMPLETED_SUBSTATUS_LABELS: Record<'recent' | 'archived', string> = {
+  recent: 'Recent',
+  archived: 'Archived',
+};
+
+// SubStatus colors
+export const DRAFT_SUBSTATUS_COLORS: Record<'incomplete' | 'complete', string> = {
+  incomplete: 'orange',
+  complete: 'blue',
+};
+
+export const SCHEDULED_SUBSTATUS_COLORS: Record<'pending_approval' | 'approved' | 'rejected', string> = {
+  pending_approval: 'warning',
+  approved: 'success',
   rejected: 'error',
+};
+
+export const COMPLETED_SUBSTATUS_COLORS: Record<'recent' | 'archived', string> = {
+  recent: 'cyan',
+  archived: 'default',
+};
+
+// Meeting event type labels (31 lifecycle events)
+export const MEETING_EVENT_LABELS: Record<MeetingEventType, string> = {
+  // Pre-Meeting Phase
+  meeting_created: 'Meeting Created',
+  configuration_complete: 'Configuration Complete',
+  submitted_for_approval: 'Submitted for Approval',
+  approved: 'Approved',
+  rejected: 'Rejected',
+  resubmitted: 'Resubmitted',
+  scheduled: 'Scheduled',
+  rescheduled: 'Rescheduled',
+  participant_added: 'Participant Added',
+  participant_removed: 'Participant Removed',
+  agenda_published: 'Agenda Published',
+  documents_uploaded: 'Documents Uploaded',
+  reminder_sent: 'Reminder Sent',
+
+  // During-Meeting Phase
+  meeting_started: 'Meeting Started',
+  participant_joined: 'Participant Joined',
+  participant_left: 'Participant Left',
+  quorum_achieved: 'Quorum Achieved',
+  quorum_lost: 'Quorum Lost',
+  vote_started: 'Vote Started',
+  vote_closed: 'Vote Closed',
+  presentation_started: 'Presentation Started',
+  presentation_ended: 'Presentation Ended',
+  meeting_ended: 'Meeting Ended',
+
+  // Post-Meeting Phase
+  minutes_created: 'Minutes Created',
+  minutes_approved: 'Minutes Approved',
+  action_item_created: 'Action Item Created',
+  action_item_completed: 'Action Item Completed',
+  resolution_passed: 'Resolution Passed',
+  follow_up_scheduled: 'Follow-up Scheduled',
+  archived: 'Archived',
+
+  // Terminal
+  meeting_cancelled: 'Meeting Cancelled',
+};
+
+// Meeting event type colors (grouped by phase)
+export const MEETING_EVENT_COLORS: Record<MeetingEventType, string> = {
+  // Pre-Meeting Phase
+  meeting_created: 'default',
+  configuration_complete: 'blue',
+  submitted_for_approval: 'orange',
+  approved: 'success',
+  rejected: 'error',
+  resubmitted: 'warning',
+  scheduled: 'cyan',
+  rescheduled: 'purple',
+  participant_added: 'geekblue',
+  participant_removed: 'volcano',
+  agenda_published: 'blue',
+  documents_uploaded: 'cyan',
+  reminder_sent: 'default',
+
+  // During-Meeting Phase
+  meeting_started: 'processing',
+  participant_joined: 'success',
+  participant_left: 'default',
+  quorum_achieved: 'success',
+  quorum_lost: 'error',
+  vote_started: 'orange',
+  vote_closed: 'blue',
+  presentation_started: 'purple',
+  presentation_ended: 'default',
+  meeting_ended: 'success',
+
+  // Post-Meeting Phase
+  minutes_created: 'cyan',
+  minutes_approved: 'success',
+  action_item_created: 'blue',
+  action_item_completed: 'success',
+  resolution_passed: 'green',
+  follow_up_scheduled: 'cyan',
+  archived: 'default',
+
+  // Terminal
+  meeting_cancelled: 'error',
 };
 
 export const MEETING_TYPE_LABELS: Record<MeetingType, string> = {

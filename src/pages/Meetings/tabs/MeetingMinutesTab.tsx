@@ -42,8 +42,13 @@ export const MeetingMinutesTab: React.FC<MeetingMinutesTabProps> = ({
   const isChairman = hasRole('chairman');
   const isBoardMember = hasRole('chairman') || hasRole('director') || hasRole('member');
 
+  // Check if meeting is archived (read-only)
+  const isArchived = meeting.status === 'completed' && meeting.subStatus === 'archived';
+  const isRecentlyCompleted = meeting.status === 'completed' && meeting.subStatus === 'recent';
+
   // Determine what to show
-  const canCreateMinutes = isSecretary && phaseInfo?.phase === 'post-meeting';
+  const canCreateMinutes = isSecretary && phaseInfo?.phase === 'post-meeting' && !isArchived;
+  const canEditMinutes = isSecretary && isRecentlyCompleted;
   const canViewMinutes = minutes !== null && minutes !== undefined;
 
   // Handle create minutes
@@ -163,6 +168,57 @@ export const MeetingMinutesTab: React.FC<MeetingMinutesTabProps> = ({
 
   // POST-MEETING PHASE - Main minutes workflow
   if (phaseInfo?.phase === 'post-meeting') {
+    // Show archived notice if meeting is archived
+    if (isArchived && canViewMinutes) {
+      return (
+        <Card>
+          <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            <Alert
+              message="Archived Meeting - Read Only"
+              description="This meeting has been archived. Minutes are in read-only mode and cannot be edited."
+              type="info"
+              showIcon
+              icon={<CheckCircleOutlined />}
+              style={{ marginBottom: 16 }}
+            />
+            
+            {/* Minutes Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Space>
+                <Title level={4} style={{ margin: 0 }}>Meeting Minutes (Archived)</Title>
+                <MinutesStatusBadge status={minutes.status} />
+              </Space>
+              
+              <Space>
+                <Text type="secondary" style={{ fontSize: '12px' }}>
+                  Archived on: {new Date(meeting.statusUpdatedAt).toLocaleDateString()}
+                </Text>
+              </Space>
+            </div>
+
+            {/* Read-only minutes content */}
+            <Card type="inner" style={{ backgroundColor: theme.backgroundSecondary }}>
+              <Space direction="vertical" size={16} style={{ width: '100%' }}>
+                <Text strong>Minutes Content (Read-Only)</Text>
+                <Paragraph type="secondary">
+                  MinutesViewer component will be rendered here in read-only mode
+                </Paragraph>
+                
+                <div style={{ padding: '20px', backgroundColor: '#fff', borderRadius: '4px' }}>
+                  <Text type="secondary" style={{ fontSize: '12px' }}>
+                    Minutes ID: {minutes.id}<br />
+                    Status: {minutes.status}<br />
+                    Word Count: {minutes.wordCount || 0}<br />
+                    Last Updated: {new Date(minutes.updatedAt).toLocaleString()}
+                  </Text>
+                </div>
+              </Space>
+            </Card>
+          </Space>
+        </Card>
+      );
+    }
+
     // No minutes created yet
     if (!canViewMinutes) {
       return (

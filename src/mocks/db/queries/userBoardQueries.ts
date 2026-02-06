@@ -89,17 +89,28 @@ export const getUserRoleOnBoard = (userId: number, boardId: string): string | nu
 };
 
 /**
- * Get user's primary board (the board marked as isPrimary, or first main board)
+ * Get user's primary board (the board marked as isDefault, or main board for global users)
  */
 export const getUserPrimaryBoard = (userId: number): BoardRow | undefined => {
-  // First, check for explicitly marked primary board
-  const primaryMembership = userBoardRolesTable.find(
-    ubr => ubr.userId === userId && ubr.isPrimary && ubr.endDate === null
+  // First, check for explicitly marked default board
+  const defaultMembership = userBoardRolesTable.find(
+    ubr => ubr.userId === userId && ubr.isDefault && ubr.endDate === null && ubr.scope === 'board'
   );
   
-  if (primaryMembership) {
-    const board = boardsTable.find(b => b.id === primaryMembership.boardId);
+  if (defaultMembership && defaultMembership.boardId) {
+    const board = boardsTable.find(b => b.id === defaultMembership.boardId);
     if (board) return board;
+  }
+  
+  // Check if user has a global role (system_admin, group_chairman, group_company_secretary)
+  const globalRole = userBoardRolesTable.find(
+    ubr => ubr.userId === userId && ubr.scope === 'global' && ubr.endDate === null
+  );
+  
+  // For global users without explicit default, return the main board
+  if (globalRole) {
+    const mainBoard = boardsTable.find(b => b.type === 'main');
+    if (mainBoard) return mainBoard;
   }
   
   // Fallback: Get user's boards and prioritize by type

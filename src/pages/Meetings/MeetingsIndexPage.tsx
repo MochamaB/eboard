@@ -5,20 +5,19 @@
  */
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import {
   Button,
   Space,
   Tag,
   Tooltip,
-  message,
   Typography,
   Input,
   Select,
   Segmented,
   Flex,
-  Badge,
   Dropdown,
+  message,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table/interface';
 import type { MenuProps } from 'antd';
@@ -50,7 +49,7 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import { useBoardContext } from '../../contexts';
 import { useMeetings } from '../../hooks/api';
 import { DataTable, IndexPageLayout, type TabItem } from '../../components/common';
-import { BoardCommitteeSelector, MeetingCard, MeetingDateTimeCard, MeetingsCalendarView, BoardPackStatusCell } from '../../components/Meetings';
+import { MeetingStatusBadge, BoardCommitteeSelector, MeetingCard, MeetingDateTimeCard, MeetingsCalendarView, BoardPackStatusCell } from '../../components/Meetings';
 import type {
   MeetingListItem,
   MeetingStatus,
@@ -72,21 +71,20 @@ const { Text } = Typography;
 // View mode type
 type ViewMode = 'table' | 'calendar' | 'cards';
 
-// Status badge colors mapping
-const STATUS_BADGE_COLORS: Record<MeetingStatus, string> = {
-  draft: 'default',
-  pending_confirmation: 'warning',
-  confirmed: 'blue',
-  scheduled: 'cyan',
-  in_progress: 'processing',
-  completed: 'success',
-  cancelled: 'error',
-  rejected: 'error',
-};
+// Status badge colors mapping - DEPRECATED: Now using MeetingStatusBadge component
+// Kept for reference only
+// const STATUS_BADGE_COLORS: Record<MeetingStatus, string> = {
+//   draft: 'default',
+//   scheduled: 'cyan',
+//   in_progress: 'processing',
+//   completed: 'success',
+//   cancelled: 'error',
+// };
 
 export const MeetingsIndexPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { currentBoard, activeCommittee, theme, viewMode: boardViewMode, allBoards } = useBoardContext();
 
   // Check if we're in "View All" mode (route is /all/meetings)
@@ -95,8 +93,40 @@ export const MeetingsIndexPage: React.FC = () => {
   // View mode state
   const [viewMode, setViewMode] = useState<ViewMode>('table');
 
-  // Filter state
-  const [statusFilter, setStatusFilter] = useState<string>('upcoming');
+  // Smart default tab selection based on priority
+  const getSmartDefaultTab = useCallback((meetings: MeetingListItem[] | undefined) => {
+    if (!meetings || meetings.length === 0) return 'all';
+    
+    // Priority 1: If any meeting is in progress, show that
+    const hasInProgress = meetings.some(m => m.status === 'in_progress');
+    if (hasInProgress) return 'in_progress';
+    
+    // Priority 2: If any pending approval, show that
+    const hasPendingApproval = meetings.some(m => m.status === 'scheduled' && m.subStatus === 'pending_approval');
+    if (hasPendingApproval) return 'pending_approval';
+    
+    // Priority 3: If any upcoming meetings, show that
+    const hasUpcoming = meetings.some(m => m.status === 'scheduled' && m.subStatus === 'approved');
+    if (hasUpcoming) return 'upcoming';
+    
+    // Priority 4: If any drafts, show that
+    const hasDrafts = meetings.some(m => m.status === 'draft');
+    if (hasDrafts) return 'drafts';
+    
+    // Default: Show all
+    return 'all';
+  }, []);
+
+  // State management with URL persistence
+  const [statusFilter, setStatusFilter] = useState<string>(() => {
+    // Read from URL query params first
+    const tabFromUrl = searchParams.get('tab');
+    if (tabFromUrl) {
+      return tabFromUrl;
+    }
+    // Default to 'in_progress' - will be updated by smart default when data loads
+    return 'in_progress';
+  });
   const [meetingTypeFilter, setMeetingTypeFilter] = useState<MeetingType | undefined>();
   const [locationTypeFilter, setLocationTypeFilter] = useState<LocationType | undefined>();
   const [searchValue, setSearchValue] = useState('');
@@ -108,13 +138,18 @@ export const MeetingsIndexPage: React.FC = () => {
 
   // Reset filters when board changes or view mode changes
   useEffect(() => {
-    setStatusFilter('upcoming');
+    // Don't reset statusFilter - let smart default handle it
+    // Only reset if there's no URL param
+    const tabFromUrl = searchParams.get('tab');
+    if (!tabFromUrl) {
+      // Will be set by smart default when data loads
+      setStatusFilter('in_progress');
+    }
     setMeetingTypeFilter(undefined);
     setLocationTypeFilter(undefined);
     setSearchValue('');
     setPage(1);
-    setSelectedBoardId(undefined);
-  }, [currentBoard?.id, isAllBoardsView]);
+  }, [currentBoard?.id, activeCommittee, isAllBoardsView, searchParams]);
 
   // Determine boardId filter based on view mode and active committee
   const boardIdFilter = useMemo(() => {
@@ -135,13 +170,24 @@ export const MeetingsIndexPage: React.FC = () => {
 
   // Build filter params for API
   const filterParams: MeetingFilterParams = useMemo(() => {
-    // Map status filter to actual statuses
+    // Map status filter to actual statuses and subStatuses
     let statusParam: MeetingStatus | MeetingStatus[] | undefined;
-    if (statusFilter === 'upcoming') {
-      statusParam = ['confirmed', 'scheduled'] as MeetingStatus[];
-    } else if (statusFilter === 'cancelled') {
-      // Cancelled tab includes both cancelled and rejected
-      statusParam = ['cancelled', 'rejected'] as MeetingStatus[];
+    let subStatusParam: string | string[] | undefined;
+    
+    if (statusFilter === 'drafts') {
+      statusParam = 'draft';
+      // Show both incomplete and complete drafts
+    } else if (statusFilter === 'pending_approval') {
+      statusParam = 'scheduled';
+      subStatusParam = 'pending_approval';
+    } else if (statusFilter === 'upcoming') {
+      statusParam = 'scheduled';
+      subStatusParam = 'approved';
+    } else if (statusFilter === 'in_progress') {
+      statusParam = 'in_progress';
+    } else if (statusFilter === 'past') {
+      // Past includes completed (recent + archived) and cancelled
+      statusParam = ['completed', 'cancelled'] as MeetingStatus[];
     } else if (statusFilter !== 'all') {
       statusParam = statusFilter as MeetingStatus;
     }
@@ -149,6 +195,7 @@ export const MeetingsIndexPage: React.FC = () => {
     return {
       search: searchValue || undefined,
       status: statusParam,
+      subStatus: subStatusParam,
       boardId: boardIdFilter,
       meetingType: meetingTypeFilter,
       locationType: locationTypeFilter,
@@ -170,30 +217,61 @@ export const MeetingsIndexPage: React.FC = () => {
   
   const { data: allMeetingsData } = useMeetings(countParams);
 
-  // Status tabs with counts - ALL tab is last
+  // Update default tab when data loads (only if no URL param and still on initial state)
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab');
+    // Only apply smart default if:
+    // 1. Data is loaded
+    // 2. No tab in URL
+    // 3. Still on initial 'in_progress' state
+    if (allMeetingsData?.data && !tabFromUrl && statusFilter === 'in_progress') {
+      const smartDefault = getSmartDefaultTab(allMeetingsData.data);
+      setStatusFilter(smartDefault);
+      // Update URL with smart default
+      setSearchParams({ tab: smartDefault }, { replace: true });
+    }
+  }, [allMeetingsData?.data, getSmartDefaultTab, statusFilter, searchParams, setSearchParams]);
+
+  // Status tabs with counts - Ordered by time-sensitive priority
   const statusTabs = useMemo(() => {
     const allMeetings = allMeetingsData?.data || [];
     const total = allMeetingsData?.total || 0;
 
-    const getCount = (statuses: MeetingStatus[]) =>
-      allMeetings.filter(m => statuses.includes(m.status)).length;
+    const getCount = (status: MeetingStatus, subStatus?: string | string[]) => {
+      return allMeetings.filter(m => {
+        if (m.status !== status) return false;
+        if (!subStatus) return true;
+        if (Array.isArray(subStatus)) {
+          return subStatus.includes(m.subStatus || '');
+        }
+        return m.subStatus === subStatus;
+      }).length;
+    };
 
+    const getPastCount = () => {
+      return allMeetings.filter(m => 
+        m.status === 'completed' || m.status === 'cancelled'
+      ).length;
+    };
+
+    // Time-sensitive priority order: In Progress → Pending Approval → Upcoming → Drafts → Past → All
     return [
-      { key: 'upcoming', label: 'Upcoming', icon: <CalendarOutlined />, count: getCount(['confirmed', 'scheduled']) },
-      { key: 'pending_confirmation', label: 'Pending', icon: <ClockCircleOutlined />, count: getCount(['pending_confirmation']) },
-      { key: 'draft', label: 'Draft', icon: <EditOutlined />, count: getCount(['draft']) },
-      { key: 'in_progress', label: 'In Progress', icon: <PlayCircleOutlined />, count: getCount(['in_progress']) },
-      { key: 'completed', label: 'Completed', icon: <CheckCircleOutlined />, count: getCount(['completed']) },
-      { key: 'cancelled', label: 'Cancelled', icon: <StopOutlined />, count: getCount(['cancelled', 'rejected']) },
+      { key: 'in_progress', label: 'In Progress', icon: <PlayCircleOutlined />, count: getCount('in_progress') },
+      { key: 'pending_approval', label: 'Pending Approval', icon: <ClockCircleOutlined />, count: getCount('scheduled', 'pending_approval') },
+      { key: 'upcoming', label: 'Upcoming', icon: <CalendarOutlined />, count: getCount('scheduled', 'approved') },
+      { key: 'drafts', label: 'Drafts', icon: <EditOutlined />, count: getCount('draft') },
+      { key: 'past', label: 'Past', icon: <CheckCircleOutlined />, count: getPastCount() },
       { key: 'all', label: 'All', icon: <AppstoreOutlined />, count: total },
     ];
   }, [allMeetingsData]);
 
-  // Handle status tab change
+  // Handle status tab change - update both state and URL
   const handleStatusTabChange = useCallback((key: string) => {
     setStatusFilter(key);
     setPage(1);
-  }, []);
+    // Update URL query params
+    setSearchParams({ tab: key }, { replace: true });
+  }, [setSearchParams]);
 
   // Handle search
   const handleSearch = useCallback((value: string) => {
@@ -313,19 +391,6 @@ export const MeetingsIndexPage: React.FC = () => {
         />
       ),
     },
-    // Status column - only visible on 'all' tab
-    ...(statusFilter === 'all' ? [{
-      title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
-      width: 140,
-      render: (status: MeetingStatus) => (
-        <Badge
-          status={STATUS_BADGE_COLORS[status] as any}
-          text={MEETING_STATUS_LABELS[status]}
-        />
-      ),
-    }] : []),
     // Actions dropdown
     {
       title: '',
@@ -361,6 +426,7 @@ export const MeetingsIndexPage: React.FC = () => {
                 label: 'Submit for Approval',
                 icon: <SendOutlined />,
                 onClick: () => message.info('Submit for approval functionality coming soon'),
+                disabled: record.subStatus === 'incomplete',
               },
               { type: 'divider' },
               {
@@ -373,8 +439,8 @@ export const MeetingsIndexPage: React.FC = () => {
             );
           }
 
-          // Pending confirmation actions
-          if (status === 'pending_confirmation') {
+          // Pending approval actions (scheduled.pending_approval)
+          if (status === 'scheduled' && record.subStatus === 'pending_approval') {
             items.push(
               { type: 'divider' },
               {
@@ -399,8 +465,8 @@ export const MeetingsIndexPage: React.FC = () => {
             );
           }
 
-          // Confirmed actions
-          if (status === 'confirmed') {
+          // Approved scheduled actions (scheduled.approved)
+          if (status === 'scheduled' && record.subStatus === 'approved') {
             items.push(
               { type: 'divider' },
               {
@@ -485,8 +551,8 @@ export const MeetingsIndexPage: React.FC = () => {
             );
           }
 
-          // Cancelled/Rejected actions
-          if (status === 'cancelled' || status === 'rejected') {
+          // Cancelled or Rejected actions
+          if (status === 'cancelled' || (status === 'scheduled' && record.subStatus === 'rejected')) {
             items.push(
               { type: 'divider' },
               {
@@ -572,27 +638,6 @@ export const MeetingsIndexPage: React.FC = () => {
             allowClear
             style={{ width: 280 }}
           />
-
-          {/* Board filter - only shown in "View All" mode */}
-          {isAllBoardsView && (
-            <Select
-              placeholder="All Boards"
-              value={selectedBoardId}
-              onChange={(value) => {
-                setSelectedBoardId(value);
-                setPage(1);
-              }}
-              allowClear
-              style={{ width: 200 }}
-              options={[
-                { label: 'All Boards', value: undefined },
-                ...allBoards.map(board => ({
-                  label: board.name,
-                  value: board.id,
-                })),
-              ]}
-            />
-          )}
 
           <Select
             placeholder="Meeting Type"

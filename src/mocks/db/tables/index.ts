@@ -26,7 +26,8 @@ export * from './documentCategories';
 export * from './meetings';
 export * from './meetingTypes';
 export * from './meetingParticipants';
-export * from './meetingConfirmationHistory';
+export * from './meetingEvents'; // NEW - Event-driven audit log
+export * from './meetingConfirmationHistory'; // DEPRECATED - Use meetingEvents instead
 export * from './agendas';
 export * from './agendaItems';
 export * from './agendaTemplates';

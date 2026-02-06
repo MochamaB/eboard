@@ -32,6 +32,52 @@ body {
   font-weight: 600 !important;
 }
 
+.ant-alert-title {
+    display: block;
+    margin-bottom: var(--ant-margin-xs);
+    color: var(--ant-color-text-heading);
+    font-size: 14px;
+    font-weight:600;
+}
+.ant-alert-description {
+    display: block;
+    color: var(--ant-color-text);
+    font-size: 13px;
+}
+/* WARNING */
+.ant-alert-warning .ant-alert-title {
+  color: var(--ant-color-warning);
+}
+
+/* SUCCESS */
+.ant-alert-success .ant-alert-title {
+  color: var(--ant-color-success);
+}
+
+/* ERROR */
+.ant-alert-error .ant-alert-title {
+  color: var(--ant-color-error);
+}
+
+/* INFO (primary-ish) */
+.ant-alert-info .ant-alert-title {
+  color: var(--ant-color-primary);
+}
+.ant-alert-warning .ant-alert-description {
+  color: var(--ant-color-warning-text);
+}
+
+.ant-alert-success .ant-alert-description {
+  color: var(--ant-color-success-text);
+}
+
+.ant-alert-error .ant-alert-description {
+  color: var(--ant-color-error-text);
+}
+
+.ant-alert-info .ant-alert-description {
+  color: var(--ant-color-primary-text);
+}
 /* Responsive styles for mobile */
 @media (max-width: 768px) {
   /* Hide board name in selector on mobile - show only logo */

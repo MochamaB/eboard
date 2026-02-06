@@ -47,6 +47,9 @@ export interface MeetingNoticeDocumentProps {
   // Confirmation data (from MeetingConfirmationHistory)
   confirmationInfo?: ConfirmationDisplayInfo;
   
+  // Direct approval status (used when confirmationInfo is not available)
+  approvalStatus?: ApprovalStatus;
+  
   // Legacy approval props (deprecated - use confirmationInfo instead)
   approverName?: string;
   approverTitle?: string;
@@ -90,6 +93,7 @@ export const MeetingNoticeDocument: React.FC<MeetingNoticeDocumentProps> = ({
   compact = false,
   className = '',
   style,
+  approvalStatus: approvalStatusProp,
 }) => {
   const primaryColor = branding?.primaryColor || '#324721';
   
@@ -100,7 +104,10 @@ export const MeetingNoticeDocument: React.FC<MeetingNoticeDocumentProps> = ({
   const showRsvpSection = mode === 'rsvp';
 
   // Determine approval status for signature block and watermark
-  const approvalStatus: ApprovalStatus = confirmationInfo?.status || 'none';
+  // Priority: direct prop (if provided) > confirmationInfo.status (if not 'none') > 'none'
+  // This allows the direct prop to override when confirmationInfo returns 'none' due to data mismatch
+  const approvalStatus: ApprovalStatus = approvalStatusProp || 
+    (confirmationInfo?.status && confirmationInfo.status !== 'none' ? confirmationInfo.status : 'none');
   
   // Determine if we should show watermark based on mode and status
   const showWatermark = (

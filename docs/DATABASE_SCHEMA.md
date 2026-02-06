@@ -2,6 +2,9 @@
 
 **Complete database schema for the eBoard system with polymorphic relationships and modular design.**
 
+**Last Updated:** February 4, 2026  
+**Version:** 2.0 (Status + SubStatus Model)
+
 ---
 
 ## Design Principles
@@ -10,7 +13,8 @@
 2. **Role-Based Access Control**: Permissions determined by user roles and participant types
 3. **Board-Centric**: All data scoped to boards for multi-tenancy
 4. **Modular**: Each module can be built independently
-5. **Audit Trail**: Track who did what and when
+5. **Audit Trail**: Track who did what and when via event tables
+6. **Event Emission**: All state changes emit events to audit tables
 
 ---
 
@@ -18,40 +22,56 @@
 
 ### ✅ Core Tables (Implemented)
 - `boards` - Board/committee/subsidiary/factory entities
+- `boardTypes` - Board type definitions
 - `users` - System users
-- `boardMemberships` - User-board relationships (junction table)
-- `roles` - System roles and permissions
+- `userBoardRoles` - User-board-role relationships (junction table)
+- `roles` - System roles
+- `permissions` - System permissions
+- `rolePermissions` - Role-permission mappings
 - `boardSettings` - Board-specific configuration
 - `boardBranding` - Board themes and branding
+- `userSessions` - Active user sessions
 
-### 🎯 Meetings Module (Phase 1)
-- `meetings` - Meeting records
+### 🎯 Meetings Module
+- `meetings` - Meeting records with status + subStatus ⚠️ UPDATED
 - `meetingParticipants` - Meeting participants with role-based permissions
-- `meetingConfirmationHistory` - Confirmation workflow audit trail
+- `meetingEvents` - All meeting workflow events (audit trail) ⚠️ NEW (replaces meetingConfirmationHistory)
+- `meetingTypes` - Meeting type definitions
 
-### 📄 Documents Module (Polymorphic)
-- `documents` - File storage with polymorphic attachments
-- `documentAccessLogs` - Document access audit trail
+### 📄 Documents Module (Lean + Related Tables)
+- `documents` - Core document metadata
+- `documentAttachments` - Links documents to entities (polymorphic)
+- `documentVersions` - Version history
+- `documentSignatures` - Digital signatures
+- `documentAccessLogs` - View/download tracking
+- `documentPermissions` - Access control
+- `documentTags` - Tags and assignments
+- `documentCategories` - Document categorization
 
 ### 📋 Agenda Module
+- `agendas` - Agenda container per meeting
 - `agendaItems` - Meeting agenda items
 - `agendaTemplates` - Reusable agenda templates
-- `agendaTemplateItems` - Template item definitions
 
-### 🗳️ Voting Module (Polymorphic)
+### 🗳️ Voting Module (Event-Sourced)
 - `votes` - Vote definitions with polymorphic targets
+- `voteConfigurations` - Immutable voting rules snapshot
 - `voteOptions` - Multiple choice options
-- `voteCasts` - Individual vote records
+- `voteEligibility` - Who can vote with weights
+- `votesCast` - Individual vote records (append-only)
+- `voteResults` - Cached computed results
+- `voteActions` - Voting audit trail
 
-### 📝 Minutes & Actions Module
-- `meetingMinutes` - Meeting minutes (tightly coupled to meetings)
+### 📝 Minutes Module
+- `minutes` - Meeting minutes with workflow status
 - `minutesComments` - Review comments on minutes
-- `actionItems` - Task assignments from meetings
-- `actionItemUpdates` - Action item progress tracking
+- `minutesSignatures` - Approval signatures
 
-### 🔔 Notifications Module
-- `notifications` - User notifications
-- `notificationPreferences` - User notification settings
+### ✅ Action Items Module
+- `actionItems` - Task assignments from meetings
+
+### � Resolutions Module
+- `resolutions` - Formal board decisions
 
 ### 🔐 Digital Signatures Module
 - `digitalSignatures` - Digital signature records for documents
@@ -189,8 +209,8 @@ Board themes and branding.
 
 ## Meetings Module
 
-### meetings
-Meeting records with workflow status.
+### meetings 
+Meeting records with status + subStatus model. Configuration data only - workflow state derived from events.
 
 ```typescript
 {
@@ -214,15 +234,28 @@ Meeting records with workflow status.
   physicalLocation: string | null
   meetingLink: string | null
 
-  // Workflow status
-  status: 'draft' | 'pending_confirmation' | 'confirmed' | 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'rejected'
+  // Status + SubStatus Model
+  // Primary status (5 values - lifecycle stages)
+  status: 'draft' | 'scheduled' | 'in_progress' | 'completed' | 'cancelled'
+  
+  // SubStatus (contextual within each status)
+  // draft: 'incomplete' | 'complete'
+  // scheduled: 'pending_approval' | 'approved' | 'rejected'
+  // completed: 'recent' | 'archived'
+  // in_progress, cancelled: null (no subStatus)
+  subStatus: string | null
 
-  // Confirmation workflow
-  confirmationRequired: boolean
-  confirmedBy: number | null (FK → users)
-  confirmedAt: string | null
-  confirmationDocumentId: string | null (FK → documents)
-  rejectionReason: string | null
+  // Cached timestamp of last status change (derived from meetingEvents)
+  statusUpdatedAt: string
+
+  // Validation Overrides (for sensitive/emergency meetings)
+  overrides: {
+    skipAgenda?: boolean        // Don't require agenda
+    skipDocuments?: boolean     // Don't require documents
+    skipApproval?: boolean      // Auto-approve (if permitted)
+    customMinParticipants?: number
+  } | null
+  overrideReason: string | null
 
   // Quorum settings
   quorumPercentage: number
@@ -232,16 +265,139 @@ Meeting records with workflow status.
   createdBy: number (FK → users)
   createdAt: string
   updatedAt: string
-  cancelledBy: number | null (FK → users)
-  cancelledAt: string | null
-  cancellationReason: string | null
+}
+```
+
+**Status + SubStatus Combinations:**
+| Status | SubStatus | Description |
+|--------|-----------|-------------|
+| `draft` | `incomplete` | Meeting being created, missing requirements |
+| `draft` | `complete` | All requirements met, ready for submission |
+| `scheduled` | `pending_approval` | Awaiting chairman approval |
+| `scheduled` | `approved` | Approved, ready to start |
+| `scheduled` | `rejected` | Rejected, needs revision |
+| `in_progress` | `null` | Meeting currently happening |
+| `completed` | `recent` | Meeting ended, post-meeting work active |
+| `completed` | `archived` | Old meeting, read-only |
+| `cancelled` | `null` | Meeting cancelled |
+
+**Relationships:**
+- Belongs to: `boards` (many-to-one)
+- Has many: `meetingParticipants`, `meetingEvents`, `agendaItems`, `votes`, `documents` (polymorphic)
+- Has one: `minutes`
+
+### meetingEvents 
+Unified event log for all meeting workflow events. Replaces `meetingConfirmationHistory`.
+
+```typescript
+{
+  id: string (PK)
+  meetingId: string (FK → meetings)
+  
+  // Event type - all possible events across meeting lifecycle
+  eventType: 
+    // Creation & Configuration
+    | 'meeting_created'
+    | 'meeting_updated'
+    | 'participants_updated'
+    | 'agenda_updated'
+    | 'documents_updated'
+    | 'configuration_complete'
+    
+    // Approval Workflow
+    | 'submitted_for_approval'
+    | 'approved'
+    | 'rejected'
+    | 'revision_started'
+    | 'scheduled_directly'
+    
+    // Lifecycle
+    | 'rescheduled'
+    | 'cancelled'
+    | 'meeting_started'
+    | 'meeting_ended'
+    | 'archived'
+    
+    // During Meeting
+    | 'participant_joined'
+    | 'participant_left'
+    | 'quorum_achieved'
+    | 'vote_started'
+    | 'vote_closed'
+    | 'recording_started'
+    | 'recording_stopped'
+    
+    // Post Meeting
+    | 'minutes_created'
+    | 'minutes_submitted'
+    | 'minutes_approved'
+    | 'minutes_revision_requested'
+    | 'action_item_created'
+    | 'action_item_completed'
+    | 'resolution_recorded'
+
+  // State tracking
+  fromStatus: string | null      // Previous status
+  fromSubStatus: string | null   // Previous subStatus
+  toStatus: string | null        // New status (null if no change)
+  toSubStatus: string | null     // New subStatus
+
+  // Actor
+  performedBy: number (FK → users)
+  performedAt: string
+
+  // Event-specific data (flexible JSON)
+  metadata: {
+    // Approval events
+    signatureId?: string
+    signatureImageUrl?: string
+    rejectionReason?: 'incomplete_information' | 'scheduling_conflict' | 'agenda_not_approved' | 'quorum_concerns' | 'other'
+    rejectionComments?: string
+    submissionNotes?: string
+    
+    // Document references
+    unsignedDocumentId?: string
+    signedDocumentId?: string
+    
+    // Reschedule events
+    previousDate?: string
+    previousTime?: string
+    newDate?: string
+    newTime?: string
+    
+    // Cancellation
+    cancellationReason?: string
+    
+    // Participant events
+    participantId?: number
+    joinTime?: string
+    leaveTime?: string
+    
+    // Vote events
+    voteId?: string
+    
+    // Minutes events
+    minutesId?: string
+    
+    // Action item events
+    actionItemId?: string
+    
+    // Generic
+    notes?: string
+  } | null
+
+  createdAt: string
 }
 ```
 
 **Relationships:**
-- Belongs to: `boards` (many-to-one)
-- Has many: `meetingParticipants`, `agendaItems`, `votes`, `documents` (polymorphic)
-- Has one: `meetingMinutes`
+- Belongs to: `meetings` (many-to-one)
+- Belongs to: `users` via performedBy (many-to-one)
+
+**Event Types by Phase:**
+- **Pre-Meeting**: meeting_created, meeting_updated, participants_updated, agenda_updated, documents_updated, configuration_complete, submitted_for_approval, approved, rejected, revision_started, scheduled_directly, rescheduled, cancelled
+- **During Meeting**: meeting_started, participant_joined, participant_left, quorum_achieved, vote_started, vote_closed, recording_started, recording_stopped, meeting_ended
+- **Post-Meeting**: minutes_created, minutes_submitted, minutes_approved, minutes_revision_requested, action_item_created, action_item_completed, resolution_recorded, archived
 
 ### meetingParticipants
 Meeting participants with unified role-based permissions (includes members, guests, observers).
@@ -301,125 +457,131 @@ Meeting participants with unified role-based permissions (includes members, gues
 - **guest/presenter**: Limited access, cannot vote, time-restricted
 - **observer**: View-only, cannot vote, cannot upload
 
-### meetingConfirmationHistory
-Audit trail for meeting confirmation workflow events.
-
-```typescript
-{
-  id: string (PK)
-  meetingId: string (FK → meetings)
-
-  // Event type
-  eventType: 'submitted' | 'confirmed' | 'rejected' | 'superseded' | 'resubmitted'
-
-  // Actor
-  performedBy: number (FK → users)
-  performedAt: string
-
-  // Submission details (for 'submitted' and 'resubmitted' events)
-  submissionNotes: string | null  // Custom notes from secretary
-
-  // Confirmation details (for 'confirmed' events)
-  signatureId: string | null      // Reference to digital signature record
-
-  // Rejection details (for 'rejected' events)
-  rejectionReason: 'incomplete_information' | 'scheduling_conflict' | 'agenda_not_approved' | 'quorum_concerns' | 'other' | null
-  rejectionComments: string | null
-
-  // Documents
-  unsignedDocumentId: string | null (FK → documents)  // Generated confirmation document
-  signedDocumentId: string | null (FK → documents)    // Digitally signed version
-
-  // Metadata
-  createdAt: string
-}
-```
-
-**Relationships:**
-- Belongs to: `meetings` (many-to-one)
-- Belongs to: `users` via performedBy (many-to-one)
-- Has one: `documents` via unsignedDocumentId
-- Has one: `documents` via signedDocumentId
-
-**Event Types:**
-- **submitted**: Secretary submits meeting for confirmation
-- **confirmed**: Approver signs and confirms meeting
-- **rejected**: Approver rejects with reason
-- **superseded**: Previous confirmation invalidated due to meeting changes
-- **resubmitted**: Secretary resubmits after rejection or changes
+### meetingConfirmationHistory ⚠️ DEPRECATED
+**This table is replaced by `meetingEvents` above.** Kept for reference during migration only.
 
 ---
 
-## Documents Module (Polymorphic Media Module)
+## Documents Module (Lean + Related Tables)
 
 ### documents
-File storage with polymorphic attachments to ANY entity.
+Core document metadata only. Related data in separate tables.
 
 ```typescript
 {
   id: string (PK)
-
-  // POLYMORPHIC RELATIONSHIP - Can attach to any entity
-  attachedToType: 'board' | 'meeting' | 'agenda_item' | 'action_item' | 'user' | 'vote' | 'minutes' | null
-  attachedToId: string | null
-
-  // Document hierarchy (optional)
-  parentDocumentId: string | null (FK → documents)
-
-  // File details
-  fileName: string
-  originalFileName: string
-  fileSize: number // bytes
-  mimeType: string
-  fileExtension: string
-  storageUrl: string
-  storagePath: string
-
-  // Categorization
-  documentType: 'agenda' | 'minutes' | 'confirmation' | 'financial_report' | 'committee_report' | 'presentation' | 'supporting' | 'contract' | 'policy' | 'other'
-  category: string | null
-  tags: string[] // JSON array
-
-  // Versioning
-  version: string
-  versionNumber: number
-  isLatestVersion: boolean
-
-  // Security & Access Control
-  visibilityLevel: 'public' | 'board_members' | 'meeting_participants' | 'restricted' | 'private'
-  boardId: string | null (FK → boards)
-  isConfidential: boolean
-  requiresWatermark: boolean
-  allowDownload: boolean
-  allowPrint: boolean
-  allowCopy: boolean
-  expiresAt: string | null
-
-  // Digital signature
-  isDigitallySigned: boolean
-  signatureId: string | null (FK → digitalSignatures)
-
-  // Metadata
-  uploadedBy: number (FK → users)
-  uploadedAt: string
-  updatedAt: string
+  name: string
   description: string | null
+  
+  // File Metadata (immutable after upload)
+  fileName: string
+  fileExtension: string
+  fileType: 'pdf' | 'doc' | 'docx' | 'xls' | 'xlsx' | 'ppt' | 'pptx' | 'image' | 'video' | 'audio' | 'other'
+  mimeType: string
+  fileSize: number
+  pageCount: number | null
+  
+  // Storage (immutable)
+  storageProvider: 'local' | 'azure' | 's3' | 'gcs'
+  storageKey: string
+  storageBucket: string | null
+  url: string
+  thumbnailUrl: string | null
+  
+  // Organization
+  categoryId: string (FK → documentCategories)
+  boardId: string | null (FK → boards)
+  
+  // Upload Info
+  uploadedBy: number (FK → users)
+  uploadedByName: string
+  uploadedAt: string
+  source: 'upload' | 'generated' | 'imported' | 'scanned'
+  
+  // Status
+  status: 'draft' | 'active' | 'archived' | 'deleted'
+  
+  // Security
+  watermarkEnabled: boolean
+  
+  // Timestamps
+  createdAt: string
+  updatedAt: string
 }
 ```
 
-**Polymorphic Examples:**
+### documentAttachments
+Links documents to entities (polymorphic).
+
 ```typescript
-// Meeting confirmation document
-{ attachedToType: 'meeting', attachedToId: 'mtg-001' }
+{
+  id: string (PK)
+  documentId: string (FK → documents)
+  
+  // Polymorphic relationship
+  entityType: 'meeting' | 'agenda_item' | 'minutes' | 'action_item' | 'vote' | 'resolution' | 'board'
+  entityId: string
+  
+  // Context
+  attachmentType: 'primary' | 'supporting' | 'reference' | 'generated'
+  displayOrder: number
+  
+  // Metadata
+  attachedBy: number (FK → users)
+  attachedAt: string
+}
+```
 
-// Agenda item presentation
-{ attachedToType: 'agenda_item', attachedToId: 'agenda-001' }
+### documentVersions
+Version history for documents.
 
-// Board policy document
-{ attachedToType: 'board', attachedToId: 'ktda-ms' }
+```typescript
+{
+  id: string (PK)
+  documentId: string (FK → documents)
+  versionNumber: number
+  
+  // File details for this version
+  fileName: string
+  fileSize: number
+  storageKey: string
+  url: string
+  
+  // Change tracking
+  changeDescription: string | null
+  createdBy: number (FK → users)
+  createdAt: string
+  
+  // Status
+  isCurrent: boolean
+}
+```
 
-// User certificate
-{ attachedToType: 'user', attachedToId: '30' }
+### documentSignatures
+Digital signatures on documents.
+
+```typescript
+{
+  id: string (PK)
+  documentId: string (FK → documents)
+  
+  // Signer
+  signedBy: number (FK → users)
+  signerName: string
+  signerRole: string
+  
+  // Signature details
+  signatureHash: string
+  signatureMethod: 'digital' | 'biometric' | 'pin'
+  certificateId: string | null
+  
+  // Verification
+  verified: boolean
+  verificationDate: string | null
+  
+  signedAt: string
+  signatureData: string | null // Base64 image
+}
 ```
 
 ### documentAccessLogs
@@ -434,6 +596,65 @@ Audit trail for document access.
   accessedAt: string
   ipAddress: string | null
   userAgent: string | null
+}
+```
+
+### documentPermissions
+Access control for documents.
+
+```typescript
+{
+  id: string (PK)
+  documentId: string (FK → documents)
+  
+  // Permission target (user or role)
+  targetType: 'user' | 'role' | 'board'
+  targetId: string
+  
+  // Permissions
+  canView: boolean
+  canDownload: boolean
+  canEdit: boolean
+  canDelete: boolean
+  canShare: boolean
+  
+  // Validity
+  expiresAt: string | null
+  
+  grantedBy: number (FK → users)
+  grantedAt: string
+}
+```
+
+### documentCategories
+Document categorization.
+
+```typescript
+{
+  id: string (PK)
+  name: string
+  description: string | null
+  parentId: string | null (FK → documentCategories)
+  boardId: string | null (FK → boards)
+  color: string | null
+  icon: string | null
+  sortOrder: number
+  isSystem: boolean
+  createdAt: string
+  updatedAt: string
+}
+```
+
+### documentTags
+Tags for documents.
+
+```typescript
+{
+  id: string (PK)
+  documentId: string (FK → documents)
+  tag: string
+  createdBy: number (FK → users)
+  createdAt: string
 }
 ```
 
@@ -522,221 +743,325 @@ Items within agenda templates.
 
 ---
 
-## Voting Module (Polymorphic)
+## Voting Module (Event-Sourced)
 
 ### votes
-Vote definitions with polymorphic targets (vote on anything!).
+Lean vote definitions with polymorphic entity relationships.
 
 ```typescript
 {
   id: string (PK)
+  
+  // Polymorphic - what are we voting on?
+  entityType: 'agenda_item' | 'minutes' | 'action_item' | 'resolution'
+  entityId: string
+  
   meetingId: string (FK → meetings)
-
-  // POLYMORPHIC RELATIONSHIP - What are we voting on?
-  voteOnType: 'agenda_item' | 'action_item' | 'meeting_location' | 'policy' | 'resolution' | 'other'
-  voteOnId: string | null
-
+  boardId: string (FK → boards)
+  
   // Vote details
   title: string
-  description: string
-  motionText: string
-
-  // Configuration
-  voteType: 'yes_no_abstain' | 'multiple_choice' | 'ranking' | 'approval'
-  ballotType: 'open' | 'secret'
-  allowChangeVote: boolean
-
-  // Eligibility (board-specific)
-  boardId: string (FK → boards)
-  quorumRequired: number
-  passingThreshold: number // percentage
+  description: string | null
 
   // Status
-  status: 'draft' | 'open' | 'closed' | 'cancelled'
-  openedAt: string | null
-  closedAt: string | null
-  reopenedAt: string | null
-
-  // Results
-  totalEligibleVoters: number
-  totalVotesCast: number
-  yesVotes: number | null
-  noVotes: number | null
-  abstainVotes: number | null
-  quorumMet: boolean
-  passed: boolean
-  result: string | null
-
+  status: 'draft' | 'configured' | 'open' | 'closed' | 'archived'
+  outcome: 'passed' | 'failed' | 'invalid' | null
+  
   // Metadata
   createdBy: number (FK → users)
+  createdByName: string
   createdAt: string
-  updatedAt: string
+  openedAt: string | null
+  closedAt: string | null
 }
 ```
 
-**Polymorphic Examples:**
-```typescript
-// Vote on agenda item
-{ voteOnType: 'agenda_item', voteOnId: 'agenda-001' }
-
-// Vote on meeting location
-{ voteOnType: 'meeting_location', voteOnId: null, voteType: 'multiple_choice' }
-
-// Vote on policy
-{ voteOnType: 'policy', voteOnId: 'policy-001' }
-
-// Vote on action item completion
-{ voteOnType: 'action_item', voteOnId: 'action-001' }
-```
-
-### voteOptions
-Options for multiple choice votes.
+### voteConfigurations
+Immutable voting rules snapshot - locked after voting opens.
 
 ```typescript
 {
   id: string (PK)
   voteId: string (FK → votes)
-  optionText: string
-  optionDescription: string | null
-  orderIndex: number
-  voteCount: number
+  
+  // Voting method
+  votingMethod: 'yes_no' | 'yes_no_abstain' | 'multiple_choice' | 'ranked'
+  
+  // Quorum and threshold
+  quorumRequired: boolean
+  quorumPercentage: number
+  passThresholdPercentage: number
+  passingRule: 'simple_majority' | 'two_thirds' | 'three_quarters' | 'unanimous'
+  
+  // Options
+  anonymous: boolean
+  allowAbstain: boolean
+  allowChangeVote: boolean
+  timeLimit: number | null // seconds
+  autoCloseWhenAllVoted: boolean
+  
+  createdAt: string
 }
 ```
 
-### voteCasts
-Individual vote records.
+### voteOptions
+Choices available for each vote.
+
+```typescript
+{
+  id: string (PK)
+  voteId: string (FK → votes)
+  label: string
+  description: string | null
+  displayOrder: number
+}
+```
+
+### voteEligibility
+Defines who can vote with their weights.
 
 ```typescript
 {
   id: string (PK)
   voteId: string (FK → votes)
   userId: number (FK → users)
+  userName: string
+  userRole: string
+  weight: number // default 1.0
+  eligible: boolean
+}
+```
 
-  // Vote choice
-  choiceType: 'yes' | 'no' | 'abstain' | 'option' | 'ranking'
-  choiceValue: string | null // option ID or JSON array for ranking
+### votesCast
+Append-only record of every vote cast. NEVER updated or deleted.
 
-  // Proxy (future)
-  isProxyVote: boolean
-  proxyGrantedBy: number | null (FK → users)
+```typescript
+{
+  id: string (PK)
+  voteId: string (FK → votes)
+  optionId: string (FK → voteOptions)
+  userId: number | null // null if anonymous
+  userName: string | null
+  weightApplied: number
+  castAt: string
+  ipAddress: string | null
+  userAgent: string | null
+}
+```
 
-  // Metadata
-  castedAt: string
-  updatedAt: string | null
+### voteResults
+Cached computed results - DERIVED from votesCast. For performance only.
+
+```typescript
+// Per-option results
+{
+  voteId: string (FK → votes)
+  optionId: string (FK → voteOptions)
+  optionLabel: string
+  totalWeight: number
+  voteCount: number
+  percentage: number
+  isWinner: boolean
+}
+
+// Summary results
+{
+  voteId: string (FK → votes)
+  totalEligible: number
+  totalVoted: number
+  totalWeight: number
+  quorumRequired: number
+  quorumMet: boolean
+  thresholdPercentage: number
+  outcome: 'passed' | 'failed' | 'invalid'
+  computedAt: string
+}
+```
+
+### voteActions
+Audit log - captures EVERY action in voting lifecycle.
+
+```typescript
+{
+  id: string (PK)
+  voteId: string (FK → votes)
+  actionType: 'created' | 'configured' | 'opened' | 'vote_cast' | 'vote_changed' | 'closed' | 'results_generated' | 'reopened' | 'archived'
+  performedBy: number (FK → users)
+  performedByName: string
+  metadata: Record<string, any> | null // JSON for action-specific data
+  createdAt: string
 }
 ```
 
 ---
 
-## Minutes & Actions Module
+## Minutes Module
 
-### meetingMinutes
-Meeting minutes (tightly coupled to meetings, one-to-one).
-
-```typescript
-{
-  id: string (PK)
-  meetingId: string (FK → meetings) // One-to-one
-
-  // Content
-  content: string // rich text JSON/HTML
-  summary: string | null
-
-  // Structured sections (JSON)
-  sections: {
-    attendance: string | null
-    approvalOfPreviousMinutes: string | null
-    mattersArising: string | null
-    agendaDiscussions: string | null
-    decisionsAndResolutions: string | null
-    actionItems: string | null
-    nextMeetingDate: string | null
-    adjournmentTime: string | null
-  }
-
-  // Workflow
-  status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'published'
-  submittedAt: string | null
-  submittedBy: number | null (FK → users)
-  approvedAt: string | null
-  approvedBy: number | null (FK → users)
-  publishedAt: string | null
-
-  // Generated document
-  pdfDocumentId: string | null (FK → documents)
-
-  // Metadata
-  createdBy: number (FK → users)
-  createdAt: string
-  updatedAt: string
-  lastAutoSaveAt: string
-}
-```
-
-### minutesComments
-Review comments on minutes.
-
-```typescript
-{
-  id: string (PK)
-  minutesId: string (FK → meetingMinutes)
-  userId: number (FK → users)
-
-  // Comment details
-  commentText: string
-  commentType: 'suggestion' | 'correction' | 'question' | 'approval' | 'rejection'
-  section: string | null
-
-  // Resolution
-  resolved: boolean
-  resolvedBy: number | null (FK → users)
-  resolvedAt: string | null
-  resolution: string | null
-
-  // Metadata
-  createdAt: string
-  updatedAt: string
-}
-```
-
-### actionItems
-Task assignments from meetings (per meeting or per agenda item).
+### minutes
+Meeting minutes with workflow status tracking.
 
 ```typescript
 {
   id: string (PK)
   meetingId: string (FK → meetings)
 
-  // Optional links
-  minutesId: string | null (FK → meetingMinutes)
-  agendaItemId: string | null (FK → agendaItems)
-  parentActionItemId: string | null (FK → actionItems) // for sub-tasks
+  // Content
+  content: string // Rich HTML content
+  contentPlainText: string // Plain text for search
 
-  // Task details
+  // Template used (optional)
+  templateId: string | null
+
+  // Status workflow
+  status: 'draft' | 'pending_review' | 'revision_requested' | 'approved' | 'published'
+
+  // Workflow tracking - Creation
+  createdBy: number (FK → users)
+  createdAt: string
+  updatedAt: string
+
+  // Workflow tracking - Submission
+  submittedAt: string | null
+  submittedBy: number | null (FK → users)
+
+  // Workflow tracking - Approval
+  approvedAt: string | null
+  approvedBy: number | null (FK → users)
+  approvalNotes: string | null
+
+  // Workflow tracking - Revision
+  revisionRequestedAt: string | null
+  revisionRequestedBy: number | null (FK → users)
+  revisionReason: string | null
+
+  // Workflow tracking - Publishing
+  publishedAt: string | null
+  publishedBy: number | null (FK → users)
+
+  // Version tracking
+  version: number
+
+  // Generated assets
+  pdfUrl: string | null
+
+  // Settings
+  allowComments: boolean
+  reviewDeadline: string | null
+
+  // Metadata
+  wordCount: number
+  estimatedReadTime: number // minutes
+}
+```
+
+### minutesComments
+Review comments and feedback on meeting minutes.
+
+```typescript
+{
+  id: string (PK)
+  minutesId: string (FK → minutes)
+
+  // Comment content
+  comment: string
+  commentType: 'general' | 'section' | 'highlight'
+
+  // Reference to content
+  sectionReference: string | null
+  highlightedText: string | null
+  textPosition: { start: number, end: number } | null
+
+  // Author
+  createdBy: number (FK → users)
+  createdAt: string
+  updatedAt: string | null
+
+  // Status
+  resolved: boolean
+  resolvedAt: string | null
+  resolvedBy: number | null (FK → users)
+
+  // Threading (for replies)
+  parentCommentId: string | null (FK → minutesComments)
+
+  // Secretary response
+  secretaryResponse: string | null
+  respondedAt: string | null
+  respondedBy: number | null (FK → users)
+}
+```
+
+### minutesSignatures
+Digital signatures for approved and published minutes.
+
+```typescript
+{
+  id: string (PK)
+  minutesId: string (FK → minutes)
+
+  // Signer
+  signedBy: number (FK → users)
+  signerRole: string
+  signerName: string
+
+  // Digital signature
+  signatureHash: string
+  signatureMethod: 'digital' | 'biometric' | 'pin'
+  certificateId: string | null
+
+  // Verification
+  verified: boolean
+  verificationDate: string | null
+
+  signedAt: string
+
+  // Optional: Image/data
+  signatureData: string | null // Base64
+}
+```
+
+---
+
+## Action Items Module
+
+### actionItems
+Tasks and action items from meetings and minutes.
+
+```typescript
+{
+  id: string (PK)
+
+  // Source tracking (polymorphic)
+  source: 'minutes' | 'meeting' | 'agenda_item' | 'manual'
+  sourceId: string | null
+  meetingId: string (FK → meetings)
+  boardId: string (FK → boards)
+
+  // Action details
   title: string
-  description: string
-  priority: 'low' | 'medium' | 'high' | 'critical'
+  description: string | null
 
   // Assignment
   assignedTo: number (FK → users)
   assignedBy: number (FK → users)
+
+  // Timeline
   dueDate: string
-  reminderDays: number | null
+  priority: 'low' | 'medium' | 'high' | 'urgent'
 
   // Status
-  status: 'open' | 'in_progress' | 'blocked' | 'completed' | 'cancelled' | 'overdue'
+  status: 'open' | 'in_progress' | 'completed' | 'cancelled'
   completedAt: string | null
+  completedBy: number | null (FK → users)
   completionNotes: string | null
 
-  // Progress
-  progressPercentage: number // 0-100
-  estimatedHours: number | null
-  actualHours: number | null
+  // Related entities
+  relatedAgendaItemId: string | null (FK → agendaItems)
+  relatedDocumentIds: string // JSON array
 
-  // Approval
-  requiresApproval: boolean
-  approvedBy: number | null (FK → users)
-  approvedAt: string | null
+  // Reminders
+  reminderSent: boolean
+  lastReminderSentAt: string | null
 
   // Metadata
   createdAt: string
@@ -744,27 +1069,50 @@ Task assignments from meetings (per meeting or per agenda item).
 }
 ```
 
-### actionItemUpdates
-Progress tracking for action items.
+---
+
+## Resolutions Module
+
+### resolutions
+Formal board decisions and resolutions from meetings.
 
 ```typescript
 {
   id: string (PK)
-  actionItemId: string (FK → actionItems)
-  userId: number (FK → users)
+  meetingId: string (FK → meetings)
+  boardId: string (FK → boards)
 
-  // Update details
-  updateType: 'progress' | 'comment' | 'status_change' | 'completion' | 'attachment'
-  content: string
+  // Resolution details
+  resolutionNumber: string // e.g., 'RES-KTDA-2026-001'
+  title: string
+  text: string // Full resolution text
+  category: 'policy' | 'financial' | 'operational' | 'strategic' | 'governance' | 'other'
 
-  // Status change tracking
-  oldStatus: string | null
-  newStatus: string | null
-  oldProgress: number | null
-  newProgress: number | null
+  // Decision
+  decision: 'approved' | 'rejected' | 'tabled' | 'withdrawn' | 'consensus'
+  decisionDate: string
+
+  // Voting (optional - some resolutions are by consensus)
+  voteId: string | null (FK → votes)
+  voteSummary: string | null
+
+  // Related entities
+  agendaItemId: string | null (FK → agendaItems)
+  relatedDocumentIds: string // JSON array
+
+  // Follow-up
+  requiresFollowUp: boolean
+  followUpDeadline: string | null
+  followUpNotes: string | null
+
+  // Implementation tracking
+  implementationStatus: 'pending' | 'in_progress' | 'completed' | 'cancelled'
+  implementedAt: string | null
 
   // Metadata
+  createdBy: number (FK → users)
   createdAt: string
+  updatedAt: string
 }
 ```
 
@@ -1039,16 +1387,18 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
 
 ## Total Table Count
 
-- **Core**: 6 tables (implemented)
-- **Meetings**: 2 tables
-- **Documents**: 2 tables
-- **Agenda**: 3 tables
-- **Voting**: 3 tables
-- **Minutes & Actions**: 4 tables
+- **Core**: 10 tables (boards, boardTypes, users, userBoardRoles, roles, permissions, rolePermissions, boardSettings, boardBranding, userSessions)
+- **Meetings**: 4 tables (meetings, meetingParticipants, meetingEvents, meetingTypes)
+- **Documents**: 8 tables (documents, documentAttachments, documentVersions, documentSignatures, documentAccessLogs, documentPermissions, documentCategories, documentTags)
+- **Agenda**: 3 tables (agendas, agendaItems, agendaTemplates)
+- **Voting**: 7 tables (votes, voteConfigurations, voteOptions, voteEligibility, votesCast, voteResults, voteActions)
+- **Minutes**: 3 tables (minutes, minutesComments, minutesSignatures)
+- **Action Items**: 1 table (actionItems)
+- **Resolutions**: 1 table (resolutions)
 - **Notifications**: 2 tables
 - **Digital Signatures**: 1 table
 
-**Total: 23 tables**
+**Total: 40 tables**
 
 ---
 

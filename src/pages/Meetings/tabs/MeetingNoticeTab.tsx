@@ -27,10 +27,10 @@ import {
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 
-import type { Meeting, MeetingConfirmationHistory } from '../../../types/meeting.types';
-import { CONFIRMATION_EVENT_LABELS, REJECTION_REASON_LABELS } from '../../../types/meeting.types';
+import type { Meeting, MeetingEvent } from '../../../types/meeting.types';
+import { MEETING_EVENT_LABELS, REJECTION_REASON_LABELS } from '../../../types/meeting.types';
 import { useBoardContext } from '../../../contexts';
-import { useConfirmationHistory } from '../../../hooks/api/useMeetings';
+import { useMeetingEvents } from '../../../hooks/api/useMeetings';
 import { useAgenda } from '../../../hooks/api/useAgenda';
 import { MeetingNoticeDocument } from '../../../components/Meetings';
 import { getConfirmationDisplayInfo } from '../../../utils/confirmationWorkflow';
@@ -51,19 +51,22 @@ export const MeetingNoticeTab: React.FC<MeetingNoticeTabProps> = ({
   const screens = useBreakpoint();
   const { theme, logo, currentBoard } = useBoardContext();
   
-  const { data: historyData, isLoading: historyLoading } = useConfirmationHistory(meeting.id);
+  const { data: eventsData, isLoading: eventsLoading } = useMeetingEvents(meeting.id);
   const { data: agendaData } = useAgenda(meeting.id);
   
   const isMobile = !screens.md;
-  const confirmationHistory = historyData?.data || [];
+  const meetingEvents = eventsData?.data || [];
   const agendaItems = agendaData?.items || [];
   
   // Get confirmation display info for the document
+  // Pass meetingEvents array so it uses fresh React Query data instead of stale mock table
   const confirmationInfo = getConfirmationDisplayInfo(
     meeting.id,
     Number(meeting.createdBy),
     meeting.createdByName || 'Board Secretary',
-    meeting.createdAt
+    meeting.createdAt,
+    meeting.boardId,
+    meetingEvents
   );
 
   // Timeline item color based on event type
@@ -78,10 +81,10 @@ export const MeetingNoticeTab: React.FC<MeetingNoticeTabProps> = ({
     return colors[eventType] || 'gray';
   };
 
-  // Determine status display
-  const isPending = meeting.status === 'pending_confirmation';
-  const isConfirmed = meeting.status === 'scheduled' || meeting.status === 'confirmed';
-  const isRejected = meeting.status === 'rejected';
+  // Determine status display (using new status+subStatus model)
+  const isPending = meeting.status === 'scheduled' && meeting.subStatus === 'pending_approval';
+  const isConfirmed = meeting.status === 'scheduled' && meeting.subStatus === 'approved';
+  const isRejected = meeting.status === 'scheduled' && meeting.subStatus === 'rejected';
 
   const getStatusIcon = () => {
     if (isPending) return <ExclamationCircleOutlined style={{ color: '#faad14', fontSize: 20 }} />;
@@ -91,16 +94,19 @@ export const MeetingNoticeTab: React.FC<MeetingNoticeTabProps> = ({
   };
 
   const getStatusText = () => {
-    if (isPending) return 'Pending Confirmation';
-    if (isConfirmed) return 'Confirmed';
+    if (isPending) return 'Pending Approval';
+    if (isConfirmed) return 'Approved';
     if (isRejected) return 'Rejected';
-    return meeting.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    // Fallback: format status nicely
+    return meeting.subStatus 
+      ? `${meeting.subStatus}`.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+      : meeting.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
   const getStatusDescription = () => {
     if (isPending) return 'This meeting is awaiting approval from the designated approver.';
-    if (isConfirmed) return `Confirmed ${dayjs(meeting.updatedAt).fromNow()}`;
-    if (isRejected) return 'This meeting confirmation was rejected.';
+    if (isConfirmed) return `Approved ${dayjs(meeting.updatedAt).fromNow()}`;
+    if (isRejected) return 'This meeting was rejected and needs revision.';
     return `Status updated ${dayjs(meeting.updatedAt).fromNow()}`;
   };
 
@@ -155,88 +161,56 @@ export const MeetingNoticeTab: React.FC<MeetingNoticeTabProps> = ({
           title={<Space><HistoryOutlined /> Confirmation History</Space>}
           style={{ marginBottom: 16 }}
           styles={{ body: { padding: 16 } }}
-          loading={historyLoading}
+          loading={eventsLoading}
         >
-          {confirmationHistory.length === 0 ? (
+          {meetingEvents.length === 0 ? (
             <Empty 
-              description="No confirmation history" 
+              description="No event history" 
               image={Empty.PRESENTED_IMAGE_SIMPLE}
               style={{ margin: '16px 0' }}
             />
           ) : (
             <Timeline
               style={{ marginTop: 8 }}
-              items={confirmationHistory.map((event: MeetingConfirmationHistory) => ({
-                color: getTimelineItemColor(event.eventType),
-                children: (
-                  <div>
-                    <Text strong style={{ fontSize: 13 }}>
-                      {CONFIRMATION_EVENT_LABELS[event.eventType]}
-                    </Text>
-                    <br />
-                    <Text type="secondary" style={{ fontSize: 11 }}>
-                      {event.performedByName}
-                    </Text>
-                    <br />
-                    <Text type="secondary" style={{ fontSize: 11 }}>
-                      {dayjs(event.performedAt).format('DD MMM YYYY, HH:mm')}
-                    </Text>
-                    {event.submissionNotes && (
-                      <Paragraph 
-                        type="secondary" 
-                        style={{ fontSize: 11, marginTop: 4, marginBottom: 0 }}
-                      >
-                        {event.submissionNotes}
-                      </Paragraph>
-                    )}
-                    {event.rejectionReason && (
-                      <div style={{ marginTop: 4 }}>
-                        <Tag color="error" style={{ fontSize: 10 }}>
-                          {REJECTION_REASON_LABELS[event.rejectionReason]}
-                        </Tag>
-                        {event.rejectionComments && (
-                          <Paragraph 
-                            type="secondary" 
-                            style={{ fontSize: 11, marginTop: 4, marginBottom: 0 }}
-                          >
-                            {event.rejectionComments}
-                          </Paragraph>
-                        )}
-                      </div>
-                    )}
-                    {/* Document Download Links */}
-                    {(event.unsignedDocumentUrl || event.signedDocumentUrl) && (
-                      <div style={{ marginTop: 8 }}>
-                        <Space size={8}>
-                          {event.unsignedDocumentUrl && (
-                            <Button 
-                              size="small" 
-                              icon={<DownloadOutlined />}
-                              href={event.unsignedDocumentUrl}
-                              target="_blank"
-                              style={{ fontSize: 11 }}
+              items={meetingEvents.map((event: MeetingEvent) => {
+                const metadata = event.metadata as Record<string, unknown> | null;
+                const rejectionReason = metadata?.rejectionReason as string | undefined;
+                const comments = metadata?.comments as string | undefined;
+                
+                return {
+                  color: getTimelineItemColor(event.eventType),
+                  children: (
+                    <div>
+                      <Text strong style={{ fontSize: 13 }}>
+                        {MEETING_EVENT_LABELS[event.eventType] || event.eventType}
+                      </Text>
+                      <br />
+                      <Text type="secondary" style={{ fontSize: 11 }}>
+                        {event.performedByName}
+                      </Text>
+                      <br />
+                      <Text type="secondary" style={{ fontSize: 11 }}>
+                        {dayjs(event.performedAt).format('DD MMM YYYY, HH:mm')}
+                      </Text>
+                      {rejectionReason && (
+                        <div style={{ marginTop: 4 }}>
+                          <Tag color="error" style={{ fontSize: 10 }}>
+                            {REJECTION_REASON_LABELS[rejectionReason as keyof typeof REJECTION_REASON_LABELS] || rejectionReason}
+                          </Tag>
+                          {comments && (
+                            <Paragraph 
+                              type="secondary" 
+                              style={{ fontSize: 11, marginTop: 4, marginBottom: 0 }}
                             >
-                              Draft
-                            </Button>
+                              {comments}
+                            </Paragraph>
                           )}
-                          {event.signedDocumentUrl && (
-                            <Button 
-                              size="small" 
-                              type="primary"
-                              icon={<DownloadOutlined />}
-                              href={event.signedDocumentUrl}
-                              target="_blank"
-                              style={{ fontSize: 11 }}
-                            >
-                              Signed
-                            </Button>
-                          )}
-                        </Space>
-                      </div>
-                    )}
-                  </div>
-                ),
-              }))}
+                        </div>
+                      )}
+                    </div>
+                  ),
+                };
+              })}
             />
           )}
         </Card>

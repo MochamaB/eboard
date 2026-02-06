@@ -6,7 +6,7 @@
 
 import React, { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { message } from 'antd';
+import { message, Alert, Space } from 'antd';
 import {
   CalendarOutlined,
   EditOutlined,
@@ -19,6 +19,7 @@ import {
   FileTextOutlined,
   ClockCircleOutlined,
   TrophyOutlined,
+  PlayCircleOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 
@@ -29,6 +30,10 @@ import { useTabNavigation } from '../../hooks/useTabNavigation';
 import { DetailPageLayout } from '../../components/common';
 import type { MetadataItem, ActionButton } from '../../components/common';
 import type { HorizontalTabItem } from '../../components/common';
+import { MeetingStatusBadge } from '../../components/Meetings/MeetingStatusBadge';
+import { validateMeeting, getMergedRequirements } from '../../utils/meetingValidation';
+import type { ValidationContext } from '../../types/meetingRequirements.types';
+import type { MeetingSubStatus } from '../../types/meeting.types';
 import {
   MeetingNoticeTab,
   MeetingParticipantsTab,
@@ -64,6 +69,41 @@ export const MeetingDetailPage: React.FC = () => {
       meetingPhase.clearMeeting();
     };
   }, [meeting, meetingPhase]);
+
+  // Validate meeting if draft.incomplete
+  const validationResult = useMemo(() => {
+    if (!meeting || meeting.status !== 'draft' || meeting.subStatus !== 'incomplete') {
+      return null;
+    }
+    
+    // Get merged requirements for validation
+    const requirements = getMergedRequirements(
+      currentBoard?.id || '',
+      meeting.meetingType
+    );
+    
+    // Build validation context
+    const context: ValidationContext = {
+      meeting: {
+        id: meeting.id,
+        boardId: meeting.boardId,
+        meetingType: meeting.meetingType,
+        status: meeting.status,
+        subStatus: (meeting.subStatus || 'incomplete') as MeetingSubStatus,
+        participantCount: meeting.participants?.length || 0,
+        expectedAttendees: meeting.expectedAttendees || 0,
+        quorumPercentage: meeting.quorumPercentage || 0,
+        quorumRequired: meeting.quorumRequired || 0,
+        agendaItemCount: 0, // TODO: Get from agenda API
+        documentCount: 0, // TODO: Get from documents API
+        hasChairman: meeting.participants?.some(p => p.boardRole?.toLowerCase().includes('chairman')) || false,
+        hasSecretary: meeting.participants?.some(p => p.boardRole?.toLowerCase().includes('secretary')) || false,
+      },
+      requirements,
+    };
+    
+    return validateMeeting(context);
+  }, [meeting, currentBoard?.id]);
 
   // Tab items
   const tabItems: HorizontalTabItem[] = useMemo(() => {
@@ -114,18 +154,6 @@ export const MeetingDetailPage: React.FC = () => {
   const metadata: MetadataItem[] = useMemo(() => {
     if (!meeting) return [];
 
-    // Status color mapping
-    const statusColors: Record<string, string> = {
-      draft: 'default',
-      pending_confirmation: 'warning',
-      confirmed: 'blue',
-      scheduled: 'cyan',
-      in_progress: 'processing',
-      completed: 'success',
-      cancelled: 'error',
-      rejected: 'error',
-    };
-
     // Meeting type labels
     const typeLabels: Record<string, string> = {
       regular: 'Regular',
@@ -138,9 +166,14 @@ export const MeetingDetailPage: React.FC = () => {
     return [
       {
         label: 'Status',
-        value: meeting.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-        type: 'tag',
-        color: statusColors[meeting.status] || 'default',
+        value: meeting.status,
+        type: 'custom',
+        render: () => (
+          <MeetingStatusBadge 
+            status={meeting.status} 
+            subStatus={meeting.subStatus}
+          />
+        ),
       },
       {
         label: 'Type',
@@ -163,18 +196,51 @@ export const MeetingDetailPage: React.FC = () => {
     ];
   }, [meeting, theme]);
 
-  // Primary action - Join Meeting (for all scheduled/confirmed meetings)
-  // This opens the Meeting Room UI where participants can view agenda, documents, vote, etc.
-  // For physical meetings: No video, just the meeting room interface
-  // For virtual/hybrid: Includes video conferencing features
+  // Primary action - Context-aware based on status + subStatus
   const primaryAction: ActionButton | undefined = useMemo(() => {
     if (!meeting) return undefined;
 
-    // Show Join Meeting for active meeting statuses
-    const joinableStatuses = ['scheduled', 'confirmed', 'in_progress'];
-    if (!joinableStatuses.includes(meeting.status)) {
-      return undefined;
+    // Draft.incomplete - Show validation errors
+    if (meeting.status === 'draft' && meeting.subStatus === 'incomplete') {
+      return {
+        key: 'complete-setup',
+        label: 'Complete Setup',
+        icon: <InfoCircleOutlined />,
+        type: 'default',
+        onClick: () => {
+          message.info('Please complete all required fields to proceed');
+        },
+      };
     }
+
+    // Draft.complete - Submit for approval
+    if (meeting.status === 'draft' && meeting.subStatus === 'complete') {
+      return {
+        key: 'submit',
+        label: 'Submit for Approval',
+        icon: <CheckCircleOutlined />,
+        type: 'primary',
+        onClick: () => {
+          message.info('Submit for approval - Coming soon');
+        },
+      };
+    }
+
+    // Scheduled.pending_approval - Approve meeting
+    if (meeting.status === 'scheduled' && meeting.subStatus === 'pending_approval') {
+      return {
+        key: 'approve',
+        label: 'Approve Meeting',
+        icon: <CheckCircleOutlined />,
+        type: 'primary',
+        onClick: () => {
+          message.info('Approve meeting - Coming soon');
+        },
+      };
+    }
+
+    // Scheduled.approved or in_progress - Join Meeting
+    if ((meeting.status === 'scheduled' && meeting.subStatus === 'approved') || meeting.status === 'in_progress') {
 
     // Determine button label based on location type
     const getButtonLabel = () => {
@@ -189,73 +255,110 @@ export const MeetingDetailPage: React.FC = () => {
       }
     };
 
-    return {
-      key: 'join',
-      label: getButtonLabel(),
-      icon: <VideoCameraOutlined />,
-      type: 'primary',
-      onClick: () => {
-        // TODO: Navigate to Meeting Room UI
-        // For now, if virtual link exists, open it
-        // In future: navigate(`/${currentBoard?.id}/meetings/${meeting.id}/room`)
-        if (meeting.virtualMeetingLink && meeting.locationType !== 'physical') {
-          window.open(meeting.virtualMeetingLink, '_blank');
-        } else {
-          message.info('Meeting Room UI - Coming soon');
-        }
-      },
-    };
-  }, [meeting]);
+      return {
+        key: 'join',
+        label: getButtonLabel(),
+        icon: <VideoCameraOutlined />,
+        type: 'primary',
+        onClick: () => {
+          if (meeting.virtualMeetingLink && meeting.locationType !== 'physical') {
+            window.open(meeting.virtualMeetingLink, '_blank');
+          } else {
+            message.info('Meeting Room UI - Coming soon');
+          }
+        },
+      };
+    }
 
-  // Dropdown actions
+    // Completed.recent - Archive meeting
+    if (meeting.status === 'completed' && meeting.subStatus === 'recent') {
+      return {
+        key: 'archive',
+        label: 'Archive Meeting',
+        icon: <CheckCircleOutlined />,
+        type: 'default',
+        onClick: () => {
+          message.info('Archive meeting - Coming soon');
+        },
+      };
+    }
+
+    return undefined;
+  }, [meeting, currentBoard?.id]);
+
+  // Dropdown actions - Context-aware based on status
   const dropdownActions: MenuProps['items'] = useMemo(() => {
     if (!meeting) return [];
 
-    const actions: MenuProps['items'] = [
-      {
+    const actions: MenuProps['items'] = [];
+
+    // Edit - Available for draft and scheduled meetings
+    if (meeting.status === 'draft' || meeting.status === 'scheduled') {
+      actions.push({
         key: 'edit',
         label: 'Edit Meeting',
         icon: <EditOutlined />,
         onClick: () => {
           message.info('Edit meeting - Coming soon');
         },
-      },
-      {
+      });
+    }
+
+    // Reschedule - Available for scheduled meetings
+    if (meeting.status === 'scheduled') {
+      actions.push({
         key: 'reschedule',
         label: 'Reschedule Meeting',
         icon: <ScheduleOutlined />,
         onClick: () => {
           message.info('Reschedule meeting - Coming soon');
         },
-      },
-    ];
+      });
+    }
 
-    // Add confirmation action if needed
-    if (meeting.requiresConfirmation && meeting.status === 'pending_confirmation') {
+    // Reject - Available for pending approval
+    if (meeting.status === 'scheduled' && meeting.subStatus === 'pending_approval') {
       actions.push({
-        key: 'confirm',
-        label: 'Confirm Meeting',
-        icon: <CheckCircleOutlined />,
+        key: 'reject',
+        label: 'Reject Meeting',
+        icon: <StopOutlined />,
+        danger: true,
         onClick: () => {
-          message.info('Confirm meeting - Coming soon');
+          message.info('Reject meeting - Coming soon');
         },
       });
     }
 
-    // Add cancel action
-    actions.push({
-      key: 'divider1',
-      type: 'divider',
-    });
-    actions.push({
-      key: 'cancel',
-      label: 'Cancel Meeting',
-      icon: <StopOutlined />,
-      danger: true,
-      onClick: () => {
-        message.info('Cancel meeting - Coming soon');
-      },
-    });
+    // Start Meeting - Available for approved meetings
+    if (meeting.status === 'scheduled' && meeting.subStatus === 'approved') {
+      actions.push({
+        key: 'start',
+        label: 'Start Meeting',
+        icon: <PlayCircleOutlined />,
+        onClick: () => {
+          message.info('Start meeting - Coming soon');
+        },
+      });
+    }
+
+    // Cancel - Available for draft and scheduled meetings
+    if (meeting.status === 'draft' || meeting.status === 'scheduled') {
+      if (actions.length > 0) {
+        actions.push({
+          key: 'divider1',
+          type: 'divider',
+        });
+      }
+      actions.push({
+        key: 'cancel',
+        label: 'Cancel Meeting',
+        icon: <StopOutlined />,
+        danger: true,
+        onClick: () => {
+          message.info('Cancel meeting - Coming soon');
+        },
+      });
+    }
 
     return actions;
   }, [meeting]);
@@ -265,35 +368,56 @@ export const MeetingDetailPage: React.FC = () => {
     navigate(`/${currentBoard?.id}/meetings`);
   };
 
+  // Render validation errors for draft.incomplete
+  const renderValidationErrors = () => {
+    if (!validationResult || validationResult.isValid) return null;
+
+    return (
+      <Alert
+        type="warning"
+        message="Meeting Configuration Incomplete"
+        description={
+          <Space direction="vertical" size="small" style={{ width: '100%' }}>
+            {validationResult.errors.map((error, index) => (
+              <div key={index}>• {error.message}</div>
+            ))}
+          </Space>
+        }
+        style={{ marginBottom: 16 }}
+        showIcon
+      />
+    );
+  };
+
   // Render tab content using separate tab components
   const renderTabContent = () => {
     if (!meeting) return null;
 
-    switch (activeTab) {
-      case 'notice':
-        return <MeetingNoticeTab meeting={meeting} themeColor={theme.primaryColor} />;
-
-      case 'participants':
-        return <MeetingParticipantsTab meeting={meeting} themeColor={theme.primaryColor} />;
-
-      case 'agenda':
-        return <MeetingAgendaTab meeting={meeting} themeColor={theme.primaryColor} />;
-
-      case 'documents':
-        return <MeetingDocumentsTab meeting={meeting} themeColor={theme.primaryColor} />;
-
-      case 'votes':
-        return <MeetingVotesTab meeting={meeting} themeColor={theme.primaryColor} />;
-
-      case 'minutes':
-        return <MeetingMinutesTab meeting={meeting} themeColor={theme.primaryColor} />;
-
-      case 'activity':
-        return <MeetingActivityTab meeting={meeting} themeColor={theme.primaryColor} />;
-
-      default:
-        return null;
-    }
+    return (
+      <>
+        {renderValidationErrors()}
+        {(() => {
+          switch (activeTab) {
+            case 'notice':
+              return <MeetingNoticeTab meeting={meeting} themeColor={theme.primaryColor} />;
+            case 'participants':
+              return <MeetingParticipantsTab meeting={meeting} themeColor={theme.primaryColor} />;
+            case 'agenda':
+              return <MeetingAgendaTab meeting={meeting} themeColor={theme.primaryColor} />;
+            case 'documents':
+              return <MeetingDocumentsTab meeting={meeting} themeColor={theme.primaryColor} />;
+            case 'votes':
+              return <MeetingVotesTab meeting={meeting} themeColor={theme.primaryColor} />;
+            case 'minutes':
+              return <MeetingMinutesTab meeting={meeting} themeColor={theme.primaryColor} />;
+            case 'activity':
+              return <MeetingActivityTab meeting={meeting} themeColor={theme.primaryColor} />;
+            default:
+              return null;
+          }
+        })()}
+      </>
+    );
   };
 
   return (

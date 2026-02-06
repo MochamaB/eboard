@@ -12,7 +12,10 @@ import { usersTable } from '../mocks/db/tables/users';
 import { getBoardSettingsById, getBoardApproverRoleId } from '../mocks/db/tables/boardSettings';
 import { userBoardRolesTable } from '../mocks/db/tables/userBoardRoles';
 import { getRoleById } from '../mocks/db/tables/roles';
-import { getMeetingConfirmationStatus, type MeetingConfirmationStatus } from '../mocks/db/tables/meetingConfirmationHistory';
+import { getLatestApprovalEvent, getApprovalEvents } from '../mocks/db/queries/meetingQueries';
+import type { MeetingEventRow } from '../mocks/db/tables/meetingEvents';
+import type { MeetingEvent } from '../types/meeting.types';
+import { getDocumentSignatures } from '../mocks/db/tables/documentSignatures';
 import { boardsTable } from '../mocks/db/tables/boards';
 
 // ============================================================================
@@ -277,15 +280,23 @@ export const getBoardDesignatedApprover = (boardId: string): ApproverInfo | null
 
 /**
  * Get confirmation display info for a meeting
- * Combines confirmation status with user details for UI display
+ * Uses meetingEvents to determine approval status and display info
  */
 export const getConfirmationDisplayInfo = (
   meetingId: string,
   createdBy: number,
   createdByName: string,
-  createdAt: string
+  createdAt: string,
+  boardId?: string,
+  meetingEvents?: (MeetingEvent | MeetingEventRow)[]
 ): ConfirmationDisplayInfo => {
-  const status = getMeetingConfirmationStatus(meetingId);
+  // Get the latest approval-related event for this meeting
+  // Use provided events array if available, otherwise query mock table
+  const latestEvent = meetingEvents 
+    ? meetingEvents
+        .filter(e => ['submitted_for_approval', 'approved', 'rejected', 'resubmitted'].includes(e.eventType))
+        .sort((a, b) => new Date(b.performedAt).getTime() - new Date(a.performedAt).getTime())[0]
+    : getLatestApprovalEvent(meetingId);
   
   // Base info - always show prepared by
   const displayInfo: ConfirmationDisplayInfo = {
@@ -297,51 +308,56 @@ export const getConfirmationDisplayInfo = (
     },
   };
 
-  // Determine status
-  if (!status.hasHistory) {
+  // No approval events yet
+  if (!latestEvent) {
     displayInfo.status = 'none';
     return displayInfo;
   }
 
-  if (status.isConfirmed) {
+  // Determine status based on latest event type
+  const eventType = latestEvent.eventType;
+  const metadata = latestEvent.metadata as Record<string, unknown> | null;
+
+  if (eventType === 'approved') {
     displayInfo.status = 'approved';
     
-    // Get approver details
-    const approver = status.confirmedBy ? getUserById(status.confirmedBy) : null;
-    const approverRole = status.latestEvent?.performedBy 
-      ? getUserRoleOnBoard(status.latestEvent.performedBy, '') // We'd need boardId here ideally
+    // Get approver details from event
+    const approver = getUserById(latestEvent.performedBy);
+    const approverRole = boardId 
+      ? getUserRoleOnBoard(latestEvent.performedBy, boardId)
       : null;
+
+    // Get signature image from documentSignatures table
+    let signatureImageUrl: string | undefined;
+    const signedDocId = metadata?.signedDocumentId as string | undefined;
+    if (signedDocId) {
+      const signatures = getDocumentSignatures(signedDocId);
+      if (signatures.length > 0) {
+        signatureImageUrl = signatures[0].signatureData || undefined;
+      }
+    }
 
     displayInfo.approvedBy = {
-      name: approver?.fullName || 'Unknown',
+      name: latestEvent.performedByName || approver?.fullName || 'Unknown',
       title: approverRole ? (ROLE_LABELS[approverRole.code] || approverRole.name) : 'Approver',
-      date: status.confirmedAt || '',
-      signatureId: status.latestEvent?.signatureId || undefined,
-      signatureImageUrl: status.signatureImageUrl || undefined,
+      date: latestEvent.performedAt,
+      signatureId: metadata?.signatureId as string | undefined,
+      signatureImageUrl: signatureImageUrl,
     };
-    displayInfo.signedDocumentUrl = status.signedDocumentUrl || undefined;
-    displayInfo.unsignedDocumentUrl = status.unsignedDocumentUrl || undefined;
     
-  } else if (status.isRejected) {
+  } else if (eventType === 'rejected') {
     displayInfo.status = 'rejected';
     
-    // Get rejector details
-    const rejector = status.latestEvent?.performedBy 
-      ? getUserById(status.latestEvent.performedBy) 
-      : null;
-
     displayInfo.rejectedBy = {
-      name: rejector?.fullName || 'Unknown',
-      reason: status.rejectionReason || 'other',
-      reasonLabel: REJECTION_REASON_LABELS[status.rejectionReason || 'other'] || 'Other',
-      comments: status.rejectionComments || undefined,
-      date: status.latestEvent?.performedAt || '',
+      name: latestEvent.performedByName || 'Unknown',
+      reason: (metadata?.rejectionReason as string) || 'other',
+      reasonLabel: REJECTION_REASON_LABELS[(metadata?.rejectionReason as string) || 'other'] || 'Other',
+      comments: metadata?.comments as string | undefined,
+      date: latestEvent.performedAt,
     };
-    displayInfo.unsignedDocumentUrl = status.unsignedDocumentUrl || undefined;
     
-  } else if (status.isPending) {
+  } else if (eventType === 'submitted_for_approval' || eventType === 'resubmitted') {
     displayInfo.status = 'pending';
-    displayInfo.unsignedDocumentUrl = status.unsignedDocumentUrl || undefined;
   }
 
   return displayInfo;

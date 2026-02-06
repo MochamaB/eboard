@@ -7,12 +7,13 @@ import React, { createContext, useContext, useState, useCallback, useMemo } from
 import type { Meeting, MeetingStatus } from '../types/meeting.types';
 
 export type MeetingPhase = 'pre-meeting' | 'during-meeting' | 'post-meeting';
-export type MeetingPhaseStatus = 'active' | 'completed' | 'cancelled' | 'rejected';
+export type MeetingPhaseStatus = 'active' | 'completed' | 'cancelled' | 'rejected' | 'error';
 
 export interface PhaseInfo {
   phase: MeetingPhase;
   status: MeetingPhaseStatus;
   canProceed: boolean;
+  subStatusLabel?: string;
 }
 
 interface MeetingPhaseContextType {
@@ -27,31 +28,103 @@ interface MeetingPhaseContextType {
 const MeetingPhaseContext = createContext<MeetingPhaseContextType | undefined>(undefined);
 
 /**
- * Determine meeting phase based on status
+ * Determine meeting phase based on status + subStatus
+ * Updated for new status model with 5 primary statuses and contextual subStatuses
  */
-const getPhaseInfo = (meetingStatus: MeetingStatus): PhaseInfo => {
-  switch (meetingStatus) {
-    case 'draft':
-    case 'pending_confirmation':
-    case 'confirmed':
-    case 'scheduled':
-      return { phase: 'pre-meeting', status: 'active', canProceed: true };
-    
-    case 'rejected':
-      return { phase: 'pre-meeting', status: 'rejected', canProceed: true }; // Can resubmit
-    
-    case 'cancelled':
-      return { phase: 'pre-meeting', status: 'cancelled', canProceed: false }; // Terminal
-    
-    case 'in_progress':
-      return { phase: 'during-meeting', status: 'active', canProceed: true };
-    
-    case 'completed':
-      return { phase: 'post-meeting', status: 'completed', canProceed: false }; // Final state
-    
-    default:
-      return { phase: 'pre-meeting', status: 'active', canProceed: true };
+const getPhaseInfo = (meetingStatus: MeetingStatus, subStatus?: string | null): PhaseInfo => {
+  // Handle draft status
+  if (meetingStatus === 'draft') {
+    if (subStatus === 'incomplete') {
+      return { 
+        phase: 'pre-meeting', 
+        status: 'active', 
+        canProceed: true,
+        subStatusLabel: 'Configuration Incomplete'
+      };
+    }
+    if (subStatus === 'complete') {
+      return { 
+        phase: 'pre-meeting', 
+        status: 'active', 
+        canProceed: true,
+        subStatusLabel: 'Ready for Submission'
+      };
+    }
+    return { phase: 'pre-meeting', status: 'active', canProceed: true };
   }
+
+  // Handle scheduled status
+  if (meetingStatus === 'scheduled') {
+    if (subStatus === 'pending_approval') {
+      return { 
+        phase: 'pre-meeting', 
+        status: 'active', 
+        canProceed: true,
+        subStatusLabel: 'Awaiting Approval'
+      };
+    }
+    if (subStatus === 'approved') {
+      return { 
+        phase: 'pre-meeting', 
+        status: 'completed', 
+        canProceed: true,
+        subStatusLabel: 'Approved'
+      };
+    }
+    if (subStatus === 'rejected') {
+      return { 
+        phase: 'pre-meeting', 
+        status: 'rejected', 
+        canProceed: true,
+        subStatusLabel: 'Rejected - Needs Revision'
+      };
+    }
+    return { phase: 'pre-meeting', status: 'active', canProceed: true };
+  }
+
+  // Handle in_progress status
+  if (meetingStatus === 'in_progress') {
+    return { 
+      phase: 'during-meeting', 
+      status: 'active', 
+      canProceed: true,
+      subStatusLabel: 'Meeting in Progress'
+    };
+  }
+
+  // Handle completed status
+  if (meetingStatus === 'completed') {
+    if (subStatus === 'recent') {
+      return { 
+        phase: 'post-meeting', 
+        status: 'active', 
+        canProceed: true,
+        subStatusLabel: 'Post-Meeting Work Active'
+      };
+    }
+    if (subStatus === 'archived') {
+      return { 
+        phase: 'post-meeting', 
+        status: 'completed', 
+        canProceed: false,
+        subStatusLabel: 'Archived'
+      };
+    }
+    return { phase: 'post-meeting', status: 'completed', canProceed: false };
+  }
+
+  // Handle cancelled status (terminal state)
+  if (meetingStatus === 'cancelled') {
+    return { 
+      phase: 'pre-meeting', 
+      status: 'cancelled', 
+      canProceed: false,
+      subStatusLabel: 'Cancelled'
+    };
+  }
+
+  // Default fallback
+  return { phase: 'pre-meeting', status: 'active', canProceed: true };
 };
 
 interface MeetingPhaseProviderProps {
@@ -71,7 +144,7 @@ export const MeetingPhaseProvider: React.FC<MeetingPhaseProviderProps> = ({ chil
 
   const phaseInfo = useMemo(() => {
     if (!meeting) return null;
-    return getPhaseInfo(meeting.status);
+    return getPhaseInfo(meeting.status, meeting.subStatus);
   }, [meeting]);
 
   const value = useMemo<MeetingPhaseContextType>(

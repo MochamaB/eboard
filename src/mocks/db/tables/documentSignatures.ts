@@ -128,6 +128,21 @@ export const documentSignaturesTable: DocumentSignatureRow[] = [
     validatedAt: '2026-01-13T17:15:00Z',
     expiresAt: '2028-01-13T17:15:00Z',
   },
+
+  // MTG-004 Meeting Confirmation - signed by Chairman (cursive signature fallback)
+  {
+    id: 'sig-mtg004-001',
+    documentId: 'doc-MTG-004-confirmation-signed',
+    signedBy: 1,
+    signedByName: 'Chege Kirundi',
+    signedAt: '2026-03-01T11:15:00Z',
+    signatureMethod: 'digital',
+    signatureData: null, // No image - will use cursive text fallback
+    certificateId: 'cert-chairman-001',
+    isValid: true,
+    validatedAt: '2026-03-01T11:15:00Z',
+    expiresAt: null,
+  },
 ];
 
 // ============================================================================

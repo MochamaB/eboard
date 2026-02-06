@@ -36,10 +36,10 @@ import type {
   MeetingFilterParams,
 } from '../../../types/meeting.types';
 import {
-  MEETING_STATUS_LABELS,
   MEETING_TYPE_LABELS,
   LOCATION_TYPE_LABELS,
 } from '../../../types/meeting.types';
+import { MeetingStatusBadge } from '../../../components/Meetings';
 
 const { Text } = Typography;
 
@@ -47,17 +47,8 @@ interface MeetingsTabProps {
   boardId: string;
 }
 
-// Status badge colors mapping
-const STATUS_BADGE_COLORS: Record<MeetingStatus, string> = {
-  draft: 'default',
-  pending_confirmation: 'warning',
-  confirmed: 'blue',
-  scheduled: 'cyan',
-  in_progress: 'processing',
-  completed: 'success',
-  cancelled: 'error',
-  rejected: 'error',
-};
+// Status badge colors mapping - DEPRECATED: Now using MeetingStatusBadge component
+// Kept for reference only
 
 export const MeetingsTab: React.FC<MeetingsTabProps> = ({ boardId }) => {
   const navigate = useNavigate();
@@ -157,9 +148,9 @@ export const MeetingsTab: React.FC<MeetingsTabProps> = ({ boardId }) => {
               <Text strong style={{ fontSize: 13 }}>
                 {LOCATION_TYPE_LABELS[record.locationType]}
               </Text>
-              <Badge
-                status={STATUS_BADGE_COLORS[record.status] as any}
-                text={MEETING_STATUS_LABELS[record.status]}
+              <MeetingStatusBadge
+                status={record.status}
+                subStatus={record.subStatus}
                 style={{ fontSize: 11 }}
               />
             </Space>

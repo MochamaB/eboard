@@ -27,22 +27,11 @@ import {
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 import type { MeetingListItem, MeetingStatus, MeetingType, LocationType } from '../../types/meeting.types';
-import { MEETING_STATUS_LABELS, MEETING_TYPE_LABELS } from '../../types/meeting.types';
+import { MEETING_TYPE_LABELS } from '../../types/meeting.types';
 import { useBoardContext } from '../../contexts';
+import { MeetingStatusBadge } from './MeetingStatusBadge';
 
 const { Text, Title } = Typography;
-
-// Status badge colors (Ant Design preset colors)
-const STATUS_BADGE_COLORS: Record<MeetingStatus, string> = {
-  draft: 'default',
-  pending_confirmation: 'warning',
-  confirmed: 'processing',
-  scheduled: 'cyan',
-  in_progress: 'success',
-  completed: 'success',
-  cancelled: 'error',
-  rejected: 'error',
-};
 
 // Meeting type colors (Ant Design preset colors)
 const MEETING_TYPE_COLORS: Record<MeetingType, string> = {
@@ -71,22 +60,34 @@ export const MeetingCard: React.FC<MeetingCardProps> = ({
   
   const status = meeting.status;
   
-  // Get status-based accent color from theme
-  const getStatusColor = (meetingStatus: MeetingStatus): string => {
+  // Get status-based accent color from theme (updated for new status model)
+  const getStatusColor = (meetingStatus: MeetingStatus, subStatus?: string | null): string => {
+    // Handle combined status + subStatus for more specific colors
+    if (subStatus) {
+      const combinedKey = `${meetingStatus}.${subStatus}`;
+      switch (combinedKey) {
+        case 'draft.incomplete': return theme.textDisabled || '#d9d9d9';
+        case 'draft.complete': return theme.infoColor || '#1890ff';
+        case 'scheduled.pending_approval': return theme.warningColor || '#faad14';
+        case 'scheduled.approved': return theme.successColor || '#52c41a';
+        case 'scheduled.rejected': return theme.errorColor || '#ff4d4f';
+        case 'completed.recent': return theme.successColor || '#52c41a';
+        case 'completed.archived': return theme.textDisabled || '#d9d9d9';
+      }
+    }
+    
+    // Fallback to primary status colors
     switch (meetingStatus) {
       case 'draft': return theme.textDisabled || '#d9d9d9';
-      case 'pending_confirmation': return theme.warningColor || '#faad14';
-      case 'confirmed': return theme.infoColor || '#1890ff';
       case 'scheduled': return theme.primaryColor || '#13c2c2';
       case 'in_progress': return theme.successColor || '#52c41a';
       case 'completed': return theme.successColor || '#52c41a';
       case 'cancelled': return theme.errorColor || '#ff4d4f';
-      case 'rejected': return theme.errorColor || '#ff4d4f';
       default: return theme.primaryColor || '#324721';
     }
   };
   
-  const accentColor = getStatusColor(status);
+  const accentColor = getStatusColor(status, meeting.subStatus);
   
   // Parse date and time
   const meetingDate = dayjs(meeting.startDate);
@@ -160,59 +161,57 @@ export const MeetingCard: React.FC<MeetingCardProps> = ({
       </Tooltip>
     );
 
-    // Status-specific actions
+    // Status-specific actions (updated for new status model)
     switch (status) {
       case 'draft':
         actions.push(
           <Tooltip title="Edit" key="edit">
             <Button type="text" size="small" icon={<EditOutlined style={{ color: infoColor }} />} onClick={handleEdit} />
           </Tooltip>,
-          <Tooltip title="Submit" key="submit">
-            <Button type="text" size="small" icon={<SendOutlined style={{ color: successColor }} />} onClick={(e) => handleAction(e, 'Submit')} />
-          </Tooltip>,
-          <Tooltip title="Delete" key="delete">
-            <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={(e) => handleAction(e, 'Delete')} />
-          </Tooltip>
-        );
-        break;
-      case 'pending_confirmation':
-        actions.push(
-          <Tooltip title="Edit" key="edit">
-            <Button type="text" size="small" icon={<EditOutlined style={{ color: infoColor }} />} onClick={handleEdit} />
-          </Tooltip>,
-          <Tooltip title="Approve" key="approve">
-            <Button type="text" size="small" icon={<CheckOutlined style={{ color: successColor }} />} onClick={(e) => handleAction(e, 'Approve')} />
-          </Tooltip>,
-          <Tooltip title="Reject" key="reject">
-            <Button type="text" size="small" danger icon={<CloseOutlined />} onClick={(e) => handleAction(e, 'Reject')} />
-          </Tooltip>
-        );
-        break;
-      case 'confirmed':
-        actions.push(
-          <Tooltip title="Edit" key="edit">
-            <Button type="text" size="small" icon={<EditOutlined style={{ color: infoColor }} />} onClick={handleEdit} />
-          </Tooltip>,
-          <Tooltip title="Reschedule" key="reschedule">
-            <Button type="text" size="small" icon={<CalendarOutlined style={{ color: warningColor }} />} onClick={(e) => handleAction(e, 'Reschedule')} />
-          </Tooltip>,
-          <Tooltip title="Cancel" key="cancel">
-            <Button type="text" size="small" danger icon={<StopOutlined />} onClick={(e) => handleAction(e, 'Cancel')} />
+          <Tooltip title="Revise" key="revise">
+            <Button type="text" size="small" icon={<EditOutlined style={{ color: warningColor }} />} onClick={(e) => handleAction(e, 'Revise')} />
           </Tooltip>
         );
         break;
       case 'scheduled':
-        actions.push(
-          <Tooltip title="Start" key="start">
-            <Button type="text" size="small" icon={<PlayCircleOutlined style={{ color: successColor }} />} onClick={(e) => handleAction(e, 'Start')} />
-          </Tooltip>,
-          <Tooltip title="Reschedule" key="reschedule">
-            <Button type="text" size="small" icon={<CalendarOutlined style={{ color: warningColor }} />} onClick={(e) => handleAction(e, 'Reschedule')} />
-          </Tooltip>,
-          <Tooltip title="Cancel" key="cancel">
-            <Button type="text" size="small" danger icon={<StopOutlined />} onClick={(e) => handleAction(e, 'Cancel')} />
-          </Tooltip>
-        );
+        // Handle scheduled meetings based on subStatus
+        if (meeting.subStatus === 'pending_approval') {
+          actions.push(
+            <Tooltip title="Edit" key="edit">
+              <Button type="text" size="small" icon={<EditOutlined style={{ color: infoColor }} />} onClick={handleEdit} />
+            </Tooltip>,
+            <Tooltip title="Approve" key="approve">
+              <Button type="text" size="small" icon={<CheckOutlined style={{ color: successColor }} />} onClick={(e) => handleAction(e, 'Approve')} />
+            </Tooltip>,
+            <Tooltip title="Reject" key="reject">
+              <Button type="text" size="small" danger icon={<CloseOutlined />} onClick={(e) => handleAction(e, 'Reject')} />
+            </Tooltip>
+          );
+        } else if (meeting.subStatus === 'approved') {
+          actions.push(
+            <Tooltip title="Edit" key="edit">
+              <Button type="text" size="small" icon={<EditOutlined style={{ color: infoColor }} />} onClick={handleEdit} />
+            </Tooltip>,
+            <Tooltip title="Reschedule" key="reschedule">
+              <Button type="text" size="small" icon={<CalendarOutlined style={{ color: warningColor }} />} onClick={(e) => handleAction(e, 'Reschedule')} />
+            </Tooltip>,
+            <Tooltip title="Cancel" key="cancel">
+              <Button type="text" size="small" danger icon={<StopOutlined />} onClick={(e) => handleAction(e, 'Cancel')} />
+            </Tooltip>
+          );
+        } else if (meeting.subStatus === 'rejected') {
+          actions.push(
+            <Tooltip title="Start" key="start">
+              <Button type="text" size="small" icon={<PlayCircleOutlined style={{ color: successColor }} />} onClick={(e) => handleAction(e, 'Start')} />
+            </Tooltip>,
+            <Tooltip title="Reschedule" key="reschedule">
+              <Button type="text" size="small" icon={<CalendarOutlined style={{ color: warningColor }} />} onClick={(e) => handleAction(e, 'Reschedule')} />
+            </Tooltip>,
+            <Tooltip title="Cancel" key="cancel">
+              <Button type="text" size="small" danger icon={<StopOutlined />} onClick={(e) => handleAction(e, 'Cancel')} />
+            </Tooltip>
+          );
+        }
         break;
       case 'in_progress':
         actions.push(
@@ -229,7 +228,6 @@ export const MeetingCard: React.FC<MeetingCardProps> = ({
         );
         break;
       case 'cancelled':
-      case 'rejected':
         actions.push(
           <Tooltip title="Reschedule" key="reschedule">
             <Button type="text" size="small" icon={<CalendarOutlined style={{ color: warningColor }} />} onClick={(e) => handleAction(e, 'Reschedule')} />
@@ -257,8 +255,8 @@ export const MeetingCard: React.FC<MeetingCardProps> = ({
               {meetingDate.format('DD MMM')} • {startTime.format('h:mm A')}
             </div>
           </div>
-          <Tag color={STATUS_BADGE_COLORS[status]} style={{ marginLeft: 8, flexShrink: 0 }}>
-            {MEETING_STATUS_LABELS[status]}
+          <Tag color={getStatusColor(status, meeting.subStatus)} style={{ marginLeft: 8, flexShrink: 0 }}>
+            <MeetingStatusBadge status={status} subStatus={meeting.subStatus} />
           </Tag>
         </div>
       </Card>
@@ -318,9 +316,9 @@ export const MeetingCard: React.FC<MeetingCardProps> = ({
             >
               {meeting.title}
             </Title>
-            <Tag color={STATUS_BADGE_COLORS[status]} style={{ flexShrink: 0, fontSize: 11 }}>
-              {MEETING_STATUS_LABELS[status]}
-            </Tag>
+            <div style={{ marginBottom: 8 }}>
+              <MeetingStatusBadge status={status} subStatus={meeting.subStatus} />
+            </div>
           </div>
           <Text type="secondary" style={{ fontSize: 12 }}>
             {meeting.boardName}

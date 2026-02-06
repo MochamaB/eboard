@@ -60,12 +60,12 @@ export const MeetingActivityTab: React.FC<MeetingActivityTabProps> = ({
           </Space>
         ),
       });
-    } else if (meeting.status === 'pending_confirmation') {
+    } else if (meeting.status === 'scheduled' && meeting.subStatus === 'pending_approval') {
       activityItems.push({
         dot: <ClockCircleOutlined style={{ color: '#faad14' }} />,
         children: (
           <Space direction="vertical" size={0}>
-            <Text strong>Awaiting Confirmation</Text>
+            <Text strong>Awaiting Approval</Text>
             <Tag color="warning">Pending</Tag>
           </Space>
         ),

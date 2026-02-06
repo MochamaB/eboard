@@ -2,8 +2,11 @@
 
 **Created:** February 4, 2026  
 **Last Updated:** February 4, 2026  
-**Status:** In Progress  
+**Status:** In Progress - Schema Complete  
 **Priority:** High
+
+> **📌 Source of Truth:** See `docs/DATABASE_SCHEMA.md` for finalized table schemas  
+> **📌 Event Mapping:** See `docs/MEETING_LIFECYCLE_EVENTS.md` for all 31 event types
 
 ---
 
@@ -211,6 +214,26 @@ interface MeetingRequirements {
 
 ## 📁 Implementation Checklist
 
+### Phase 0: Schema Definition ✅ COMPLETED
+
+- [x] **0.1 `docs/DATABASE_SCHEMA.md`** ✅
+  - Updated `meetings` table with status + subStatus model
+  - Added `overrides` and `overrideReason` fields
+  - Added `statusUpdatedAt` for caching
+  - Removed embedded confirmation fields (moved to events)
+
+- [x] **0.2 `docs/MEETING_LIFECYCLE_EVENTS.md`** ✅
+  - Mapped all 31 event types across 3 phases
+  - Defined `meetingEvents` table structure
+  - Documented event metadata schemas
+
+- [x] **0.3 Schema Decisions** ✅
+  - `meetingConfirmationHistory` → replaced by `meetingEvents`
+  - Event emission pattern for all state changes
+  - Unified audit trail for entire meeting lifecycle
+
+---
+
 ### Phase A: Foundation (Types & Mock Data)
 
 - [ ] **A1. `src/types/meeting.types.ts`**
@@ -220,26 +243,44 @@ interface MeetingRequirements {
   - Add `ScheduledSubStatus`: `pending_approval`, `approved`, `rejected`
   - Add `CompletedSubStatus`: `recent`, `archived`
   - Update `Meeting` interface to include `subStatus` field
+  - Add `MeetingOverrides` interface
+  - Add `MeetingEventType` union type (31 event types)
 
 - [ ] **A2. `src/mocks/db/tables/meetings.ts`**
   - Update `MeetingStatus` type to 5 values
   - Add `MeetingSubStatus` type
   - Add `subStatus` field to `MeetingRow` interface
+  - Add `overrides` and `overrideReason` fields
+  - Add `statusUpdatedAt` field
   - Update all meeting records with valid status + subStatus combinations
   - Migrate existing statuses:
     - `pending_confirmation` → `scheduled` + `pending_approval`
     - `confirmed` → `scheduled` + `approved`
     - `completed` → `completed` + `recent` or `archived`
 
-- [ ] **A3. `src/mocks/db/queries/meetingQueries.ts`**
+- [ ] **A3. `src/mocks/db/tables/meetingEvents.ts`** ⚠️ NEW FILE
+  - Create `MeetingEventType` type (31 event types)
+  - Create `MeetingEventRow` interface
+  - Create `meetingEventsTable` with sample data
+  - Migrate data from `meetingConfirmationHistory`
+  - Add events for all meeting lifecycle phases
+
+- [ ] **A4. `src/mocks/db/tables/meetingConfirmationHistory.ts`** ⚠️ DEPRECATE
+  - Mark as deprecated
+  - Add migration note pointing to `meetingEvents`
+  - Keep for reference during transition
+
+- [ ] **A5. `src/mocks/db/queries/meetingQueries.ts`**
   - Update status references to use status + subStatus
   - Add query helpers for combined states
   - Update transition validation for new model
+  - Add `getMeetingEvents(meetingId)` query
 
-- [ ] **A4. `src/mocks/handlers/meetings.handlers.ts`**
+- [ ] **A6. `src/mocks/handlers/meetings.handlers.ts`**
   - Update status validation in handlers
   - Ensure transitions follow new flow
   - Handle subStatus in API responses
+  - Emit events to `meetingEvents` on state changes
 
 ---
 
@@ -262,9 +303,10 @@ interface MeetingRequirements {
   - Update to use new status + subStatus model
   - Update `getInitialMeetingStatus()` to return `{ status: 'draft', subStatus: 'incomplete' }`
 
-- [ ] **B4. `src/mocks/db/tables/meetingConfirmationHistory.ts`**
-  - Update event types: `confirmed` → `approved`
-  - Ensure alignment with new model
+- [ ] **B4. Event Emission Integration**
+  - All validation state changes emit to `meetingEvents`
+  - Event types: `configuration_complete`, `submitted_for_approval`, `approved`, `rejected`
+  - Include metadata with validation results
 
 - [ ] **B5. `src/mocks/db/tables/boardSettings.ts`** (UPDATE or CREATE)
   - Add meeting requirements per board
@@ -372,7 +414,8 @@ interface MeetingRequirements {
 
 | Phase | Description | Status | Files |
 |-------|-------------|--------|-------|
-| A | Foundation (Types & Mock Data) | ⬜ Not Started | 4 files |
+| 0 | Schema Definition | ✅ Complete | 2 docs |
+| A | Foundation (Types & Mock Data) | ⬜ Not Started | 6 files |
 | B | Validation Service | ⬜ Not Started | 5 files |
 | C | Context & Phase Indicator | ⬜ Not Started | 2 files |
 | D | UI Components | ⬜ Not Started | 4+ files |
@@ -380,7 +423,7 @@ interface MeetingRequirements {
 | F | API & Hooks | ⬜ Not Started | 2 files |
 | G | Bug Fixes | ⬜ Not Started | 2 files |
 
-**Total Files: ~20-22 files**
+**Total Files: ~25 files**
 
 ---
 
@@ -419,7 +462,9 @@ interface MeetingRequirements {
 1. **TypeScript Errors**: Changing status model will cause errors until all files updated
 2. **Status values removed**: `pending_confirmation`, `confirmed`, `rejected` (now subStatuses)
 3. **New subStatus field**: All meeting queries/displays must handle subStatus
-4. **Meeting interface change**: `subStatus` field added to Meeting type
+4. **Meeting interface change**: `subStatus`, `overrides`, `overrideReason`, `statusUpdatedAt` fields added
+5. **meetingConfirmationHistory deprecated**: Replaced by `meetingEvents` table
+6. **Event emission required**: All state changes must emit events to `meetingEvents`
 
 ---
 
@@ -442,6 +487,8 @@ interface MeetingRequirements {
 - [ ] Mock data is consistent with new model
 - [ ] Validation service prevents invalid transitions
 - [ ] Validation service supports hierarchical overrides
+- [ ] `meetingEvents` table captures all state changes
+- [ ] Event history viewable in meeting detail page
 
 ---
 

@@ -19,12 +19,14 @@ import type { MeetingPhase, MeetingPhaseStatus } from '../../../contexts/Meeting
 interface MeetingPhaseIndicatorProps {
   phase: MeetingPhase;
   status: MeetingPhaseStatus;
+  subStatusLabel?: string;
   compact?: boolean;
 }
 
 export const MeetingPhaseIndicator: React.FC<MeetingPhaseIndicatorProps> = ({
   phase,
   status,
+  subStatusLabel,
   compact = false,
 }) => {
   const { theme } = useBoardContext();
@@ -45,7 +47,8 @@ export const MeetingPhaseIndicator: React.FC<MeetingPhaseIndicatorProps> = ({
   const getStepStatus = (stepIndex: number): 'wait' | 'process' | 'finish' | 'error' => {
     const currentStep = getCurrentStep();
     
-    // Handle special statuses
+    // Handle special statuses (these are phaseInfo.status values, not primary meeting statuses)
+    // 'cancelled' and 'rejected' are mapped from MeetingPhaseContext
     if (status === 'cancelled' || status === 'rejected') {
       if (stepIndex === currentStep) {
         return 'error';
@@ -83,6 +86,17 @@ export const MeetingPhaseIndicator: React.FC<MeetingPhaseIndicatorProps> = ({
           style={{ marginLeft: 8, fontSize: compact ? '10px' : '11px' }}
         >
           REJECTED
+        </Tag>
+      );
+    }
+    // Show subStatus label if available (for active states)
+    if (subStatusLabel && status === 'active') {
+      return (
+        <Tag 
+          color="blue"
+          style={{ marginLeft: 8, fontSize: compact ? '10px' : '11px' }}
+        >
+          {subStatusLabel}
         </Tag>
       );
     }

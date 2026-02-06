@@ -57,9 +57,17 @@ export const checkConfirmationRequired = (
 
 /**
  * Get the initial status for a new meeting based on confirmation requirement
+ * Returns status+subStatus per the new meeting lifecycle model
  */
-export const getInitialMeetingStatus = (requiresConfirmation: boolean): 'pending_confirmation' | 'scheduled' => {
-  return requiresConfirmation ? 'pending_confirmation' : 'scheduled';
+export const getInitialMeetingStatus = (requiresConfirmation: boolean): { 
+  status: 'draft' | 'scheduled'; 
+  subStatus: 'incomplete' | 'approved' 
+} => {
+  // All new meetings start as draft.incomplete
+  // They transition to scheduled.approved if no approval required
+  return requiresConfirmation 
+    ? { status: 'draft', subStatus: 'incomplete' }
+    : { status: 'scheduled', subStatus: 'approved' };
 };
 
 /**

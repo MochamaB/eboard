@@ -16,7 +16,8 @@ import type { DateClickArg } from '@fullcalendar/interaction';
 import { Tooltip, Tag } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import type { MeetingListItem, MeetingStatus, LocationType } from '../../../types/meeting.types';
-import { MEETING_STATUS_LABELS, MEETING_TYPE_LABELS, MEETING_STATUS_COLORS, LOCATION_TYPE_LABELS } from '../../../types/meeting.types';
+import { MEETING_TYPE_LABELS, LOCATION_TYPE_LABELS } from '../../../types/meeting.types';
+import { MeetingStatusBadge } from '../MeetingStatusBadge';
 import { VideoCameraOutlined, EnvironmentOutlined, HomeOutlined } from '@ant-design/icons';
 import { useBoardContext } from '../../../contexts';
 import './MeetingsCalendarView.css';
@@ -37,21 +38,35 @@ export const MeetingsCalendarView: React.FC<MeetingsCalendarViewProps> = ({
   const navigate = useNavigate();
   const { currentBoard, theme } = useBoardContext();
 
-  // Status color mapping (consistent with MeetingDateTimeCard)
-  const STATUS_DOT_COLORS: Record<string, string> = {
-    default: '#d9d9d9',
-    warning: '#faad14',
-    blue: '#1890ff',
-    cyan: '#13c2c2',
-    processing: '#52c41a',
-    success: '#52c41a',
-    error: '#ff4d4f',
-  };
-
-  // Get status color using consistent color scheme
-  const getStatusColor = useCallback((status: MeetingStatus): string => {
-    const colorKey = MEETING_STATUS_COLORS[status] || 'default';
-    return STATUS_DOT_COLORS[colorKey] || STATUS_DOT_COLORS.default;
+  // Get status color based on status + subStatus
+  const getStatusColor = useCallback((status: MeetingStatus, subStatus?: string | null): string => {
+    // Handle combined status + subStatus for more specific colors
+    if (subStatus) {
+      const combinedKey = `${status}.${subStatus}`;
+      const colorMap: Record<string, string> = {
+        'draft.incomplete': '#d9d9d9',
+        'draft.complete': '#1890ff',
+        'scheduled.pending_approval': '#faad14',
+        'scheduled.approved': '#52c41a',
+        'scheduled.rejected': '#ff4d4f',
+        'in_progress.active': '#52c41a',
+        'completed.recent': '#52c41a',
+        'completed.archived': '#d9d9d9',
+      };
+      if (colorMap[combinedKey]) {
+        return colorMap[combinedKey];
+      }
+    }
+    
+    // Fallback to primary status colors
+    const statusColors: Record<MeetingStatus, string> = {
+      draft: '#d9d9d9',
+      scheduled: '#13c2c2',
+      in_progress: '#52c41a',
+      completed: '#52c41a',
+      cancelled: '#ff4d4f',
+    };
+    return statusColors[status] || '#d9d9d9';
   }, []);
 
   // Get location icon
@@ -96,7 +111,7 @@ export const MeetingsCalendarView: React.FC<MeetingsCalendarViewProps> = ({
     });
 
     return sortedMeetings.map((meeting) => {
-      const statusColor = getStatusColor(meeting.status);
+      const statusColor = getStatusColor(meeting.status, meeting.subStatus);
       // Use light background (15% opacity) with colored text like MeetingDateTimeCard
       const bgColor = `${statusColor}15`;
       const textColor = statusColor;
@@ -118,6 +133,7 @@ export const MeetingsCalendarView: React.FC<MeetingsCalendarViewProps> = ({
         extendedProps: {
           meeting: meeting,
           status: meeting.status,
+          subStatus: meeting.subStatus,
           statusColor: statusColor,
           boardName: meeting.boardName,
           locationType: meeting.locationType,
@@ -150,6 +166,7 @@ export const MeetingsCalendarView: React.FC<MeetingsCalendarViewProps> = ({
     const { event } = eventInfo;
     const meeting = event.extendedProps.meeting as MeetingListItem;
     const statusColor = event.extendedProps.statusColor as string;
+    const subStatus = event.extendedProps.subStatus as string | null;
     const isListView = eventInfo.view.type === 'listWeek' || eventInfo.view.type === 'listMonth';
     
     if (isListView) {
@@ -170,8 +187,8 @@ export const MeetingsCalendarView: React.FC<MeetingsCalendarViewProps> = ({
               }}
             >
               <span style={{ width: 5, height: 5, borderRadius: '50%', backgroundColor: statusColor }} />
-              <span style={{ color: statusColor, fontWeight: 500, textTransform: 'uppercase' }}>
-                {MEETING_STATUS_LABELS[meeting.status]}
+              <span style={{ fontSize: 10 }}>
+                <MeetingStatusBadge status={meeting.status} subStatus={subStatus} style={{ fontSize: 10 }} />
               </span>
             </div>
             {/* Location Icon */}
@@ -199,7 +216,7 @@ export const MeetingsCalendarView: React.FC<MeetingsCalendarViewProps> = ({
             <div style={{ fontSize: 12 }}>
               <div>{meeting.boardName}</div>
               <div>{meeting.startTime} • {meeting.duration}min</div>
-              <div>{MEETING_STATUS_LABELS[meeting.status]}</div>
+              <div><MeetingStatusBadge status={meeting.status} subStatus={subStatus} /></div>
               <div>{LOCATION_TYPE_LABELS[meeting.locationType]} • {MEETING_TYPE_LABELS[meeting.meetingType]}</div>
               <div>{meeting.participantCount} participants</div>
             </div>

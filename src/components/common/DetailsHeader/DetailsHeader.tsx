@@ -14,8 +14,9 @@ const { Text, Title } = Typography;
 export interface MetadataItem {
   label: string;
   value: string | number | React.ReactNode;
-  type?: 'text' | 'tag' | 'badge';
+  type?: 'text' | 'tag' | 'badge' | 'custom';
   color?: string;
+  render?: () => React.ReactNode;
 }
 
 export interface ActionButton {
@@ -50,6 +51,10 @@ export const DetailsHeader: React.FC<DetailsHeaderProps> = ({
 }) => {
   const renderMetadataItem = (item: MetadataItem) => {
     const content = item.value;
+
+    if (item.type === 'custom' && item.render) {
+      return item.render();
+    }
 
     if (item.type === 'tag') {
       return (

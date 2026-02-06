@@ -34,15 +34,15 @@ import {
 } from '@ant-design/icons';
 import { useBoardContext } from '../../contexts';
 import { useAuth } from '../../contexts/AuthContext';
-import { useMeeting, useConfirmationHistory } from '../../hooks/api/useMeetings';
+import { useMeeting, useMeetingEvents } from '../../hooks/api/useMeetings';
 import { useAgenda } from '../../hooks/api/useAgenda';
-import { 
-  CONFIRMATION_EVENT_LABELS,
+import {
+  MEETING_EVENT_LABELS,
   REJECTION_REASON_LABELS,
 } from '../../types/meeting.types';
-import type { MeetingConfirmationHistory } from '../../types/meeting.types';
+import type { MeetingEvent } from '../../types/meeting.types';
 import { SignatureModal, RejectionModal } from './components';
-import { MeetingNoticeDocument } from '../../components/Meetings';
+import { MeetingNoticeDocument, MeetingStatusBadge } from '../../components/Meetings';
 import {
   canUserApproveMeeting,
   getUserCertificateStatus,
@@ -66,7 +66,7 @@ export const ApprovalReviewPage: React.FC = () => {
   const [rejectionModalOpen, setRejectionModalOpen] = useState(false);
 
   const { data: meeting, isLoading: meetingLoading, error: meetingError } = useMeeting(meetingId || '');
-  const { data: historyData, isLoading: historyLoading } = useConfirmationHistory(meetingId || '');
+  const { data: eventsData, isLoading: eventsLoading } = useMeetingEvents(meetingId || '');
   const { data: agendaData, isLoading: agendaLoading } = useAgenda(meetingId || '');
 
   // Check if current user can approve this meeting
@@ -85,14 +85,27 @@ export const ApprovalReviewPage: React.FC = () => {
         meeting.id,
         Number(meeting.createdBy),
         meeting.createdByName || 'Board Secretary',
-        meeting.createdAt
+        meeting.createdAt,
+        meeting.boardId
       )
     : undefined;
   
   // Responsive check - must be after all hooks
   const isMobile = !screens.md;
 
-  const confirmationHistory = historyData?.data || [];
+  const meetingEvents = eventsData?.data || [];
+
+  // Recalculate confirmation info with fresh events data
+  const confirmationInfoWithEvents = meeting
+    ? getConfirmationDisplayInfo(
+        meeting.id,
+        Number(meeting.createdBy),
+        meeting.createdByName || 'Board Secretary',
+        meeting.createdAt,
+        meeting.boardId,
+        meetingEvents
+      )
+    : confirmationInfo;
 
   const handleBack = () => {
     navigate(`/${boardId}/approvals`);
@@ -124,7 +137,7 @@ export const ApprovalReviewPage: React.FC = () => {
   // Get agenda items
   const agendaItems = agendaData?.items || [];
 
-  if (meetingLoading || historyLoading || agendaLoading) {
+  if (meetingLoading || eventsLoading || agendaLoading) {
     return (
       <div style={{ padding: 24, textAlign: 'center' }}>
         <Spin size="large" />
@@ -147,7 +160,7 @@ export const ApprovalReviewPage: React.FC = () => {
     );
   }
 
-  const isPending = meeting.status === 'pending_confirmation';
+  const isPending = meeting.status === 'scheduled' && meeting.subStatus === 'pending_approval';
   const canApprove = approverInfo?.canApprove ?? false;
   const hasCertificateIssue = certStatus ? (!certStatus.hasCertificate || certStatus.isExpired) : false;
 
@@ -167,8 +180,13 @@ export const ApprovalReviewPage: React.FC = () => {
       {/* Status Alert */}
       {!isPending && (
         <Alert
-          message="This meeting is no longer pending confirmation"
-          description={`Current status: ${meeting.status}`}
+          message="This meeting is no longer pending approval"
+          description={
+            <Space>
+              <span>Current status:</span>
+              <MeetingStatusBadge status={meeting.status} subStatus={meeting.subStatus} />
+            </Space>
+          }
           type="info"
           showIcon
           style={{ marginBottom: 16 }}
@@ -234,7 +252,8 @@ export const ApprovalReviewPage: React.FC = () => {
             logoUrl={logo}
             mode="approval"
             agendaItems={agendaItems}
-            confirmationInfo={confirmationInfo}
+            confirmationInfo={confirmationInfoWithEvents}
+            approvalStatus={isPending ? 'pending' : meeting.subStatus === 'approved' ? 'approved' : meeting.subStatus === 'rejected' ? 'rejected' : 'none'}
             compact={isMobile}
           />
         </div>
@@ -251,15 +270,13 @@ export const ApprovalReviewPage: React.FC = () => {
               <Space>
                 <ExclamationCircleOutlined 
                   style={{ 
-                    color: isPending ? '#faad14' : meeting.status === 'confirmed' ? '#52c41a' : '#ff4d4f',
+                    color: isPending ? '#faad14' : 
+                           meeting.subStatus === 'approved' ? '#52c41a' : 
+                           meeting.subStatus === 'rejected' ? '#ff4d4f' : '#1890ff',
                     fontSize: 14,
                   }} 
                 />
-                <Text strong style={{ fontSize: 14 }}>
-                  {isPending ? 'Pending Confirmation' : 
-                   meeting.status === 'confirmed' ? 'Confirmed' : 
-                   meeting.status === 'rejected' ? 'Rejected' : meeting.status}
-                </Text>
+                <MeetingStatusBadge status={meeting.status} subStatus={meeting.subStatus} />
               </Space>
               <Text type="secondary" style={{ fontSize: 12 }}>
                 {isPending 
@@ -334,7 +351,7 @@ export const ApprovalReviewPage: React.FC = () => {
             style={{ marginBottom: 16 }}
             styles={{ body: { padding: 16 } }}
           >
-            {confirmationHistory.length === 0 ? (
+            {meetingEvents.length === 0 ? (
               <Empty 
                 description="No history yet" 
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -343,77 +360,45 @@ export const ApprovalReviewPage: React.FC = () => {
             ) : (
               <Timeline
                 style={{ marginTop: 8 }}
-                items={confirmationHistory.map((event: MeetingConfirmationHistory) => ({
-                  color: getTimelineItemColor(event.eventType),
-                  children: (
-                    <div>
-                      <Text strong style={{ fontSize: 13 }}>
-                        {CONFIRMATION_EVENT_LABELS[event.eventType]}
-                      </Text>
-                      <br />
-                      <Text type="secondary" style={{ fontSize: 11 }}>
-                        {event.performedByName}
-                      </Text>
-                      <br />
-                      <Text type="secondary" style={{ fontSize: 11 }}>
-                        {dayjs(event.performedAt).format('DD MMM YYYY, HH:mm')}
-                      </Text>
-                      {event.submissionNotes && (
-                        <Paragraph 
-                          type="secondary" 
-                          style={{ fontSize: 11, marginTop: 4, marginBottom: 0 }}
-                        >
-                          {event.submissionNotes}
-                        </Paragraph>
-                      )}
-                      {event.rejectionReason && (
-                        <div style={{ marginTop: 4 }}>
-                          <Tag color="error" style={{ fontSize: 10 }}>
-                            {REJECTION_REASON_LABELS[event.rejectionReason]}
-                          </Tag>
-                          {event.rejectionComments && (
-                            <Paragraph 
-                              type="secondary" 
-                              style={{ fontSize: 11, marginTop: 4, marginBottom: 0 }}
-                            >
-                              {event.rejectionComments}
-                            </Paragraph>
-                          )}
-                        </div>
-                      )}
-                      {/* Document Download Links */}
-                      {(event.unsignedDocumentUrl || event.signedDocumentUrl) && (
-                        <div style={{ marginTop: 8 }}>
-                          <Space size={8}>
-                            {event.unsignedDocumentUrl && (
-                              <Button 
-                                size="small" 
-                                icon={<DownloadOutlined />}
-                                href={event.unsignedDocumentUrl}
-                                target="_blank"
-                                style={{ fontSize: 11 }}
+                items={meetingEvents.map((event: MeetingEvent) => {
+                  const metadata = event.metadata as Record<string, unknown> | null;
+                  const rejectionReason = metadata?.rejectionReason as string | undefined;
+                  const comments = metadata?.comments as string | undefined;
+                  
+                  return {
+                    color: getTimelineItemColor(event.eventType),
+                    children: (
+                      <div>
+                        <Text strong style={{ fontSize: 13 }}>
+                          {MEETING_EVENT_LABELS[event.eventType] || event.eventType}
+                        </Text>
+                        <br />
+                        <Text type="secondary" style={{ fontSize: 11 }}>
+                          {event.performedByName}
+                        </Text>
+                        <br />
+                        <Text type="secondary" style={{ fontSize: 11 }}>
+                          {dayjs(event.performedAt).format('DD MMM YYYY, HH:mm')}
+                        </Text>
+                        {rejectionReason && (
+                          <div style={{ marginTop: 4 }}>
+                            <Tag color="error" style={{ fontSize: 10 }}>
+                              {REJECTION_REASON_LABELS[rejectionReason as keyof typeof REJECTION_REASON_LABELS] || rejectionReason}
+                            </Tag>
+                            {comments && (
+                              <Paragraph 
+                                type="secondary" 
+                                style={{ fontSize: 11, marginTop: 4, marginBottom: 0 }}
                               >
-                                Draft
-                              </Button>
+                                {comments}
+                              </Paragraph>
                             )}
-                            {event.signedDocumentUrl && (
-                              <Button 
-                                size="small" 
-                                type="primary"
-                                icon={<DownloadOutlined />}
-                                href={event.signedDocumentUrl}
-                                target="_blank"
-                                style={{ fontSize: 11 }}
-                              >
-                                Signed
-                              </Button>
-                            )}
-                          </Space>
-                        </div>
-                      )}
-                    </div>
-                  ),
-                }))}
+                          </div>
+                        )}
+                      </div>
+                    ),
+                  };
+                })}
               />
             )}
           </Card>

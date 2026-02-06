@@ -2,6 +2,8 @@
  * Board Settings Table - Configuration for each board
  */
 
+import type { MeetingRequirements } from '../../../types/meetingRequirements.types';
+
 export interface BoardSettingsRow {
   boardId: string;
   quorumPercentage: number;
@@ -15,6 +17,20 @@ export interface BoardSettingsRow {
   minMeetingsPerYear: number;
   allowVirtualMeetings: boolean;
   requireAttendanceTracking: boolean;
+
+  // Meeting requirements (for validation service)
+  meetingRequirements?: Partial<MeetingRequirements>;
+  
+  // Meeting type specific requirements
+  meetingTypeRequirements?: Record<string, Partial<MeetingRequirements>>;
+  
+  // Override permissions
+  overridePermissions?: {
+    allowSecretarySkipAgenda: boolean;
+    allowSecretarySkipDocuments: boolean;
+    requireApprovalForOverrides: boolean;
+    allowedOverrideRoles: string[];
+  };
 }
 
 // ============================================================================
