@@ -1,19 +1,24 @@
 /**
  * Meeting Participants Tab
  * Displays participant list with RSVP status and attendance tracking
+ * Uses ParticipantSelector for editable states, read-only table for approved/completed
  */
 
-import React from 'react';
-import { Table, Tag, Avatar, Space, Typography, Card, Progress, Row, Col, Statistic } from 'antd';
+import React, { useState, useCallback } from 'react';
+import { Table, Tag, Avatar, Space, Typography, Card, Progress, Row, Col, Statistic, Alert, Button } from 'antd';
 import {
   UserOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
   QuestionCircleOutlined,
   ClockCircleOutlined,
+  StopOutlined,
+  SaveOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { Meeting, MeetingParticipant } from '../../../types/meeting.types';
+import { useMeetingPermissions } from '../../../hooks/meetings';
+import { ParticipantSelector, type SelectedParticipant } from '../../../components/common/ParticipantSelector/ParticipantSelector';
 
 const { Text } = Typography;
 
@@ -26,7 +31,59 @@ export const MeetingParticipantsTab: React.FC<MeetingParticipantsTabProps> = ({
   meeting,
   themeColor = '#1890ff',
 }) => {
+  const permissions = useMeetingPermissions();
   const participants = meeting.participants || [];
+  
+  // Debug logging
+  console.log('MeetingParticipantsTab - Meeting Status:', meeting.status, meeting.subStatus);
+  console.log('MeetingParticipantsTab - Permissions:', permissions);
+  console.log('MeetingParticipantsTab - canEditParticipants:', permissions.canEditParticipants);
+  
+  // Local state for participant editing
+  const [selectedParticipants, setSelectedParticipants] = useState<SelectedParticipant[]>([]);
+  const [hasChanges, setHasChanges] = useState(false);
+  
+  // Determine if editable - with fallback logic based on meeting status
+  // Editable if: draft.* OR scheduled.pending_approval OR scheduled.rejected
+  const isEditableByStatus = 
+    meeting.status === 'draft' || 
+    (meeting.status === 'scheduled' && (meeting.subStatus === 'pending_approval' || meeting.subStatus === 'rejected'));
+  
+  // Use permission if available, otherwise fall back to status check
+  const isEditable = permissions.canEditParticipants || isEditableByStatus;
+  
+  const isCancelled = meeting.status === 'cancelled';
+  const isApproved = meeting.status === 'scheduled' && meeting.subStatus === 'approved';
+  const isCompleted = meeting.status === 'completed';
+  
+  console.log('MeetingParticipantsTab - isEditableByStatus:', isEditableByStatus);
+  console.log('MeetingParticipantsTab - Final isEditable:', isEditable);
+  
+  // Convert meeting participants to SelectedParticipant format
+  const mapToSelectedParticipant = useCallback((p: MeetingParticipant): SelectedParticipant => ({
+    id: p.id,
+    userId: p.userId,
+    name: p.name,
+    email: p.email,
+    avatar: p.avatar,
+    role: p.boardRole,
+    roleName: p.boardRole.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+    isGuest: p.isGuest,
+    guestRole: p.guestRole,
+  }), []);
+  
+  // Handle participant changes
+  const handleParticipantsChange = useCallback((newParticipants: SelectedParticipant[]) => {
+    setSelectedParticipants(newParticipants);
+    setHasChanges(true);
+  }, []);
+  
+  // Handle save
+  const handleSave = useCallback(() => {
+    // TODO: Implement API call to update participants
+    console.log('Saving participants:', selectedParticipants);
+    setHasChanges(false);
+  }, [selectedParticipants]);
 
   // Calculate RSVP stats
   const rsvpStats = {
@@ -123,8 +180,75 @@ export const MeetingParticipantsTab: React.FC<MeetingParticipantsTabProps> = ({
 
   return (
     <div style={{ padding: '8px 0' }}>
-      {/* RSVP Summary */}
-      <Card size="small" style={{ marginBottom: 16 }}>
+      {/* Editable Mode: Use ParticipantSelector */}
+      {isEditable && (
+        <>
+          <Card size="small" style={{ marginBottom: 16 }}>
+            <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+              <Typography.Text strong>Manage Participants</Typography.Text>
+              {hasChanges && (
+                <Button 
+                  type="primary" 
+                  icon={<SaveOutlined />}
+                  onClick={handleSave}
+                  size="small"
+                >
+                  Save Changes
+                </Button>
+              )}
+            </Space>
+          </Card>
+          
+          <ParticipantSelector
+            boardId={meeting.boardId}
+            value={selectedParticipants.length > 0 ? selectedParticipants : participants.map(mapToSelectedParticipant)}
+            onChange={handleParticipantsChange}
+            defaultSelected="none"
+            showQuorumSettings={true}
+            quorumPercentage={meeting.quorumPercentage}
+            allowGuests={true}
+            allowRemoveRequired={false}
+          />
+        </>
+      )}
+      
+      {/* Read-Only Mode: Show RSVP Summary and Table */}
+      {!isEditable && (
+        <>
+          {/* Status Banners */}
+          {isCancelled && (
+            <Alert
+              message="Meeting Cancelled"
+              description="This meeting has been cancelled. Participant list is read-only."
+              type="warning"
+              icon={<StopOutlined />}
+              showIcon
+              style={{ marginBottom: 16 }}
+            />
+          )}
+          
+          {isApproved && (
+            <Alert
+              message="Participant List Finalized"
+              description="This meeting has been approved. The participant list cannot be modified."
+              type="info"
+              showIcon
+              style={{ marginBottom: 16 }}
+            />
+          )}
+          
+          {isCompleted && (
+            <Alert
+              message="Meeting Completed"
+              description="This meeting has been completed. Viewing final attendance record."
+              type="success"
+              showIcon
+              style={{ marginBottom: 16 }}
+            />
+          )}
+          
+          {/* RSVP Summary */}
+          <Card size="small" style={{ marginBottom: 16 }}>
         <Row gutter={16} align="middle">
           <Col xs={24} sm={6}>
             <Statistic 
@@ -171,14 +295,16 @@ export const MeetingParticipantsTab: React.FC<MeetingParticipantsTabProps> = ({
         </Row>
       </Card>
 
-      {/* Participants Table */}
-      <Table
-        columns={columns}
-        dataSource={participants}
-        rowKey="id"
-        size="small"
-        pagination={participants.length > 10 ? { pageSize: 10 } : false}
-      />
+          {/* Participants Table */}
+          <Table
+            columns={columns}
+            dataSource={participants}
+            rowKey="id"
+            size="small"
+            pagination={participants.length > 10 ? { pageSize: 10 } : false}
+          />
+        </>
+      )}
     </div>
   );
 };

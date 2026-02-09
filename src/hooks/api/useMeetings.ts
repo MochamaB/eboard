@@ -420,3 +420,19 @@ export const useResubmitForApproval = (
     ...options,
   });
 };
+
+// ============================================================================
+// DOCUMENT EXPORT HOOKS
+// ============================================================================
+
+/**
+ * Download meeting notice as PDF
+ */
+export const useDownloadNoticePDF = (
+  options?: UseMutationOptions<Blob, Error, string>
+) => {
+  return useMutation({
+    mutationFn: (meetingId: string) => meetingsApi.downloadNoticePDF(meetingId),
+    ...options,
+  });
+};

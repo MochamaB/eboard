@@ -25,7 +25,9 @@ import type { MenuProps } from 'antd';
 
 import { useBoardContext, useMeetingPhase } from '../../contexts';
 import { useMeeting } from '../../hooks/api';
+import { useMeetingPermissions } from '../../hooks/meetings';
 import { useMeetingDocuments } from '../../hooks/api/useDocuments';
+import { useMeetingVotes } from '../../hooks/api/useVoting';
 import { useTabNavigation } from '../../hooks/useTabNavigation';
 import { DetailPageLayout } from '../../components/common';
 import type { MetadataItem, ActionButton } from '../../components/common';
@@ -51,12 +53,20 @@ export const MeetingDetailPage: React.FC = () => {
   const meetingPhase = useMeetingPhase();
   
   const [activeTab, setActiveTab] = useTabNavigation('notice');
+  
+  // Get meeting permissions
+  const permissions = useMeetingPermissions();
 
   // Fetch meeting data from API
   const { data: meeting, isLoading, error } = useMeeting(meetingId || '');
   
   // Fetch meeting documents for count badge
   const { data: meetingDocuments = [] } = useMeetingDocuments(meetingId || '', {
+    enabled: !!meetingId,
+  });
+
+  // Fetch meeting votes for count badge
+  const { data: meetingVotes = [] } = useMeetingVotes(meetingId || '', {
     enabled: !!meetingId,
   });
 
@@ -136,6 +146,7 @@ export const MeetingDetailPage: React.FC = () => {
         key: 'votes',
         label: 'Votes',
         icon: <TrophyOutlined />,
+        badge: meetingVotes.length,
       },
       {
         key: 'minutes',
@@ -148,7 +159,7 @@ export const MeetingDetailPage: React.FC = () => {
         icon: <ClockCircleOutlined />,
       },
     ];
-  }, [meeting, meetingDocuments.length]);
+  }, [meeting, meetingDocuments.length, meetingVotes.length]);
 
   // Header metadata
   const metadata: MetadataItem[] = useMemo(() => {
@@ -181,18 +192,6 @@ export const MeetingDetailPage: React.FC = () => {
         type: 'tag',
         color: theme.primaryColor,
       },
-      {
-        label: 'Participants',
-        value: meeting.participants?.length || 0,
-        type: 'badge',
-        color: theme.primaryColor,
-      },
-      ...(meeting.requiresConfirmation ? [{
-        label: 'Requires Confirmation',
-        value: '✓',
-        type: 'tag' as const,
-        color: 'orange',
-      }] : []),
     ];
   }, [meeting, theme]);
 
@@ -239,21 +238,44 @@ export const MeetingDetailPage: React.FC = () => {
       };
     }
 
-    // Scheduled.approved or in_progress - Join Meeting
-    if ((meeting.status === 'scheduled' && meeting.subStatus === 'approved') || meeting.status === 'in_progress') {
-
-    // Determine button label based on location type
-    const getButtonLabel = () => {
-      switch (meeting.locationType) {
-        case 'virtual':
-          return 'Join Virtual Meeting';
-        case 'hybrid':
-          return 'Join Meeting';
-        case 'physical':
-        default:
-          return 'Enter Meeting Room';
+    // Scheduled.approved - Host can start meeting
+    if (meeting.status === 'scheduled' && meeting.subStatus === 'approved') {
+      if (permissions.canStartMeeting) {
+        return {
+          key: 'start',
+          label: 'Start Meeting',
+          icon: <PlayCircleOutlined />,
+          type: 'primary',
+          onClick: () => {
+            navigate(`/${currentBoard?.id}/meetings/${meeting.id}/room`);
+          },
+        };
+      } else {
+        // Non-host sees disabled button
+        return {
+          key: 'waiting',
+          label: 'Waiting for Host',
+          icon: <ClockCircleOutlined />,
+          type: 'default',
+          disabled: true,
+        };
       }
-    };
+    }
+    
+    // In progress - Anyone can join
+    if (meeting.status === 'in_progress') {
+      // Determine button label based on location type
+      const getButtonLabel = () => {
+        switch (meeting.locationType) {
+          case 'virtual':
+            return 'Join Virtual Meeting';
+          case 'hybrid':
+            return 'Join Meeting';
+          case 'physical':
+          default:
+            return 'Enter Meeting Room';
+        }
+      };
 
       return {
         key: 'join',
@@ -261,11 +283,7 @@ export const MeetingDetailPage: React.FC = () => {
         icon: <VideoCameraOutlined />,
         type: 'primary',
         onClick: () => {
-          if (meeting.virtualMeetingLink && meeting.locationType !== 'physical') {
-            window.open(meeting.virtualMeetingLink, '_blank');
-          } else {
-            message.info('Meeting Room UI - Coming soon');
-          }
+          navigate(`/${currentBoard?.id}/meetings/${meeting.id}/room`);
         },
       };
     }
@@ -329,14 +347,14 @@ export const MeetingDetailPage: React.FC = () => {
       });
     }
 
-    // Start Meeting - Available for approved meetings
-    if (meeting.status === 'scheduled' && meeting.subStatus === 'approved') {
+    // Start Meeting - Available for approved meetings (host only)
+    if (meeting.status === 'scheduled' && meeting.subStatus === 'approved' && permissions.canStartMeeting) {
       actions.push({
         key: 'start',
         label: 'Start Meeting',
         icon: <PlayCircleOutlined />,
         onClick: () => {
-          message.info('Start meeting - Coming soon');
+          navigate(`/${currentBoard?.id}/meetings/${meeting.id}/room`);
         },
       });
     }
@@ -393,31 +411,24 @@ export const MeetingDetailPage: React.FC = () => {
   const renderTabContent = () => {
     if (!meeting) return null;
 
-    return (
-      <>
-        {renderValidationErrors()}
-        {(() => {
-          switch (activeTab) {
-            case 'notice':
-              return <MeetingNoticeTab meeting={meeting} themeColor={theme.primaryColor} />;
-            case 'participants':
-              return <MeetingParticipantsTab meeting={meeting} themeColor={theme.primaryColor} />;
-            case 'agenda':
-              return <MeetingAgendaTab meeting={meeting} themeColor={theme.primaryColor} />;
-            case 'documents':
-              return <MeetingDocumentsTab meeting={meeting} themeColor={theme.primaryColor} />;
-            case 'votes':
-              return <MeetingVotesTab meeting={meeting} themeColor={theme.primaryColor} />;
-            case 'minutes':
-              return <MeetingMinutesTab meeting={meeting} themeColor={theme.primaryColor} />;
-            case 'activity':
-              return <MeetingActivityTab meeting={meeting} themeColor={theme.primaryColor} />;
-            default:
-              return null;
-          }
-        })()}
-      </>
-    );
+    switch (activeTab) {
+      case 'notice':
+        return <MeetingNoticeTab meeting={meeting} themeColor={theme.primaryColor} />;
+      case 'participants':
+        return <MeetingParticipantsTab meeting={meeting} themeColor={theme.primaryColor} />;
+      case 'agenda':
+        return <MeetingAgendaTab meeting={meeting} themeColor={theme.primaryColor} />;
+      case 'documents':
+        return <MeetingDocumentsTab meeting={meeting} themeColor={theme.primaryColor} />;
+      case 'votes':
+        return <MeetingVotesTab meeting={meeting} themeColor={theme.primaryColor} />;
+      case 'minutes':
+        return <MeetingMinutesTab meeting={meeting} themeColor={theme.primaryColor} />;
+      case 'activity':
+        return <MeetingActivityTab meeting={meeting} themeColor={theme.primaryColor} />;
+      default:
+        return null;
+    }
   };
 
   return (
@@ -430,6 +441,7 @@ export const MeetingDetailPage: React.FC = () => {
       metadata={metadata}
       primaryAction={primaryAction}
       dropdownActions={dropdownActions}
+      headerAlert={renderValidationErrors()}
       tabs={tabItems}
       activeTab={activeTab}
       onTabChange={setActiveTab}

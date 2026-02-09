@@ -1,23 +1,527 @@
-react-router-dom.js?v=526da452:6191 Error handled by React Router default ErrorBoundary: TypeError: Cannot read properties of undefined (reading 'toUpperCase')
-    at AttachedDocumentsList.tsx:192:43
-    at Array.map (<anonymous>)
-    at AttachedDocumentsList (AttachedDocumentsList.tsx:136:21)
-2
-react-router-dom.js?v=526da452:6191 Error handled by React Router default ErrorBoundary: TypeError: Cannot read properties of undefined (reading 'toUpperCase')
-    at AttachedDocumentsList.tsx:192:43
-    at Array.map (<anonymous>)
-    at AttachedDocumentsList (AttachedDocumentsList.tsx:136:21)
-chunk-EUHD4VSW.js?v=526da452:7001 TypeError: Cannot read properties of undefined (reading 'toUpperCase')
-    at AttachedDocumentsList.tsx:192:43
-    at Array.map (<anonymous>)
-    at AttachedDocumentsList (AttachedDocumentsList.tsx:136:21)
-
-
-The above error occurred in the <AttachedDocumentsList> component.
-
-React will try to recreate this component tree from scratch using the error boundary you provided, RenderErrorBoundary.
-react-router-dom.js?v=526da452:6230 React Router caught the following error during render TypeError: Cannot read properties of undefined (reading 'toUpperCase')
-    at AttachedDocumentsList.tsx:192:43
-    at Array.map (<anonymous>)
-    at AttachedDocumentsList (AttachedDocumentsList.tsx:136:21)
-
+chunk-EUHD4VSW.js?v=ac3dab7a:20103 Download the React DevTools for a better development experience: https://react.dev/link/react-devtools
+BlockingPageContent.js:2  action SET_STORAGE_DATA @ 20:12:57.873
+BlockingPageContent.js:2  prev state {blocking: false}
+BlockingPageContent.js:2  action     {type: 'SET_STORAGE_DATA', urls: {…}, online: true, eula: true, welcome: true, …}
+BlockingPageContent.js:2  next state {blocking: false}
+NotificationContent.js:2  action SET_LOCALE @ 20:12:58.006
+NotificationContent.js:2  prev state {notification: false, locale: '', mode: '', os: '', browser: '', …}
+NotificationContent.js:2  action     {type: 'SET_LOCALE', locale: 'en'}
+NotificationContent.js:2  next state {notification: false, locale: 'en', mode: '', os: '', browser: '', …}
+NotificationContent.js:2  action SET_STORAGE_DATA @ 20:12:58.058
+NotificationContent.js:2  prev state {notification: false, locale: 'en', mode: '', os: '', browser: '', …}
+NotificationContent.js:2  action     {type: 'SET_STORAGE_DATA', urls: {…}, online: true, eula: true, welcome: true, …}
+NotificationContent.js:2  next state {notification: false, locale: 'en', mode: 'Promoter', os: 'win', browser: 'chrome', …}
+msw_browser.js?v=ac3dab7a:1054 [MSW] Mocking enabled.
+msw.js?v=ac3dab7a:979 [MSW] 20:12:58 GET /api/auth/me (200 OK)
+msw.js?v=ac3dab7a:979 [MSW] 20:12:58 GET /api/auth/me (200 OK)
+LoginPage.tsx:153 Warning: [antd: Space] `direction` is deprecated. Please use `orientation` instead.
+warning @ chunk-Q6DLBCUO.js?v=ac3dab7a:1251
+call @ chunk-Q6DLBCUO.js?v=ac3dab7a:1268
+warningOnce @ chunk-Q6DLBCUO.js?v=ac3dab7a:1273
+_warning @ antd.js?v=ac3dab7a:659
+typeWarning @ antd.js?v=ac3dab7a:686
+typeWarning.deprecated @ antd.js?v=ac3dab7a:691
+(anonymous) @ antd.js?v=ac3dab7a:67055
+Space @ antd.js?v=ac3dab7a:67054
+react_stack_bottom_frame @ chunk-EUHD4VSW.js?v=ac3dab7a:18509
+renderWithHooks @ chunk-EUHD4VSW.js?v=ac3dab7a:5654
+updateForwardRef @ chunk-EUHD4VSW.js?v=ac3dab7a:7198
+beginWork @ chunk-EUHD4VSW.js?v=ac3dab7a:8735
+runWithFiberInDEV @ chunk-EUHD4VSW.js?v=ac3dab7a:997
+performUnitOfWork @ chunk-EUHD4VSW.js?v=ac3dab7a:12561
+workLoopConcurrentByScheduler @ chunk-EUHD4VSW.js?v=ac3dab7a:12557
+renderRootConcurrent @ chunk-EUHD4VSW.js?v=ac3dab7a:12539
+performWorkOnRoot @ chunk-EUHD4VSW.js?v=ac3dab7a:11766
+performWorkOnRootViaSchedulerTask @ chunk-EUHD4VSW.js?v=ac3dab7a:13505
+performWorkUntilDeadline @ chunk-EUHD4VSW.js?v=ac3dab7a:36
+<Space>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ac3dab7a:247
+LoginPage @ LoginPage.tsx:153
+react_stack_bottom_frame @ chunk-EUHD4VSW.js?v=ac3dab7a:18509
+renderWithHooksAgain @ chunk-EUHD4VSW.js?v=ac3dab7a:5729
+renderWithHooks @ chunk-EUHD4VSW.js?v=ac3dab7a:5665
+updateFunctionComponent @ chunk-EUHD4VSW.js?v=ac3dab7a:7475
+beginWork @ chunk-EUHD4VSW.js?v=ac3dab7a:8525
+runWithFiberInDEV @ chunk-EUHD4VSW.js?v=ac3dab7a:997
+performUnitOfWork @ chunk-EUHD4VSW.js?v=ac3dab7a:12561
+workLoopConcurrentByScheduler @ chunk-EUHD4VSW.js?v=ac3dab7a:12557
+renderRootConcurrent @ chunk-EUHD4VSW.js?v=ac3dab7a:12539
+performWorkOnRoot @ chunk-EUHD4VSW.js?v=ac3dab7a:11766
+performWorkOnRootViaSchedulerTask @ chunk-EUHD4VSW.js?v=ac3dab7a:13505
+performWorkUntilDeadline @ chunk-EUHD4VSW.js?v=ac3dab7a:36
+<LoginPage>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ac3dab7a:247
+(anonymous) @ index.tsx:150Understand this error
+LoginPage.tsx:85 Warning: [antd: message] Static function can not consume context like dynamic theme. Please use 'App' component instead.
+warning @ chunk-Q6DLBCUO.js?v=ac3dab7a:1251
+call @ chunk-Q6DLBCUO.js?v=ac3dab7a:1268
+warningOnce @ chunk-Q6DLBCUO.js?v=ac3dab7a:1273
+_warning @ antd.js?v=ac3dab7a:659
+warnContext @ antd.js?v=ac3dab7a:9175
+typeOpen @ antd.js?v=ac3dab7a:77336
+staticMethods.<computed> @ antd.js?v=ac3dab7a:77379
+handleDevLogin @ LoginPage.tsx:85
+await in handleDevLogin
+onClick @ LoginPage.tsx:158
+(anonymous) @ antd.js?v=ac3dab7a:15454
+executeDispatch @ chunk-EUHD4VSW.js?v=ac3dab7a:13622
+runWithFiberInDEV @ chunk-EUHD4VSW.js?v=ac3dab7a:997
+processDispatchQueue @ chunk-EUHD4VSW.js?v=ac3dab7a:13658
+(anonymous) @ chunk-EUHD4VSW.js?v=ac3dab7a:14071
+batchedUpdates$1 @ chunk-EUHD4VSW.js?v=ac3dab7a:2626
+dispatchEventForPluginEventSystem @ chunk-EUHD4VSW.js?v=ac3dab7a:13763
+dispatchEvent @ chunk-EUHD4VSW.js?v=ac3dab7a:16784
+dispatchDiscreteEvent @ chunk-EUHD4VSW.js?v=ac3dab7a:16765
+<button>
+exports.createElement @ chunk-CBB6GMMC.js?v=ac3dab7a:793
+Button @ antd.js?v=ac3dab7a:15550
+react_stack_bottom_frame @ chunk-EUHD4VSW.js?v=ac3dab7a:18509
+renderWithHooksAgain @ chunk-EUHD4VSW.js?v=ac3dab7a:5729
+renderWithHooks @ chunk-EUHD4VSW.js?v=ac3dab7a:5665
+updateForwardRef @ chunk-EUHD4VSW.js?v=ac3dab7a:7198
+beginWork @ chunk-EUHD4VSW.js?v=ac3dab7a:8735
+runWithFiberInDEV @ chunk-EUHD4VSW.js?v=ac3dab7a:997
+performUnitOfWork @ chunk-EUHD4VSW.js?v=ac3dab7a:12561
+workLoopConcurrentByScheduler @ chunk-EUHD4VSW.js?v=ac3dab7a:12557
+renderRootConcurrent @ chunk-EUHD4VSW.js?v=ac3dab7a:12539
+performWorkOnRoot @ chunk-EUHD4VSW.js?v=ac3dab7a:11766
+performWorkOnRootViaSchedulerTask @ chunk-EUHD4VSW.js?v=ac3dab7a:13505
+performWorkUntilDeadline @ chunk-EUHD4VSW.js?v=ac3dab7a:36
+<Button>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ac3dab7a:247
+(anonymous) @ LoginPage.tsx:155
+LoginPage @ LoginPage.tsx:154
+react_stack_bottom_frame @ chunk-EUHD4VSW.js?v=ac3dab7a:18509
+renderWithHooksAgain @ chunk-EUHD4VSW.js?v=ac3dab7a:5729
+renderWithHooks @ chunk-EUHD4VSW.js?v=ac3dab7a:5665
+updateFunctionComponent @ chunk-EUHD4VSW.js?v=ac3dab7a:7475
+beginWork @ chunk-EUHD4VSW.js?v=ac3dab7a:8525
+runWithFiberInDEV @ chunk-EUHD4VSW.js?v=ac3dab7a:997
+performUnitOfWork @ chunk-EUHD4VSW.js?v=ac3dab7a:12561
+workLoopConcurrentByScheduler @ chunk-EUHD4VSW.js?v=ac3dab7a:12557
+renderRootConcurrent @ chunk-EUHD4VSW.js?v=ac3dab7a:12539
+performWorkOnRoot @ chunk-EUHD4VSW.js?v=ac3dab7a:11766
+performWorkOnRootViaSchedulerTask @ chunk-EUHD4VSW.js?v=ac3dab7a:13505
+performWorkUntilDeadline @ chunk-EUHD4VSW.js?v=ac3dab7a:36
+<LoginPage>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ac3dab7a:247
+(anonymous) @ index.tsx:150Understand this error
+msw.js?v=ac3dab7a:979 [MSW] 20:13:00 POST /api/auth/login (200 OK)
+Sidebar.tsx:221 Warning: [antd: Drawer] `width` is deprecated. Please use `size` instead.
+warning @ chunk-Q6DLBCUO.js?v=ac3dab7a:1251
+call @ chunk-Q6DLBCUO.js?v=ac3dab7a:1268
+warningOnce @ chunk-Q6DLBCUO.js?v=ac3dab7a:1273
+_warning @ antd.js?v=ac3dab7a:659
+typeWarning @ antd.js?v=ac3dab7a:686
+typeWarning.deprecated @ antd.js?v=ac3dab7a:691
+(anonymous) @ antd.js?v=ac3dab7a:66683
+Drawer2 @ antd.js?v=ac3dab7a:66682
+react_stack_bottom_frame @ chunk-EUHD4VSW.js?v=ac3dab7a:18509
+renderWithHooks @ chunk-EUHD4VSW.js?v=ac3dab7a:5654
+updateFunctionComponent @ chunk-EUHD4VSW.js?v=ac3dab7a:7475
+beginWork @ chunk-EUHD4VSW.js?v=ac3dab7a:8525
+runWithFiberInDEV @ chunk-EUHD4VSW.js?v=ac3dab7a:997
+performUnitOfWork @ chunk-EUHD4VSW.js?v=ac3dab7a:12561
+workLoopConcurrentByScheduler @ chunk-EUHD4VSW.js?v=ac3dab7a:12557
+renderRootConcurrent @ chunk-EUHD4VSW.js?v=ac3dab7a:12539
+performWorkOnRoot @ chunk-EUHD4VSW.js?v=ac3dab7a:11766
+performWorkOnRootViaSchedulerTask @ chunk-EUHD4VSW.js?v=ac3dab7a:13505
+performWorkUntilDeadline @ chunk-EUHD4VSW.js?v=ac3dab7a:36
+<Drawer>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ac3dab7a:247
+Sidebar @ Sidebar.tsx:221
+react_stack_bottom_frame @ chunk-EUHD4VSW.js?v=ac3dab7a:18509
+renderWithHooksAgain @ chunk-EUHD4VSW.js?v=ac3dab7a:5729
+renderWithHooks @ chunk-EUHD4VSW.js?v=ac3dab7a:5665
+updateFunctionComponent @ chunk-EUHD4VSW.js?v=ac3dab7a:7475
+beginWork @ chunk-EUHD4VSW.js?v=ac3dab7a:8525
+runWithFiberInDEV @ chunk-EUHD4VSW.js?v=ac3dab7a:997
+performUnitOfWork @ chunk-EUHD4VSW.js?v=ac3dab7a:12561
+workLoopConcurrentByScheduler @ chunk-EUHD4VSW.js?v=ac3dab7a:12557
+renderRootConcurrent @ chunk-EUHD4VSW.js?v=ac3dab7a:12539
+performWorkOnRoot @ chunk-EUHD4VSW.js?v=ac3dab7a:11766
+performWorkOnRootViaSchedulerTask @ chunk-EUHD4VSW.js?v=ac3dab7a:13505
+performWorkUntilDeadline @ chunk-EUHD4VSW.js?v=ac3dab7a:36
+<Sidebar>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ac3dab7a:247
+AppLayoutInner @ AppLayout.tsx:65
+react_stack_bottom_frame @ chunk-EUHD4VSW.js?v=ac3dab7a:18509
+renderWithHooksAgain @ chunk-EUHD4VSW.js?v=ac3dab7a:5729
+renderWithHooks @ chunk-EUHD4VSW.js?v=ac3dab7a:5665
+updateFunctionComponent @ chunk-EUHD4VSW.js?v=ac3dab7a:7475
+beginWork @ chunk-EUHD4VSW.js?v=ac3dab7a:8525
+runWithFiberInDEV @ chunk-EUHD4VSW.js?v=ac3dab7a:997
+performUnitOfWork @ chunk-EUHD4VSW.js?v=ac3dab7a:12561
+workLoopConcurrentByScheduler @ chunk-EUHD4VSW.js?v=ac3dab7a:12557
+renderRootConcurrent @ chunk-EUHD4VSW.js?v=ac3dab7a:12539
+performWorkOnRoot @ chunk-EUHD4VSW.js?v=ac3dab7a:11766
+performWorkOnRootViaSchedulerTask @ chunk-EUHD4VSW.js?v=ac3dab7a:13505
+performWorkUntilDeadline @ chunk-EUHD4VSW.js?v=ac3dab7a:36
+<AppLayoutInner>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ac3dab7a:247
+AppLayout @ AppLayout.tsx:95
+react_stack_bottom_frame @ chunk-EUHD4VSW.js?v=ac3dab7a:18509
+renderWithHooksAgain @ chunk-EUHD4VSW.js?v=ac3dab7a:5729
+renderWithHooks @ chunk-EUHD4VSW.js?v=ac3dab7a:5665
+updateFunctionComponent @ chunk-EUHD4VSW.js?v=ac3dab7a:7475
+beginWork @ chunk-EUHD4VSW.js?v=ac3dab7a:8525
+runWithFiberInDEV @ chunk-EUHD4VSW.js?v=ac3dab7a:997
+performUnitOfWork @ chunk-EUHD4VSW.js?v=ac3dab7a:12561
+workLoopConcurrentByScheduler @ chunk-EUHD4VSW.js?v=ac3dab7a:12557
+renderRootConcurrent @ chunk-EUHD4VSW.js?v=ac3dab7a:12539
+performWorkOnRoot @ chunk-EUHD4VSW.js?v=ac3dab7a:11766
+performWorkOnRootViaSchedulerTask @ chunk-EUHD4VSW.js?v=ac3dab7a:13505
+performWorkUntilDeadline @ chunk-EUHD4VSW.js?v=ac3dab7a:36
+<AppLayout>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ac3dab7a:247
+(anonymous) @ index.tsx:163Understand this error
+UpcomingMeetings.tsx:60 Warning: [antd: List] The `List` component is deprecated. And will be removed in next major version.
+warning @ chunk-Q6DLBCUO.js?v=ac3dab7a:1251
+call @ chunk-Q6DLBCUO.js?v=ac3dab7a:1268
+warningOnce @ chunk-Q6DLBCUO.js?v=ac3dab7a:1273
+_warning @ antd.js?v=ac3dab7a:659
+typeWarning @ antd.js?v=ac3dab7a:686
+InternalList @ antd.js?v=ac3dab7a:75703
+react_stack_bottom_frame @ chunk-EUHD4VSW.js?v=ac3dab7a:18509
+renderWithHooks @ chunk-EUHD4VSW.js?v=ac3dab7a:5654
+updateForwardRef @ chunk-EUHD4VSW.js?v=ac3dab7a:7198
+beginWork @ chunk-EUHD4VSW.js?v=ac3dab7a:8735
+runWithFiberInDEV @ chunk-EUHD4VSW.js?v=ac3dab7a:997
+performUnitOfWork @ chunk-EUHD4VSW.js?v=ac3dab7a:12561
+workLoopSync @ chunk-EUHD4VSW.js?v=ac3dab7a:12424
+renderRootSync @ chunk-EUHD4VSW.js?v=ac3dab7a:12408
+performWorkOnRoot @ chunk-EUHD4VSW.js?v=ac3dab7a:11766
+performWorkOnRootViaSchedulerTask @ chunk-EUHD4VSW.js?v=ac3dab7a:13505
+performWorkUntilDeadline @ chunk-EUHD4VSW.js?v=ac3dab7a:36
+<Deprecated.List>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ac3dab7a:247
+UpcomingMeetings @ UpcomingMeetings.tsx:60
+react_stack_bottom_frame @ chunk-EUHD4VSW.js?v=ac3dab7a:18509
+renderWithHooksAgain @ chunk-EUHD4VSW.js?v=ac3dab7a:5729
+renderWithHooks @ chunk-EUHD4VSW.js?v=ac3dab7a:5665
+updateFunctionComponent @ chunk-EUHD4VSW.js?v=ac3dab7a:7475
+beginWork @ chunk-EUHD4VSW.js?v=ac3dab7a:8525
+runWithFiberInDEV @ chunk-EUHD4VSW.js?v=ac3dab7a:997
+performUnitOfWork @ chunk-EUHD4VSW.js?v=ac3dab7a:12561
+workLoopSync @ chunk-EUHD4VSW.js?v=ac3dab7a:12424
+renderRootSync @ chunk-EUHD4VSW.js?v=ac3dab7a:12408
+performWorkOnRoot @ chunk-EUHD4VSW.js?v=ac3dab7a:11766
+performWorkOnRootViaSchedulerTask @ chunk-EUHD4VSW.js?v=ac3dab7a:13505
+performWorkUntilDeadline @ chunk-EUHD4VSW.js?v=ac3dab7a:36
+<UpcomingMeetings>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ac3dab7a:247
+Dashboard @ index.tsx:223
+react_stack_bottom_frame @ chunk-EUHD4VSW.js?v=ac3dab7a:18509
+renderWithHooksAgain @ chunk-EUHD4VSW.js?v=ac3dab7a:5729
+renderWithHooks @ chunk-EUHD4VSW.js?v=ac3dab7a:5665
+updateFunctionComponent @ chunk-EUHD4VSW.js?v=ac3dab7a:7475
+beginWork @ chunk-EUHD4VSW.js?v=ac3dab7a:8525
+runWithFiberInDEV @ chunk-EUHD4VSW.js?v=ac3dab7a:997
+performUnitOfWork @ chunk-EUHD4VSW.js?v=ac3dab7a:12561
+workLoopConcurrentByScheduler @ chunk-EUHD4VSW.js?v=ac3dab7a:12557
+renderRootConcurrent @ chunk-EUHD4VSW.js?v=ac3dab7a:12539
+performWorkOnRoot @ chunk-EUHD4VSW.js?v=ac3dab7a:11766
+performWorkOnRootViaSchedulerTask @ chunk-EUHD4VSW.js?v=ac3dab7a:13505
+performWorkUntilDeadline @ chunk-EUHD4VSW.js?v=ac3dab7a:36Understand this error
+msw.js?v=ac3dab7a:979 [MSW] 20:13:05 GET /api/meetings (200 OK)
+msw.js?v=ac3dab7a:979 [MSW] 20:13:05 GET /api/meetings (200 OK)
+msw.js?v=ac3dab7a:979 [MSW] 20:13:11 GET /api/meetings (200 OK)
+DetailsHeader.tsx:92 Warning: [antd: Card] `bordered` is deprecated. Please use `variant` instead.
+warning @ chunk-Q6DLBCUO.js?v=ac3dab7a:1251
+call @ chunk-Q6DLBCUO.js?v=ac3dab7a:1268
+warningOnce @ chunk-Q6DLBCUO.js?v=ac3dab7a:1273
+_warning @ antd.js?v=ac3dab7a:659
+typeWarning @ antd.js?v=ac3dab7a:686
+typeWarning.deprecated @ antd.js?v=ac3dab7a:691
+(anonymous) @ antd.js?v=ac3dab7a:51863
+Card @ antd.js?v=ac3dab7a:51862
+react_stack_bottom_frame @ chunk-EUHD4VSW.js?v=ac3dab7a:18509
+renderWithHooks @ chunk-EUHD4VSW.js?v=ac3dab7a:5654
+updateForwardRef @ chunk-EUHD4VSW.js?v=ac3dab7a:7198
+beginWork @ chunk-EUHD4VSW.js?v=ac3dab7a:8735
+runWithFiberInDEV @ chunk-EUHD4VSW.js?v=ac3dab7a:997
+performUnitOfWork @ chunk-EUHD4VSW.js?v=ac3dab7a:12561
+workLoopSync @ chunk-EUHD4VSW.js?v=ac3dab7a:12424
+renderRootSync @ chunk-EUHD4VSW.js?v=ac3dab7a:12408
+performWorkOnRoot @ chunk-EUHD4VSW.js?v=ac3dab7a:11766
+performSyncWorkOnRoot @ chunk-EUHD4VSW.js?v=ac3dab7a:13517
+flushSyncWorkAcrossRoots_impl @ chunk-EUHD4VSW.js?v=ac3dab7a:13414
+processRootScheduleInMicrotask @ chunk-EUHD4VSW.js?v=ac3dab7a:13437
+(anonymous) @ chunk-EUHD4VSW.js?v=ac3dab7a:13531
+<Card>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ac3dab7a:247
+DetailsHeader @ DetailsHeader.tsx:92
+react_stack_bottom_frame @ chunk-EUHD4VSW.js?v=ac3dab7a:18509
+renderWithHooksAgain @ chunk-EUHD4VSW.js?v=ac3dab7a:5729
+renderWithHooks @ chunk-EUHD4VSW.js?v=ac3dab7a:5665
+updateFunctionComponent @ chunk-EUHD4VSW.js?v=ac3dab7a:7475
+beginWork @ chunk-EUHD4VSW.js?v=ac3dab7a:8525
+runWithFiberInDEV @ chunk-EUHD4VSW.js?v=ac3dab7a:997
+performUnitOfWork @ chunk-EUHD4VSW.js?v=ac3dab7a:12561
+workLoopSync @ chunk-EUHD4VSW.js?v=ac3dab7a:12424
+renderRootSync @ chunk-EUHD4VSW.js?v=ac3dab7a:12408
+performWorkOnRoot @ chunk-EUHD4VSW.js?v=ac3dab7a:11766
+performSyncWorkOnRoot @ chunk-EUHD4VSW.js?v=ac3dab7a:13517
+flushSyncWorkAcrossRoots_impl @ chunk-EUHD4VSW.js?v=ac3dab7a:13414
+processRootScheduleInMicrotask @ chunk-EUHD4VSW.js?v=ac3dab7a:13437
+(anonymous) @ chunk-EUHD4VSW.js?v=ac3dab7a:13531
+<DetailsHeader>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ac3dab7a:247
+DetailPageLayout @ DetailPageLayout.tsx:124
+react_stack_bottom_frame @ chunk-EUHD4VSW.js?v=ac3dab7a:18509
+renderWithHooksAgain @ chunk-EUHD4VSW.js?v=ac3dab7a:5729
+renderWithHooks @ chunk-EUHD4VSW.js?v=ac3dab7a:5665
+updateFunctionComponent @ chunk-EUHD4VSW.js?v=ac3dab7a:7475
+beginWork @ chunk-EUHD4VSW.js?v=ac3dab7a:8525
+runWithFiberInDEV @ chunk-EUHD4VSW.js?v=ac3dab7a:997
+performUnitOfWork @ chunk-EUHD4VSW.js?v=ac3dab7a:12561
+workLoopSync @ chunk-EUHD4VSW.js?v=ac3dab7a:12424
+renderRootSync @ chunk-EUHD4VSW.js?v=ac3dab7a:12408
+performWorkOnRoot @ chunk-EUHD4VSW.js?v=ac3dab7a:11766
+performSyncWorkOnRoot @ chunk-EUHD4VSW.js?v=ac3dab7a:13517
+flushSyncWorkAcrossRoots_impl @ chunk-EUHD4VSW.js?v=ac3dab7a:13414
+processRootScheduleInMicrotask @ chunk-EUHD4VSW.js?v=ac3dab7a:13437
+(anonymous) @ chunk-EUHD4VSW.js?v=ac3dab7a:13531
+<DetailPageLayout>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ac3dab7a:247
+MeetingDetailPage @ MeetingDetailPage.tsx:428
+react_stack_bottom_frame @ chunk-EUHD4VSW.js?v=ac3dab7a:18509
+renderWithHooksAgain @ chunk-EUHD4VSW.js?v=ac3dab7a:5729
+renderWithHooks @ chunk-EUHD4VSW.js?v=ac3dab7a:5665
+updateFunctionComponent @ chunk-EUHD4VSW.js?v=ac3dab7a:7475
+beginWork @ chunk-EUHD4VSW.js?v=ac3dab7a:8525
+runWithFiberInDEV @ chunk-EUHD4VSW.js?v=ac3dab7a:997
+performUnitOfWork @ chunk-EUHD4VSW.js?v=ac3dab7a:12561
+workLoopConcurrentByScheduler @ chunk-EUHD4VSW.js?v=ac3dab7a:12557
+renderRootConcurrent @ chunk-EUHD4VSW.js?v=ac3dab7a:12539
+performWorkOnRoot @ chunk-EUHD4VSW.js?v=ac3dab7a:11766
+performWorkOnRootViaSchedulerTask @ chunk-EUHD4VSW.js?v=ac3dab7a:13505
+performWorkUntilDeadline @ chunk-EUHD4VSW.js?v=ac3dab7a:36Understand this error
+MeetingDetailPage.tsx:387 Warning: [antd: Alert] `message` is deprecated. Please use `title` instead.
+warning @ chunk-Q6DLBCUO.js?v=ac3dab7a:1251
+call @ chunk-Q6DLBCUO.js?v=ac3dab7a:1268
+warningOnce @ chunk-Q6DLBCUO.js?v=ac3dab7a:1273
+_warning @ antd.js?v=ac3dab7a:659
+typeWarning @ antd.js?v=ac3dab7a:686
+typeWarning.deprecated @ antd.js?v=ac3dab7a:691
+(anonymous) @ antd.js?v=ac3dab7a:6461
+Alert @ antd.js?v=ac3dab7a:6460
+react_stack_bottom_frame @ chunk-EUHD4VSW.js?v=ac3dab7a:18509
+renderWithHooks @ chunk-EUHD4VSW.js?v=ac3dab7a:5654
+updateForwardRef @ chunk-EUHD4VSW.js?v=ac3dab7a:7198
+beginWork @ chunk-EUHD4VSW.js?v=ac3dab7a:8735
+runWithFiberInDEV @ chunk-EUHD4VSW.js?v=ac3dab7a:997
+performUnitOfWork @ chunk-EUHD4VSW.js?v=ac3dab7a:12561
+workLoopSync @ chunk-EUHD4VSW.js?v=ac3dab7a:12424
+renderRootSync @ chunk-EUHD4VSW.js?v=ac3dab7a:12408
+performWorkOnRoot @ chunk-EUHD4VSW.js?v=ac3dab7a:11766
+performSyncWorkOnRoot @ chunk-EUHD4VSW.js?v=ac3dab7a:13517
+flushSyncWorkAcrossRoots_impl @ chunk-EUHD4VSW.js?v=ac3dab7a:13414
+processRootScheduleInMicrotask @ chunk-EUHD4VSW.js?v=ac3dab7a:13437
+(anonymous) @ chunk-EUHD4VSW.js?v=ac3dab7a:13531
+<Alert>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ac3dab7a:247
+renderValidationErrors @ MeetingDetailPage.tsx:387
+MeetingDetailPage @ MeetingDetailPage.tsx:437
+react_stack_bottom_frame @ chunk-EUHD4VSW.js?v=ac3dab7a:18509
+renderWithHooksAgain @ chunk-EUHD4VSW.js?v=ac3dab7a:5729
+renderWithHooks @ chunk-EUHD4VSW.js?v=ac3dab7a:5665
+updateFunctionComponent @ chunk-EUHD4VSW.js?v=ac3dab7a:7475
+beginWork @ chunk-EUHD4VSW.js?v=ac3dab7a:8525
+runWithFiberInDEV @ chunk-EUHD4VSW.js?v=ac3dab7a:997
+performUnitOfWork @ chunk-EUHD4VSW.js?v=ac3dab7a:12561
+workLoopSync @ chunk-EUHD4VSW.js?v=ac3dab7a:12424
+renderRootSync @ chunk-EUHD4VSW.js?v=ac3dab7a:12408
+performWorkOnRoot @ chunk-EUHD4VSW.js?v=ac3dab7a:11766
+performSyncWorkOnRoot @ chunk-EUHD4VSW.js?v=ac3dab7a:13517
+flushSyncWorkAcrossRoots_impl @ chunk-EUHD4VSW.js?v=ac3dab7a:13414
+processRootScheduleInMicrotask @ chunk-EUHD4VSW.js?v=ac3dab7a:13437
+(anonymous) @ chunk-EUHD4VSW.js?v=ac3dab7a:13531Understand this error
+msw.js?v=ac3dab7a:979 [MSW] 20:13:13 GET /api/meetings/MTG-001/documents (200 OK)
+msw.js?v=ac3dab7a:979 [MSW] 20:13:13 GET /api/meetings/MTG-001 (200 OK)
+MeetingNoticeTab.tsx:345 Warning: [antd: Timeline] `items.children` is deprecated. Please use `items.content` instead.
+warning @ chunk-Q6DLBCUO.js?v=ac3dab7a:1251
+call @ chunk-Q6DLBCUO.js?v=ac3dab7a:1268
+warningOnce @ chunk-Q6DLBCUO.js?v=ac3dab7a:1273
+_warning @ antd.js?v=ac3dab7a:659
+typeWarning @ antd.js?v=ac3dab7a:686
+typeWarning.deprecated @ antd.js?v=ac3dab7a:691
+(anonymous) @ antd.js?v=ac3dab7a:97129
+Timeline @ antd.js?v=ac3dab7a:97128
+react_stack_bottom_frame @ chunk-EUHD4VSW.js?v=ac3dab7a:18509
+renderWithHooks @ chunk-EUHD4VSW.js?v=ac3dab7a:5654
+updateFunctionComponent @ chunk-EUHD4VSW.js?v=ac3dab7a:7475
+beginWork @ chunk-EUHD4VSW.js?v=ac3dab7a:8525
+runWithFiberInDEV @ chunk-EUHD4VSW.js?v=ac3dab7a:997
+performUnitOfWork @ chunk-EUHD4VSW.js?v=ac3dab7a:12561
+workLoopSync @ chunk-EUHD4VSW.js?v=ac3dab7a:12424
+renderRootSync @ chunk-EUHD4VSW.js?v=ac3dab7a:12408
+performWorkOnRoot @ chunk-EUHD4VSW.js?v=ac3dab7a:11766
+performSyncWorkOnRoot @ chunk-EUHD4VSW.js?v=ac3dab7a:13517
+flushSyncWorkAcrossRoots_impl @ chunk-EUHD4VSW.js?v=ac3dab7a:13414
+processRootScheduleInMicrotask @ chunk-EUHD4VSW.js?v=ac3dab7a:13437
+(anonymous) @ chunk-EUHD4VSW.js?v=ac3dab7a:13531
+<Timeline>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ac3dab7a:247
+MeetingNoticeTab @ MeetingNoticeTab.tsx:345
+react_stack_bottom_frame @ chunk-EUHD4VSW.js?v=ac3dab7a:18509
+renderWithHooksAgain @ chunk-EUHD4VSW.js?v=ac3dab7a:5729
+renderWithHooks @ chunk-EUHD4VSW.js?v=ac3dab7a:5665
+updateFunctionComponent @ chunk-EUHD4VSW.js?v=ac3dab7a:7475
+beginWork @ chunk-EUHD4VSW.js?v=ac3dab7a:8525
+runWithFiberInDEV @ chunk-EUHD4VSW.js?v=ac3dab7a:997
+performUnitOfWork @ chunk-EUHD4VSW.js?v=ac3dab7a:12561
+workLoopSync @ chunk-EUHD4VSW.js?v=ac3dab7a:12424
+renderRootSync @ chunk-EUHD4VSW.js?v=ac3dab7a:12408
+performWorkOnRoot @ chunk-EUHD4VSW.js?v=ac3dab7a:11766
+performSyncWorkOnRoot @ chunk-EUHD4VSW.js?v=ac3dab7a:13517
+flushSyncWorkAcrossRoots_impl @ chunk-EUHD4VSW.js?v=ac3dab7a:13414
+processRootScheduleInMicrotask @ chunk-EUHD4VSW.js?v=ac3dab7a:13437
+(anonymous) @ chunk-EUHD4VSW.js?v=ac3dab7a:13531Understand this error
+msw.js?v=ac3dab7a:979 [MSW] 20:13:13 GET /api/meetings/MTG-001/agenda (200 OK)
+msw.js?v=ac3dab7a:979 [MSW] 20:13:13 GET /api/meetings/MTG-001/events (200 OK)
+DocumentUploadModal.tsx:71 [DocumentUploadModal] Categories state: {boardId: 'ktda-ms', categoriesCount: 0, isLoading: true, error: null, categories: undefined}
+DocumentUploadModal.tsx:71 [DocumentUploadModal] Categories state: {boardId: 'ktda-ms', categoriesCount: 0, isLoading: true, error: null, categories: undefined}
+DocumentUploadModal.tsx:275 Warning: Instance created by `useForm` is not connected to any Form element. Forget to pass `form` prop?
+warning @ chunk-Q6DLBCUO.js?v=ac3dab7a:1251
+call @ chunk-Q6DLBCUO.js?v=ac3dab7a:1268
+warningOnce @ chunk-Q6DLBCUO.js?v=ac3dab7a:1273
+(anonymous) @ antd.js?v=ac3dab7a:18833
+setTimeout
+warningUnhooked @ antd.js?v=ac3dab7a:18830
+getFieldValue @ antd.js?v=ac3dab7a:18935
+DocumentUploadModal @ DocumentUploadModal.tsx:275
+react_stack_bottom_frame @ chunk-EUHD4VSW.js?v=ac3dab7a:18509
+renderWithHooks @ chunk-EUHD4VSW.js?v=ac3dab7a:5654
+updateFunctionComponent @ chunk-EUHD4VSW.js?v=ac3dab7a:7475
+beginWork @ chunk-EUHD4VSW.js?v=ac3dab7a:8525
+runWithFiberInDEV @ chunk-EUHD4VSW.js?v=ac3dab7a:997
+performUnitOfWork @ chunk-EUHD4VSW.js?v=ac3dab7a:12561
+workLoopConcurrentByScheduler @ chunk-EUHD4VSW.js?v=ac3dab7a:12557
+renderRootConcurrent @ chunk-EUHD4VSW.js?v=ac3dab7a:12539
+performWorkOnRoot @ chunk-EUHD4VSW.js?v=ac3dab7a:11766
+performWorkOnRootViaSchedulerTask @ chunk-EUHD4VSW.js?v=ac3dab7a:13505
+performWorkUntilDeadline @ chunk-EUHD4VSW.js?v=ac3dab7a:36
+<DocumentUploadModal>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ac3dab7a:247
+MeetingDocumentsTab @ MeetingDocumentsTab.tsx:290
+react_stack_bottom_frame @ chunk-EUHD4VSW.js?v=ac3dab7a:18509
+renderWithHooksAgain @ chunk-EUHD4VSW.js?v=ac3dab7a:5729
+renderWithHooks @ chunk-EUHD4VSW.js?v=ac3dab7a:5665
+updateFunctionComponent @ chunk-EUHD4VSW.js?v=ac3dab7a:7475
+beginWork @ chunk-EUHD4VSW.js?v=ac3dab7a:8525
+runWithFiberInDEV @ chunk-EUHD4VSW.js?v=ac3dab7a:997
+performUnitOfWork @ chunk-EUHD4VSW.js?v=ac3dab7a:12561
+workLoopConcurrentByScheduler @ chunk-EUHD4VSW.js?v=ac3dab7a:12557
+renderRootConcurrent @ chunk-EUHD4VSW.js?v=ac3dab7a:12539
+performWorkOnRoot @ chunk-EUHD4VSW.js?v=ac3dab7a:11766
+performWorkOnRootViaSchedulerTask @ chunk-EUHD4VSW.js?v=ac3dab7a:13505
+performWorkUntilDeadline @ chunk-EUHD4VSW.js?v=ac3dab7a:36
+<MeetingDocumentsTab>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ac3dab7a:247
+renderTabContent @ MeetingDetailPage.tsx:415
+MeetingDetailPage @ MeetingDetailPage.tsx:445
+react_stack_bottom_frame @ chunk-EUHD4VSW.js?v=ac3dab7a:18509
+renderWithHooksAgain @ chunk-EUHD4VSW.js?v=ac3dab7a:5729
+renderWithHooks @ chunk-EUHD4VSW.js?v=ac3dab7a:5665
+updateFunctionComponent @ chunk-EUHD4VSW.js?v=ac3dab7a:7475
+beginWork @ chunk-EUHD4VSW.js?v=ac3dab7a:8525
+runWithFiberInDEV @ chunk-EUHD4VSW.js?v=ac3dab7a:997
+performUnitOfWork @ chunk-EUHD4VSW.js?v=ac3dab7a:12561
+workLoopConcurrentByScheduler @ chunk-EUHD4VSW.js?v=ac3dab7a:12557
+renderRootConcurrent @ chunk-EUHD4VSW.js?v=ac3dab7a:12539
+performWorkOnRoot @ chunk-EUHD4VSW.js?v=ac3dab7a:11766
+performWorkOnRootViaSchedulerTask @ chunk-EUHD4VSW.js?v=ac3dab7a:13505
+performWorkUntilDeadline @ chunk-EUHD4VSW.js?v=ac3dab7a:36Understand this error
+DocumentUploadModal.tsx:165 Warning: [antd: Modal] `destroyOnClose` is deprecated. Please use `destroyOnHidden` instead.
+warning @ chunk-Q6DLBCUO.js?v=ac3dab7a:1251
+call @ chunk-Q6DLBCUO.js?v=ac3dab7a:1268
+warningOnce @ chunk-Q6DLBCUO.js?v=ac3dab7a:1273
+_warning @ antd.js?v=ac3dab7a:659
+typeWarning @ antd.js?v=ac3dab7a:686
+typeWarning.deprecated @ antd.js?v=ac3dab7a:691
+(anonymous) @ antd.js?v=ac3dab7a:21392
+Modal @ antd.js?v=ac3dab7a:21391
+react_stack_bottom_frame @ chunk-EUHD4VSW.js?v=ac3dab7a:18509
+renderWithHooks @ chunk-EUHD4VSW.js?v=ac3dab7a:5654
+updateFunctionComponent @ chunk-EUHD4VSW.js?v=ac3dab7a:7475
+beginWork @ chunk-EUHD4VSW.js?v=ac3dab7a:8525
+runWithFiberInDEV @ chunk-EUHD4VSW.js?v=ac3dab7a:997
+performUnitOfWork @ chunk-EUHD4VSW.js?v=ac3dab7a:12561
+workLoopConcurrentByScheduler @ chunk-EUHD4VSW.js?v=ac3dab7a:12557
+renderRootConcurrent @ chunk-EUHD4VSW.js?v=ac3dab7a:12539
+performWorkOnRoot @ chunk-EUHD4VSW.js?v=ac3dab7a:11766
+performWorkOnRootViaSchedulerTask @ chunk-EUHD4VSW.js?v=ac3dab7a:13505
+performWorkUntilDeadline @ chunk-EUHD4VSW.js?v=ac3dab7a:36
+<Modal>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ac3dab7a:247
+DocumentUploadModal @ DocumentUploadModal.tsx:165
+react_stack_bottom_frame @ chunk-EUHD4VSW.js?v=ac3dab7a:18509
+renderWithHooksAgain @ chunk-EUHD4VSW.js?v=ac3dab7a:5729
+renderWithHooks @ chunk-EUHD4VSW.js?v=ac3dab7a:5665
+updateFunctionComponent @ chunk-EUHD4VSW.js?v=ac3dab7a:7475
+beginWork @ chunk-EUHD4VSW.js?v=ac3dab7a:8525
+runWithFiberInDEV @ chunk-EUHD4VSW.js?v=ac3dab7a:997
+performUnitOfWork @ chunk-EUHD4VSW.js?v=ac3dab7a:12561
+workLoopConcurrentByScheduler @ chunk-EUHD4VSW.js?v=ac3dab7a:12557
+renderRootConcurrent @ chunk-EUHD4VSW.js?v=ac3dab7a:12539
+performWorkOnRoot @ chunk-EUHD4VSW.js?v=ac3dab7a:11766
+performWorkOnRootViaSchedulerTask @ chunk-EUHD4VSW.js?v=ac3dab7a:13505
+performWorkUntilDeadline @ chunk-EUHD4VSW.js?v=ac3dab7a:36
+<DocumentUploadModal>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ac3dab7a:247
+MeetingDocumentsTab @ MeetingDocumentsTab.tsx:290
+react_stack_bottom_frame @ chunk-EUHD4VSW.js?v=ac3dab7a:18509
+renderWithHooksAgain @ chunk-EUHD4VSW.js?v=ac3dab7a:5729
+renderWithHooks @ chunk-EUHD4VSW.js?v=ac3dab7a:5665
+updateFunctionComponent @ chunk-EUHD4VSW.js?v=ac3dab7a:7475
+beginWork @ chunk-EUHD4VSW.js?v=ac3dab7a:8525
+runWithFiberInDEV @ chunk-EUHD4VSW.js?v=ac3dab7a:997
+performUnitOfWork @ chunk-EUHD4VSW.js?v=ac3dab7a:12561
+workLoopConcurrentByScheduler @ chunk-EUHD4VSW.js?v=ac3dab7a:12557
+renderRootConcurrent @ chunk-EUHD4VSW.js?v=ac3dab7a:12539
+performWorkOnRoot @ chunk-EUHD4VSW.js?v=ac3dab7a:11766
+performWorkOnRootViaSchedulerTask @ chunk-EUHD4VSW.js?v=ac3dab7a:13505
+performWorkUntilDeadline @ chunk-EUHD4VSW.js?v=ac3dab7a:36
+<MeetingDocumentsTab>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ac3dab7a:247
+renderTabContent @ MeetingDetailPage.tsx:415
+MeetingDetailPage @ MeetingDetailPage.tsx:445
+react_stack_bottom_frame @ chunk-EUHD4VSW.js?v=ac3dab7a:18509
+renderWithHooksAgain @ chunk-EUHD4VSW.js?v=ac3dab7a:5729
+renderWithHooks @ chunk-EUHD4VSW.js?v=ac3dab7a:5665
+updateFunctionComponent @ chunk-EUHD4VSW.js?v=ac3dab7a:7475
+beginWork @ chunk-EUHD4VSW.js?v=ac3dab7a:8525
+runWithFiberInDEV @ chunk-EUHD4VSW.js?v=ac3dab7a:997
+performUnitOfWork @ chunk-EUHD4VSW.js?v=ac3dab7a:12561
+workLoopConcurrentByScheduler @ chunk-EUHD4VSW.js?v=ac3dab7a:12557
+renderRootConcurrent @ chunk-EUHD4VSW.js?v=ac3dab7a:12539
+performWorkOnRoot @ chunk-EUHD4VSW.js?v=ac3dab7a:11766
+performWorkOnRootViaSchedulerTask @ chunk-EUHD4VSW.js?v=ac3dab7a:13505
+performWorkUntilDeadline @ chunk-EUHD4VSW.js?v=ac3dab7a:36Understand this error
+documentCategories.handlers.ts:72 [MSW] GET /api/documents/categories called with params: {boardId: 'ktda-ms', isActive: 'true', includeGlobal: 'true'}
+documentCategories.handlers.ts:79 [MSW] Returning 16 categories
+msw.js?v=ac3dab7a:979 [MSW] 20:13:15 GET /api/documents (200 OK)
+DocumentUploadModal.tsx:71 [DocumentUploadModal] Categories state: {boardId: 'ktda-ms', categoriesCount: 16, isLoading: false, error: null, categories: Array(16)}
+DocumentUploadModal.tsx:71 [DocumentUploadModal] Categories state: {boardId: 'ktda-ms', categoriesCount: 16, isLoading: false, error: null, categories: Array(16)}
+msw.js?v=ac3dab7a:979 [MSW] 20:13:15 GET /api/documents/categories (200 OK)
+DocumentUploadModal.tsx:71 [DocumentUploadModal] Categories state: {boardId: 'ktda-ms', categoriesCount: 16, isLoading: false, error: null, categories: Array(16)}
+DocumentUploadModal.tsx:71 [DocumentUploadModal] Categories state: {boardId: 'ktda-ms', categoriesCount: 16, isLoading: false, error: null, categories: Array(16)}
+DocumentUploadModal.tsx:71 [DocumentUploadModal] Categories state: {boardId: 'ktda-ms', categoriesCount: 16, isLoading: false, error: null, categories: Array(16)}
+DocumentUploadModal.tsx:71 [DocumentUploadModal] Categories state: {boardId: 'ktda-ms', categoriesCount: 16, isLoading: false, error: null, categories: Array(16)}
+DocumentUploadModal.tsx:110 === UPLOAD SUBMIT STARTED ===
+DocumentUploadModal.tsx:121 [DocumentUploadModal] Form values: {name: 'KTDA MEETING AGENDA', category: 'board_pack', accessLevel: 'board_members', description: undefined, tags: Array(0), …}
+DocumentUploadModal.tsx:122 [DocumentUploadModal] Flags: {isConfidential: false, watermarkEnabled: false}
+DocumentUploadModal.tsx:126 [DocumentUploadModal] All form fields: {name: 'KTDA MEETING AGENDA', category: 'board_pack', accessLevel: 'board_members', description: undefined, tags: Array(0), …}
+DocumentUploadModal.tsx:71 [DocumentUploadModal] Categories state: {boardId: 'ktda-ms', categoriesCount: 16, isLoading: false, error: null, categories: Array(16)}
+DocumentUploadModal.tsx:71 [DocumentUploadModal] Categories state: {boardId: 'ktda-ms', categoriesCount: 16, isLoading: false, error: null, categories: Array(16)}
+documents.handlers.ts:261 [Mock API] Upload document - flags: {isConfidential: false, watermarkEnabled: false, isConfidentialRaw: 'false', watermarkEnabledRaw: 'false'}
+DocumentUploadModal.tsx:71 [DocumentUploadModal] Categories state: {boardId: 'ktda-ms', categoriesCount: 16, isLoading: false, error: null, categories: Array(16)}
+DocumentUploadModal.tsx:71 [DocumentUploadModal] Categories state: {boardId: 'ktda-ms', categoriesCount: 16, isLoading: false, error: null, categories: Array(16)}
+msw.js?v=ac3dab7a:979 [MSW] 20:13:31 POST /api/documents (200 OK)
+DocumentUploadModal.tsx:71 [DocumentUploadModal] Categories state: {boardId: 'ktda-ms', categoriesCount: 16, isLoading: false, error: null, categories: Array(16)}
+DocumentUploadModal.tsx:71 [DocumentUploadModal] Categories state: {boardId: 'ktda-ms', categoriesCount: 16, isLoading: false, error: null, categories: Array(16)}
+msw.js?v=ac3dab7a:979 [MSW] 20:13:31 POST /api/meetings/MTG-001/documents/doc-1770570811381 (200 OK)
+DocumentUploadModal.tsx:71 [DocumentUploadModal] Categories state: {boardId: 'ktda-ms', categoriesCount: 16, isLoading: false, error: null, categories: Array(16)}
+DocumentUploadModal.tsx:71 [DocumentUploadModal] Categories state: {boardId: 'ktda-ms', categoriesCount: 16, isLoading: false, error: null, categories: Array(16)}
+msw.js?v=ac3dab7a:979 [MSW] 20:13:32 GET /api/meetings/MTG-001/documents (200 OK)

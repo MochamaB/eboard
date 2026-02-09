@@ -12,6 +12,7 @@ import type {
   VoteAction,
   VoteResultsSummary,
   CreateVotePayload,
+  UpdateVotePayload,
   ConfigureVotePayload,
   OpenVotePayload,
   CastVotePayload,
@@ -113,6 +114,7 @@ export const useMeetingVotes = (
     queryKey: votingKeys.byMeeting(meetingId),
     queryFn: () => votingApi.getMeetingVotes(meetingId),
     enabled: !!meetingId,
+    staleTime: 0, // Always refetch when invalidated
     ...options,
   });
 };
@@ -125,23 +127,77 @@ export const useMeetingVotes = (
  * Create a new vote (draft)
  */
 export const useCreateVote = (
-  options?: UseMutationOptions<Vote, Error, CreateVotePayload>
+  options?: UseMutationOptions<Vote, Error, CreateVotePayload> & { skipRefetch?: boolean }
 ) => {
   const queryClient = useQueryClient();
+  const userOnSuccess = options?.onSuccess;
+  const skipRefetch = options?.skipRefetch || false;
 
   return useMutation({
-    mutationFn: votingApi.createVote,
-    onSuccess: (data, variables) => {
-      // Invalidate entity votes
-      queryClient.invalidateQueries({
-        queryKey: votingKeys.byEntity(variables.entityType, variables.entityId),
-      });
-      // Invalidate meeting votes
-      queryClient.invalidateQueries({
-        queryKey: votingKeys.byMeeting(variables.meetingId),
-      });
-    },
     ...options,
+    mutationFn: votingApi.createVote,
+    onSuccess: async (...args) => {
+      const [_data, variables] = args;
+      
+      // Only refetch if not skipped (used in multi-step wizards)
+      if (!skipRefetch) {
+        // Refetch meeting votes immediately to update UI
+        await queryClient.refetchQueries({ 
+          queryKey: votingKeys.byMeeting(variables.meetingId) 
+        });
+        
+        // Refetch entity votes if linked to an entity
+        if (variables.entityType && variables.entityId) {
+          await queryClient.refetchQueries({
+            queryKey: votingKeys.byEntity(variables.entityType, variables.entityId),
+          });
+        }
+      }
+      
+      // Call user's onSuccess callback after refetch completes (or immediately if skipped)
+      if (userOnSuccess) {
+        return userOnSuccess(...args);
+      }
+    },
+  });
+};
+
+/**
+ * Update vote basic information
+ */
+export const useUpdateVote = (
+  voteId: string,
+  options?: UseMutationOptions<Vote, Error, UpdateVotePayload> & { meetingId?: string; skipRefetch?: boolean }
+) => {
+  const queryClient = useQueryClient();
+  const userOnSuccess = options?.onSuccess;
+  const meetingId = options?.meetingId;
+  const skipRefetch = options?.skipRefetch || false;
+
+  return useMutation({
+    ...options,
+    mutationFn: (payload) => votingApi.updateVote(voteId, payload),
+    onSuccess: async (...args) => {
+      // Only refetch if not skipped
+      if (!skipRefetch) {
+        // Refetch vote details
+        await queryClient.refetchQueries({
+          queryKey: votingKeys.byId(voteId),
+        });
+        
+        // Refetch meeting votes list if meetingId provided
+        if (meetingId) {
+          await queryClient.refetchQueries({
+            queryKey: votingKeys.byMeeting(meetingId),
+          });
+        }
+      }
+      
+      // Call user's onSuccess callback after refetch completes
+      if (userOnSuccess) {
+        return userOnSuccess(...args);
+      }
+    },
   });
 };
 
@@ -150,19 +206,33 @@ export const useCreateVote = (
  */
 export const useConfigureVote = (
   voteId: string,
-  options?: UseMutationOptions<VoteDetail, Error, ConfigureVotePayload>
+  options?: UseMutationOptions<VoteDetail, Error, ConfigureVotePayload> & { meetingId?: string }
 ) => {
   const queryClient = useQueryClient();
+  const userOnSuccess = options?.onSuccess;
+  const meetingId = options?.meetingId;
 
   return useMutation({
+    ...options,
     mutationFn: (payload) => votingApi.configureVote(voteId, payload),
-    onSuccess: () => {
+    onSuccess: async (...args) => {
       // Refetch vote details
-      queryClient.invalidateQueries({
+      await queryClient.refetchQueries({
         queryKey: votingKeys.byId(voteId),
       });
+      
+      // Refetch meeting votes list if meetingId provided
+      if (meetingId) {
+        await queryClient.refetchQueries({
+          queryKey: votingKeys.byMeeting(meetingId),
+        });
+      }
+      
+      // Call user's onSuccess callback after refetch completes
+      if (userOnSuccess) {
+        return userOnSuccess(...args);
+      }
     },
-    ...options,
   });
 };
 

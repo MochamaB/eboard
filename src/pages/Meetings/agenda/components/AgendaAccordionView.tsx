@@ -14,15 +14,92 @@ import {
   PaperClipOutlined,
   PlusOutlined,
   DeleteOutlined,
+  HolderOutlined,
 } from '@ant-design/icons';
+import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, arrayMove, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { useBoardContext } from '../../../../contexts';
 import { AgendaHeader, ItemNumberBadge, ItemTypeTag, Accordion, type AccordionItem, InlineEditableField } from '../../../../components/common';
 import type { Agenda, AgendaItem } from '../../../../types/agenda.types';
 import { AgendaItemDocuments } from './AgendaItemDocuments';
+import { AgendaItemVotes } from './AgendaItemVotes';
 import { generateHierarchicalNumber, hasChildren as checkHasChildren, getChildItems as getChildren, getItemDepth, getDepthStyles } from '../../../../utils/agendaHierarchy';
 import { calculateTotalDuration, calculateItemDurationWithChildren, formatDuration as formatDurationUtil } from '../../../../utils/agendaTimeManagement';
 
 const { Text } = Typography;
+
+// Sortable Accordion Item Component for Drag and Drop
+interface SortableAccordionItemProps {
+  item: AgendaItem;
+  agenda: Agenda;
+  theme: any;
+  activeKeys: string[];
+  onAccordionChange: (keys: string[]) => void;
+}
+
+const SortableAccordionItem: React.FC<SortableAccordionItemProps> = ({ 
+  item, 
+  agenda, 
+  theme,
+  activeKeys,
+  onAccordionChange,
+}) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ 
+    id: item.id 
+  });
+  
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    cursor: 'move',
+  };
+
+  const hierarchicalNumber = generateHierarchicalNumber(item, agenda.items);
+  const itemDepth = getItemDepth(item, agenda.items);
+  const depthStyles = getDepthStyles(itemDepth, theme);
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}>
+      <div
+        style={{
+          backgroundColor: depthStyles.backgroundColor,
+          borderLeft: depthStyles.borderLeft,
+          borderRadius: '8px',
+          marginBottom: '8px',
+          padding: '16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          border: '1px solid #f0f0f0',
+        }}
+      >
+        {/* Drag Handle */}
+        <div {...listeners} style={{ cursor: 'grab', display: 'flex', alignItems: 'center' }}>
+          <HolderOutlined style={{ fontSize: '16px', color: '#8c8c8c' }} />
+        </div>
+
+        {/* Item Number */}
+        <ItemNumberBadge
+          number={hierarchicalNumber}
+          isParent={!item.parentItemId}
+          size="default"
+        />
+
+        {/* Item Title */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <Text strong style={{ fontSize: '14px' }}>
+            {item.title}
+          </Text>
+        </div>
+
+        {/* Item Type */}
+        <ItemTypeTag type={item.itemType} size="small" showIcon={false} />
+      </div>
+    </div>
+  );
+};
 
 interface AgendaAccordionViewProps {
   /** Agenda data */
@@ -55,6 +132,14 @@ interface AgendaAccordionViewProps {
   onDeleteItem?: (itemId: string) => void;
   /** Add item handler (edit mode) */
   onAddItem?: () => void;
+  /** Toggle reorder mode handler */
+  onToggleReorder?: () => void;
+  /** Is reorder mode active */
+  reorderMode?: boolean;
+  /** Reorder items handler */
+  onReorderItems?: (items: Array<{ itemId: string; orderIndex: number }>) => void;
+  /** Callback when vote is created */
+  onVoteCreated?: (voteId: string) => void;
 }
 
 export const AgendaAccordionView: React.FC<AgendaAccordionViewProps> = ({
@@ -73,6 +158,10 @@ export const AgendaAccordionView: React.FC<AgendaAccordionViewProps> = ({
   onAddSubItem,
   onDeleteItem,
   onAddItem,
+  onToggleReorder,
+  reorderMode = false,
+  onReorderItems,
+  onVoteCreated,
 }) => {
   const { theme, currentBoard } = useBoardContext();
   
@@ -97,6 +186,32 @@ export const AgendaAccordionView: React.FC<AgendaAccordionViewProps> = ({
   // Handle accordion change
   const handleAccordionChange = (keys: string[]) => {
     setActiveKeys(keys);
+  };
+
+  // Handle drag end for reordering
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (!over || active.id === over.id) return;
+    
+    const oldIndex = parentItems.findIndex(item => item.id === active.id);
+    const newIndex = parentItems.findIndex(item => item.id === over.id);
+    
+    if (oldIndex === -1 || newIndex === -1) return;
+    
+    // Reorder items locally
+    const reorderedItems = arrayMove(parentItems, oldIndex, newIndex);
+    
+    // Create update payload with new orderIndex values
+    const updates = reorderedItems.map((item, index) => ({
+      itemId: item.id,
+      orderIndex: index,
+    }));
+    
+    // Call handler to save new order
+    if (onReorderItems) {
+      onReorderItems(updates);
+    }
   };
 
   // Format duration
@@ -394,6 +509,17 @@ export const AgendaAccordionView: React.FC<AgendaAccordionViewProps> = ({
           meetingId={meetingId || item.meetingId}
         />
 
+        {/* Votes */}
+        <AgendaItemVotes
+          agendaItemId={item.id}
+          agendaId={agenda.id}
+          meetingId={meetingId || item.meetingId}
+          boardId={boardId || currentBoard?.id || item.meetingId}
+          mode={mode}
+          agendaItems={agenda.items}
+          onVoteCreated={onVoteCreated}
+        />
+
         {/* No content message */}
         {!item.description && docCount === 0 && (
           <Text type="secondary" style={{ fontSize: '13px', fontStyle: 'italic' }}>
@@ -464,6 +590,8 @@ export const AgendaAccordionView: React.FC<AgendaAccordionViewProps> = ({
         onUnpublish={agenda.status === 'published' ? onUnpublish : undefined}
         onExport={onExport}
         onAddItem={mode === 'edit' ? onAddItem : undefined}
+        onToggleReorder={onToggleReorder}
+        reorderMode={reorderMode}
         mode={mode}
         showEditActions={mode === 'edit'}
       />
@@ -475,6 +603,23 @@ export const AgendaAccordionView: React.FC<AgendaAccordionViewProps> = ({
             description="No agenda items yet"
             style={{ marginTop: '60px', padding: '24px' }}
           />
+        ) : reorderMode ? (
+          <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={parentItems.map(item => item.id)} strategy={verticalListSortingStrategy}>
+              <div style={{ opacity: 0.9 }}>
+                {parentItems.map((item) => (
+                  <SortableAccordionItem
+                    key={item.id}
+                    item={item}
+                    agenda={agenda}
+                    theme={theme}
+                    activeKeys={activeKeys}
+                    onAccordionChange={handleAccordionChange}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         ) : (
           <Accordion
             items={accordionItems}

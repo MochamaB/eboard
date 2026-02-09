@@ -36,6 +36,7 @@ export interface DetailsHeaderProps {
   primaryAction?: ActionButton;
   dropdownActions?: MenuProps['items'];
   extraActions?: ActionButton[];
+  alert?: React.ReactNode;
   style?: React.CSSProperties;
 }
 
@@ -47,6 +48,7 @@ export const DetailsHeader: React.FC<DetailsHeaderProps> = ({
   primaryAction,
   dropdownActions,
   extraActions = [],
+  alert,
   style,
 }) => {
   const renderMetadataItem = (item: MetadataItem) => {
@@ -86,14 +88,15 @@ export const DetailsHeader: React.FC<DetailsHeaderProps> = ({
   };
 
   return (
-    <Card 
-      bordered={false} 
-      style={{ 
-        marginBottom: 24,
-        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02)',
-        ...style,
-      }}
-    >
+    <>
+      <Card 
+        bordered={false} 
+        style={{ 
+          marginBottom: alert ? 16 : 24,
+          boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02)',
+          ...style,
+        }}
+      >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         {/* Left side: Icon + Title + Description + Metadata */}
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -167,7 +170,13 @@ export const DetailsHeader: React.FC<DetailsHeaderProps> = ({
           )}
         </Space>
       </div>
-    </Card>
+      </Card>
+      {alert && (
+        <div style={{ marginBottom: 24 }}>
+          {alert}
+        </div>
+      )}
+    </>
   );
 };
 

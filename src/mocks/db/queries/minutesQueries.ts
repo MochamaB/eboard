@@ -9,6 +9,11 @@ import { minutesCommentsTable } from '../tables/minutesComments';
 import type { MinutesCommentRow } from '../tables/minutesComments';
 import { minutesSignaturesTable } from '../tables/minutesSignatures';
 import type { MinutesSignatureRow } from '../tables/minutesSignatures';
+import { actionItemsTable } from '../tables/actionItems';
+import type { ActionItemRow } from '../tables/actionItems';
+import { resolutionsTable } from '../tables/resolutions';
+import type { ResolutionRow } from '../tables/resolutions';
+import { idsMatch } from '../utils/idUtils';
 
 // ============================================================================
 // MINUTES QUERIES
@@ -18,14 +23,14 @@ import type { MinutesSignatureRow } from '../tables/minutesSignatures';
  * Get minutes by meeting ID
  */
 export function getMinutesByMeetingId(meetingId: string): MinutesRow | null {
-  return minutesTable.find(m => m.meetingId === meetingId) || null;
+  return minutesTable.find(m => idsMatch(m.meetingId, meetingId)) || null;
 }
 
 /**
  * Get minutes by ID
  */
 export function getMinutesById(minutesId: string): MinutesRow | null {
-  return minutesTable.find(m => m.id === minutesId) || null;
+  return minutesTable.find(m => idsMatch(m.id, minutesId)) || null;
 }
 
 /**
@@ -112,7 +117,7 @@ export function updateMinutes(
     wordCount?: number;
   }
 ): MinutesRow | null {
-  const index = minutesTable.findIndex(m => m.id === minutesId);
+  const index = minutesTable.findIndex(m => idsMatch(m.id, minutesId));
   if (index === -1) return null;
 
   const minutes = minutesTable[index];
@@ -137,7 +142,7 @@ export function submitMinutesForReview(
   submittedBy: number,
   reviewDeadline?: string
 ): MinutesRow | null {
-  const index = minutesTable.findIndex(m => m.id === minutesId);
+  const index = minutesTable.findIndex(m => idsMatch(m.id, minutesId));
   if (index === -1) return null;
 
   const now = new Date().toISOString();
@@ -161,7 +166,7 @@ export function approveMinutes(
   approvedBy: number,
   approvalNotes?: string
 ): MinutesRow | null {
-  const index = minutesTable.findIndex(m => m.id === minutesId);
+  const index = minutesTable.findIndex(m => idsMatch(m.id, minutesId));
   if (index === -1) return null;
 
   const now = new Date().toISOString();
@@ -186,7 +191,7 @@ export function requestMinutesRevision(
   requestedBy: number,
   revisionReason: string
 ): MinutesRow | null {
-  const index = minutesTable.findIndex(m => m.id === minutesId);
+  const index = minutesTable.findIndex(m => idsMatch(m.id, minutesId));
   if (index === -1) return null;
 
   const now = new Date().toISOString();
@@ -210,7 +215,7 @@ export function publishMinutes(
   publishedBy: number,
   pdfUrl?: string
 ): MinutesRow | null {
-  const index = minutesTable.findIndex(m => m.id === minutesId);
+  const index = minutesTable.findIndex(m => idsMatch(m.id, minutesId));
   if (index === -1) return null;
 
   const now = new Date().toISOString();
@@ -231,7 +236,7 @@ export function publishMinutes(
  * Delete minutes
  */
 export function deleteMinutes(minutesId: string): boolean {
-  const index = minutesTable.findIndex(m => m.id === minutesId);
+  const index = minutesTable.findIndex(m => idsMatch(m.id, minutesId));
   if (index === -1) return false;
 
   minutesTable.splice(index, 1);
@@ -247,7 +252,7 @@ export function deleteMinutes(minutesId: string): boolean {
  */
 export function getCommentsByMinutesId(minutesId: string): MinutesCommentRow[] {
   return minutesCommentsTable
-    .filter(c => c.minutesId === minutesId)
+    .filter(c => idsMatch(c.minutesId, minutesId))
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 }
 
@@ -255,7 +260,7 @@ export function getCommentsByMinutesId(minutesId: string): MinutesCommentRow[] {
  * Get comment by ID
  */
 export function getCommentById(commentId: string): MinutesCommentRow | null {
-  return minutesCommentsTable.find(c => c.id === commentId) || null;
+  return minutesCommentsTable.find(c => idsMatch(c.id, commentId)) || null;
 }
 
 /**
@@ -304,7 +309,7 @@ export function resolveComment(
   resolvedBy: number,
   secretaryResponse?: string
 ): MinutesCommentRow | null {
-  const index = minutesCommentsTable.findIndex(c => c.id === commentId);
+  const index = minutesCommentsTable.findIndex(c => idsMatch(c.id, commentId));
   if (index === -1) return null;
 
   const now = new Date().toISOString();
@@ -326,7 +331,7 @@ export function resolveComment(
  * Delete comment
  */
 export function deleteComment(commentId: string): boolean {
-  const index = minutesCommentsTable.findIndex(c => c.id === commentId);
+  const index = minutesCommentsTable.findIndex(c => idsMatch(c.id, commentId));
   if (index === -1) return false;
 
   minutesCommentsTable.splice(index, 1);
@@ -342,7 +347,7 @@ export function deleteComment(commentId: string): boolean {
  */
 export function getSignaturesByMinutesId(minutesId: string): MinutesSignatureRow[] {
   return minutesSignaturesTable
-    .filter(s => s.minutesId === minutesId)
+    .filter(s => idsMatch(s.minutesId, minutesId))
     .sort((a, b) => new Date(a.signedAt).getTime() - new Date(b.signedAt).getTime());
 }
 
@@ -395,4 +400,77 @@ export function hasRequiredSignatures(minutesId: string): boolean {
   );
 
   return hasChairmanSignature && hasSecretarySignature;
+}
+
+// ============================================================================
+// ACTION ITEMS QUERIES
+// ============================================================================
+
+/**
+ * Get action items by minutes ID
+ */
+export function getActionItemsByMinutesId(minutesId: string): ActionItemRow[] {
+  return actionItemsTable
+    .filter(item => item.source === 'minutes' && item.sourceId && idsMatch(item.sourceId, minutesId))
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+}
+
+/**
+ * Get action items by meeting ID
+ */
+export function getActionItemsByMeetingId(meetingId: string): ActionItemRow[] {
+  return actionItemsTable
+    .filter(item => idsMatch(item.meetingId, meetingId))
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+}
+
+// ============================================================================
+// RESOLUTIONS QUERIES
+// ============================================================================
+
+/**
+ * Get resolutions by meeting ID
+ */
+export function getResolutionsByMeetingId(meetingId: string): ResolutionRow[] {
+  return resolutionsTable
+    .filter(res => idsMatch(res.meetingId, meetingId))
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+}
+
+// ============================================================================
+// COMBINED QUERIES
+// ============================================================================
+
+/**
+ * Get minutes with all related data (complete details)
+ */
+export function getMinutesWithDetails(minutesId: string) {
+  const minutes = getMinutesById(minutesId);
+  if (!minutes) return null;
+
+  return {
+    ...minutes,
+    comments: getCommentsByMinutesId(minutesId),
+    signatures: getSignaturesByMinutesId(minutesId),
+    actionItems: getActionItemsByMinutesId(minutesId),
+    resolutions: getResolutionsByMeetingId(minutes.meetingId),
+  };
+}
+
+/**
+ * Get meeting minutes summary (for meeting detail view)
+ */
+export function getMeetingMinutesSummary(meetingId: string) {
+  const minutes = getMinutesByMeetingId(meetingId);
+  if (!minutes) return null;
+
+  return {
+    minutes,
+    actionItems: getActionItemsByMeetingId(meetingId),
+    resolutions: getResolutionsByMeetingId(meetingId),
+    hasSignatures: getSignaturesByMinutesId(minutes.id).length > 0,
+    hasRequiredSignatures: hasRequiredSignatures(minutes.id),
+    commentCount: getCommentsByMinutesId(minutes.id).length,
+    unresolvedCommentCount: getCommentsByMinutesId(minutes.id).filter(c => !c.resolved).length,
+  };
 }

@@ -3,13 +3,18 @@
  * Helper functions for querying and manipulating voting data
  */
 
-import { votesTable, VoteRow } from '../tables/votes';
-import { voteConfigurationsTable, VoteConfigurationRow } from '../tables/voteConfigurations';
-import { voteOptionsTable, VoteOptionRow } from '../tables/voteOptions';
-import { voteEligibilityTable, VoteEligibilityRow } from '../tables/voteEligibility';
-import { votesCastTable, VoteCastRow } from '../tables/votesCast';
-import { voteActionsTable, VoteActionRow, VoteActionType } from '../tables/voteActions';
-import { voteResultsTable, voteResultsSummariesTable, VoteResultRow, VoteResultsSummaryRow } from '../tables/voteResults';
+import { votesTable } from '../tables/votes';
+import type { VoteRow } from '../tables/votes';
+import { voteConfigurationsTable } from '../tables/voteConfigurations';
+import type { VoteConfigurationRow } from '../tables/voteConfigurations';
+import { voteOptionsTable } from '../tables/voteOptions';
+import type { VoteOptionRow } from '../tables/voteOptions';
+import { voteEligibilityTable } from '../tables/voteEligibility';
+import { votesCastTable } from '../tables/votesCast';
+import type { VoteCastRow } from '../tables/votesCast';
+import { voteActionsTable } from '../tables/voteActions';
+import type { VoteActionRow, VoteActionType } from '../tables/voteActions';
+import { voteResultsTable, voteResultsSummariesTable } from '../tables/voteResults';
 import type {
   Vote,
   VoteConfiguration,
@@ -19,11 +24,11 @@ import type {
   VoteAction,
   VoteResult,
   VoteResultsSummary,
-  VoteFull,
   VoteWithResults,
   VoteDetail,
   VoteEntityType,
 } from '../../../types/voting.types';
+import { idsMatch } from '../utils/idUtils';
 
 // ============================================================================
 // BASIC QUERIES
@@ -33,16 +38,16 @@ import type {
  * Get vote by ID (full details with all related data)
  */
 export function getVoteById(voteId: string): VoteDetail | null {
-  const vote = votesTable.find((v) => v.id === voteId);
+  const vote = votesTable.find((v) => idsMatch(v.id, voteId));
   if (!vote) return null;
 
-  const configuration = voteConfigurationsTable.find((c) => c.voteId === voteId);
-  const options = voteOptionsTable.filter((o) => o.voteId === voteId);
-  const eligibility = voteEligibilityTable.filter((e) => e.voteId === voteId);
-  const votes = votesCastTable.filter((v) => v.voteId === voteId);
-  const actions = voteActionsTable.filter((a) => a.voteId === voteId);
-  const resultsSummary = voteResultsSummariesTable.find((r) => r.voteId === voteId);
-  const results = voteResultsTable.filter((r) => r.voteId === voteId);
+  const configuration = voteConfigurationsTable.find((c) => idsMatch(c.voteId, voteId));
+  const options = voteOptionsTable.filter((o) => idsMatch(o.voteId, voteId));
+  const eligibility = voteEligibilityTable.filter((e) => idsMatch(e.voteId, voteId));
+  const votes = votesCastTable.filter((v) => idsMatch(v.voteId, voteId));
+  const actions = voteActionsTable.filter((a) => idsMatch(a.voteId, voteId));
+  const resultsSummary = voteResultsSummariesTable.find((r) => idsMatch(r.voteId, voteId));
+  const results = voteResultsTable.filter((r) => idsMatch(r.voteId, voteId));
 
   return {
     ...vote,
@@ -65,7 +70,7 @@ export function getVoteById(voteId: string): VoteDetail | null {
  */
 export function getVotesByEntity(entityType: VoteEntityType, entityId: string): Vote[] {
   return votesTable
-    .filter((v) => v.entityType === entityType && v.entityId === entityId)
+    .filter((v) => v.entityType === entityType && idsMatch(v.entityId, entityId))
     .map((v) => v as Vote);
 }
 
@@ -74,12 +79,12 @@ export function getVotesByEntity(entityType: VoteEntityType, entityId: string): 
  */
 export function getVotesByMeeting(meetingId: string): VoteWithResults[] {
   return votesTable
-    .filter((v) => v.meetingId === meetingId)
+    .filter((v) => idsMatch(v.meetingId, meetingId))
     .map((vote) => {
-      const configuration = voteConfigurationsTable.find((c) => c.voteId === vote.id);
-      const options = voteOptionsTable.filter((o) => o.voteId === vote.id);
-      const resultsSummary = voteResultsSummariesTable.find((r) => r.voteId === vote.id);
-      const results = voteResultsTable.filter((r) => r.voteId === vote.id);
+      const configuration = voteConfigurationsTable.find((c) => idsMatch(c.voteId, vote.id));
+      const options = voteOptionsTable.filter((o) => idsMatch(o.voteId, vote.id));
+      const resultsSummary = voteResultsSummariesTable.find((r) => idsMatch(r.voteId, vote.id));
+      const results = voteResultsTable.filter((r) => idsMatch(r.voteId, vote.id));
 
       return {
         ...vote,
@@ -99,7 +104,7 @@ export function getVotesByMeeting(meetingId: string): VoteWithResults[] {
  * Get vote configuration
  */
 export function getVoteConfiguration(voteId: string): VoteConfiguration | null {
-  const config = voteConfigurationsTable.find((c) => c.voteId === voteId);
+  const config = voteConfigurationsTable.find((c) => idsMatch(c.voteId, voteId));
   return config ? (config as VoteConfiguration) : null;
 }
 
@@ -108,7 +113,7 @@ export function getVoteConfiguration(voteId: string): VoteConfiguration | null {
  */
 export function getVoteOptions(voteId: string): VoteOption[] {
   return voteOptionsTable
-    .filter((o) => o.voteId === voteId)
+    .filter((o) => idsMatch(o.voteId, voteId))
     .map((o) => o as VoteOption);
 }
 
@@ -117,7 +122,7 @@ export function getVoteOptions(voteId: string): VoteOption[] {
  */
 export function getVoteEligibility(voteId: string): VoteEligibility[] {
   return voteEligibilityTable
-    .filter((e) => e.voteId === voteId)
+    .filter((e) => idsMatch(e.voteId, voteId))
     .map((e) => e as VoteEligibility);
 }
 
@@ -126,7 +131,7 @@ export function getVoteEligibility(voteId: string): VoteEligibility[] {
  */
 export function getVotesCast(voteId: string): VoteCast[] {
   return votesCastTable
-    .filter((v) => v.voteId === voteId)
+    .filter((v) => idsMatch(v.voteId, voteId))
     .map((v) => v as VoteCast);
 }
 
@@ -135,7 +140,7 @@ export function getVotesCast(voteId: string): VoteCast[] {
  */
 export function getVoteActions(voteId: string): VoteAction[] {
   return voteActionsTable
-    .filter((a) => a.voteId === voteId)
+    .filter((a) => idsMatch(a.voteId, voteId))
     .map((a) => a as VoteAction);
 }
 
@@ -148,7 +153,7 @@ export function getVoteActions(voteId: string): VoteAction[] {
  */
 export function isUserEligible(voteId: string, userId: number): boolean {
   const eligibility = voteEligibilityTable.find(
-    (e) => e.voteId === voteId && e.userId === userId && e.eligible
+    (e) => idsMatch(e.voteId, voteId) && e.userId === userId && e.eligible
   );
   return !!eligibility;
 }
@@ -157,7 +162,7 @@ export function isUserEligible(voteId: string, userId: number): boolean {
  * Check if user has already voted
  */
 export function hasUserVoted(voteId: string, userId: number): boolean {
-  const vote = votesCastTable.find((v) => v.voteId === voteId && v.userId === userId);
+  const vote = votesCastTable.find((v) => idsMatch(v.voteId, voteId) && v.userId === userId);
   return !!vote;
 }
 
@@ -165,7 +170,7 @@ export function hasUserVoted(voteId: string, userId: number): boolean {
  * Check if vote can be configured
  */
 export function canConfigure(voteId: string): boolean {
-  const vote = votesTable.find((v) => v.id === voteId);
+  const vote = votesTable.find((v) => idsMatch(v.id, voteId));
   return vote?.status === 'draft';
 }
 
@@ -173,8 +178,8 @@ export function canConfigure(voteId: string): boolean {
  * Check if vote can be opened
  */
 export function canOpen(voteId: string): boolean {
-  const vote = votesTable.find((v) => v.id === voteId);
-  const hasConfig = voteConfigurationsTable.some((c) => c.voteId === voteId);
+  const vote = votesTable.find((v) => idsMatch(v.id, voteId));
+  const hasConfig = voteConfigurationsTable.some((c) => idsMatch(c.voteId, voteId));
   return vote?.status === 'configured' && hasConfig;
 }
 
@@ -182,13 +187,13 @@ export function canOpen(voteId: string): boolean {
  * Check if user can vote
  */
 export function canVote(voteId: string, userId: number): boolean {
-  const vote = votesTable.find((v) => v.id === voteId);
+  const vote = votesTable.find((v) => idsMatch(v.id, voteId));
   if (vote?.status !== 'open') return false;
 
   const eligible = isUserEligible(voteId, userId);
   if (!eligible) return false;
 
-  const config = voteConfigurationsTable.find((c) => c.voteId === voteId);
+  const config = voteConfigurationsTable.find((c) => idsMatch(c.voteId, voteId));
   if (!config?.allowChangeVote && hasUserVoted(voteId, userId)) {
     return false;
   }
@@ -200,7 +205,7 @@ export function canVote(voteId: string, userId: number): boolean {
  * Check if vote can be closed
  */
 export function canClose(voteId: string): boolean {
-  const vote = votesTable.find((v) => v.id === voteId);
+  const vote = votesTable.find((v) => idsMatch(v.id, voteId));
   return vote?.status === 'open';
 }
 
@@ -208,7 +213,7 @@ export function canClose(voteId: string): boolean {
  * Check if vote can be reopened
  */
 export function canReopen(voteId: string): boolean {
-  const vote = votesTable.find((v) => v.id === voteId);
+  const vote = votesTable.find((v) => idsMatch(v.id, voteId));
   return vote?.status === 'closed';
 }
 
@@ -220,11 +225,11 @@ export function canReopen(voteId: string): boolean {
  * Calculate vote results from votes_cast
  */
 export function calculateResults(voteId: string): VoteResultsSummary {
-  const vote = votesTable.find((v) => v.id === voteId);
-  const config = voteConfigurationsTable.find((c) => c.voteId === voteId);
-  const options = voteOptionsTable.filter((o) => o.voteId === voteId);
-  const eligibility = voteEligibilityTable.filter((e) => e.voteId === voteId && e.eligible);
-  const votes = votesCastTable.filter((v) => v.voteId === voteId);
+  const vote = votesTable.find((v) => idsMatch(v.id, voteId));
+  const config = voteConfigurationsTable.find((c) => idsMatch(c.voteId, voteId));
+  const options = voteOptionsTable.filter((o) => idsMatch(o.voteId, voteId));
+  const eligibility = voteEligibilityTable.filter((e) => idsMatch(e.voteId, voteId) && e.eligible);
+  const votes = votesCastTable.filter((v) => idsMatch(v.voteId, voteId));
 
   if (!vote || !config) {
     throw new Error('Vote or configuration not found');
@@ -242,7 +247,7 @@ export function calculateResults(voteId: string): VoteResultsSummary {
 
   // Calculate results per option
   const results: VoteResult[] = options.map((option) => {
-    const optionVotes = votes.filter((v) => v.optionId === option.id);
+    const optionVotes = votes.filter((v) => idsMatch(v.optionId, option.id));
     const optionWeight = optionVotes.reduce((sum, v) => sum + v.weightApplied, 0);
     const voteCount = optionVotes.length;
 
@@ -250,7 +255,7 @@ export function calculateResults(voteId: string): VoteResultsSummary {
     let percentage = 0;
     if (config.votingMethod === 'yes_no_abstain') {
       const abstainOption = options.find((o) => o.label.toLowerCase() === 'abstain');
-      const abstainVotes = votes.filter((v) => v.optionId === abstainOption?.id);
+      const abstainVotes = votes.filter((v) => abstainOption && idsMatch(v.optionId, abstainOption.id));
       const decisiveVotes = totalVoted - abstainVotes.length;
 
       if (decisiveVotes > 0 && option.id !== abstainOption?.id) {
@@ -356,7 +361,7 @@ export function updateVoteStatus(
   status: VoteRow['status'],
   outcome?: VoteRow['outcome']
 ): void {
-  const vote = votesTable.find((v) => v.id === voteId);
+  const vote = votesTable.find((v) => idsMatch(v.id, voteId));
   if (vote) {
     vote.status = status;
     if (outcome) vote.outcome = outcome;
@@ -413,8 +418,8 @@ export function castVote(voteCast: Omit<VoteCastRow, 'id'>): VoteCastRow {
  * Clear votes cast (for reopen)
  */
 export function clearVotesCast(voteId: string): void {
-  const index = votesCastTable.findIndex((v) => v.voteId === voteId);
+  const index = votesCastTable.findIndex((v) => idsMatch(v.voteId, voteId));
   if (index !== -1) {
-    votesCastTable.splice(index, votesCastTable.filter((v) => v.voteId === voteId).length);
+    votesCastTable.splice(index, votesCastTable.filter((v) => idsMatch(v.voteId, voteId)).length);
   }
 }

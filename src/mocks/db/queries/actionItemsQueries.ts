@@ -10,6 +10,7 @@ import type {
   ActionItemPriority,
   ActionItemSource,
 } from '../tables/actionItems';
+import { idsMatch } from '../utils/idUtils';
 
 // ============================================================================
 // ACTION ITEMS QUERIES
@@ -19,7 +20,7 @@ import type {
  * Get action item by ID
  */
 export function getActionItemById(actionItemId: string): ActionItemRow | null {
-  return actionItemsTable.find(a => a.id === actionItemId) || null;
+  return actionItemsTable.find(a => idsMatch(a.id, actionItemId)) || null;
 }
 
 /**
@@ -27,7 +28,7 @@ export function getActionItemById(actionItemId: string): ActionItemRow | null {
  */
 export function getActionItemsByMeetingId(meetingId: string): ActionItemRow[] {
   return actionItemsTable
-    .filter(a => a.meetingId === meetingId)
+    .filter(a => idsMatch(a.meetingId, meetingId))
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 }
 
@@ -36,7 +37,7 @@ export function getActionItemsByMeetingId(meetingId: string): ActionItemRow[] {
  */
 export function getActionItemsByBoardId(boardId: string): ActionItemRow[] {
   return actionItemsTable
-    .filter(a => a.boardId === boardId)
+    .filter(a => idsMatch(a.boardId, boardId))
     .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
 }
 
@@ -63,7 +64,7 @@ export function getActionItemsBySource(
   sourceId: string
 ): ActionItemRow[] {
   return actionItemsTable.filter(
-    a => a.source === source && a.sourceId === sourceId
+    a => a.source === source && a.sourceId && idsMatch(a.sourceId, sourceId)
   );
 }
 
@@ -82,11 +83,11 @@ export function getAllActionItems(filters?: {
   let results = [...actionItemsTable];
 
   if (filters?.meetingId) {
-    results = results.filter(a => a.meetingId === filters.meetingId);
+    results = results.filter(a => idsMatch(a.meetingId, filters.meetingId!));
   }
 
   if (filters?.boardId) {
-    results = results.filter(a => a.boardId === filters.boardId);
+    results = results.filter(a => idsMatch(a.boardId, filters.boardId!));
   }
 
   if (filters?.assignedTo) {
@@ -219,11 +220,11 @@ export function updateActionItem(
     relatedDocumentIds?: string[];
   }
 ): ActionItemRow | null {
-  const index = actionItemsTable.findIndex(a => a.id === actionItemId);
+  const index = actionItemsTable.findIndex(a => idsMatch(a.id, actionItemId));
   if (index === -1) return null;
 
   const actionItem = actionItemsTable[index];
-  
+
   actionItemsTable[index] = {
     ...actionItem,
     title: data.title !== undefined ? data.title : actionItem.title,
@@ -231,8 +232,8 @@ export function updateActionItem(
     assignedTo: data.assignedTo !== undefined ? data.assignedTo : actionItem.assignedTo,
     dueDate: data.dueDate !== undefined ? data.dueDate : actionItem.dueDate,
     priority: data.priority !== undefined ? data.priority : actionItem.priority,
-    relatedDocumentIds: data.relatedDocumentIds !== undefined 
-      ? JSON.stringify(data.relatedDocumentIds) 
+    relatedDocumentIds: data.relatedDocumentIds !== undefined
+      ? JSON.stringify(data.relatedDocumentIds)
       : actionItem.relatedDocumentIds,
     updatedAt: new Date().toISOString(),
   };
@@ -248,7 +249,7 @@ export function updateActionItemStatus(
   status: ActionItemStatus,
   completionNotes?: string
 ): ActionItemRow | null {
-  const index = actionItemsTable.findIndex(a => a.id === actionItemId);
+  const index = actionItemsTable.findIndex(a => idsMatch(a.id, actionItemId));
   if (index === -1) return null;
 
   const now = new Date().toISOString();
@@ -274,7 +275,7 @@ export function completeActionItem(
   completedBy: number,
   completionNotes?: string
 ): ActionItemRow | null {
-  const index = actionItemsTable.findIndex(a => a.id === actionItemId);
+  const index = actionItemsTable.findIndex(a => idsMatch(a.id, actionItemId));
   if (index === -1) return null;
 
   const now = new Date().toISOString();
@@ -294,7 +295,7 @@ export function completeActionItem(
  * Delete action item
  */
 export function deleteActionItem(actionItemId: string): boolean {
-  const index = actionItemsTable.findIndex(a => a.id === actionItemId);
+  const index = actionItemsTable.findIndex(a => idsMatch(a.id, actionItemId));
   if (index === -1) return false;
 
   actionItemsTable.splice(index, 1);
@@ -305,7 +306,7 @@ export function deleteActionItem(actionItemId: string): boolean {
  * Mark reminder sent
  */
 export function markReminderSent(actionItemId: string): ActionItemRow | null {
-  const index = actionItemsTable.findIndex(a => a.id === actionItemId);
+  const index = actionItemsTable.findIndex(a => idsMatch(a.id, actionItemId));
   if (index === -1) return null;
 
   actionItemsTable[index] = {

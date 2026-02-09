@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Layout, Grid } from 'antd';
-import { Outlet, useParams, useNavigate } from 'react-router-dom';
+import { Outlet, useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Header } from '../components/Header/Header';
 import { Sidebar } from '../components/Sidebar/Sidebar';
 import { NavigationBar } from '../components/NavigationBar';
@@ -16,6 +16,10 @@ const SIDEBAR_WIDTH_COLLAPSED = 80;
 const AppLayoutInner: React.FC = () => {
   const screens = useBreakpoint();
   const isMobile = !screens.md; // md breakpoint = 768px
+  const location = useLocation();
+  
+  // Check if we're in the Meeting Room (full-width mode)
+  const isInMeetingRoom = location.pathname.includes('/meetings/') && location.pathname.endsWith('/room');
   
   // Initialize collapsed state based on screen size to prevent transition flash
   const [collapsed, setCollapsed] = useState(() => isMobile);
@@ -72,10 +76,10 @@ const AppLayoutInner: React.FC = () => {
         
         <Content
           style={{
-            margin: isMobile ? '16px' : '24px',
-            padding: isMobile ? '16px' : '24px',
+            margin: isInMeetingRoom ? 0 : (isMobile ? '16px' : '24px'),
+            padding: isInMeetingRoom ? 0 : (isMobile ? '16px' : '24px'),
             minHeight: 280,
-            backgroundColor: '#fff',
+            backgroundColor: isInMeetingRoom ? 'transparent' : '#fff',
           }}
         >
           <Outlet />

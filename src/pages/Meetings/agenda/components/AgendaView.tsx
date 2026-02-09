@@ -15,6 +15,7 @@ import {
   usePublishAgenda,
   useUpdateAgenda,
   useAgendaTemplates,
+  useReorderAgendaItems,
 } from '../../../../hooks/api';
 import type { AgendaItem, UpdateAgendaItemPayload } from '../../../../types/agenda.types';
 import { AgendaAccordionView } from './AgendaAccordionView';
@@ -129,6 +130,20 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
       },
       onError: (error) => {
         message.error(`Failed to update agenda: ${error.message}`);
+      },
+    }
+  );
+
+  const reorderItemsMutation = useReorderAgendaItems(
+    agenda?.id || '',
+    meetingId,
+    {
+      onSuccess: () => {
+        message.success('Agenda items reordered successfully');
+        setReorderMode(false);
+      },
+      onError: (error) => {
+        message.error(`Failed to reorder items: ${error.message}`);
       },
     }
   );
@@ -367,11 +382,22 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
     );
   }
 
+  // Toggle reorder mode
+  const handleToggleReorder = () => {
+    setReorderMode(!reorderMode);
+  };
+
+  // Handle reorder items
+  const handleReorderItems = (items: Array<{ itemId: string; orderIndex: number }>) => {
+    if (!agenda?.id) return;
+    reorderItemsMutation.mutate({ itemOrders: items });
+  };
+
   // Render accordion view with inline editing
   return (
     <AgendaAccordionView
       agenda={agenda}
-      loading={loading || updateAgendaMutation.isPending}
+      loading={loading || updateAgendaMutation.isPending || reorderItemsMutation.isPending}
       mode={actualMode}
       meetingDuration={meetingDuration}
       participants={participants}
@@ -385,6 +411,9 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
       onAddSubItem={actualMode === 'edit' ? handleAddSubItem : undefined}
       onDeleteItem={actualMode === 'edit' ? handleDeleteItem : undefined}
       onAddItem={actualMode === 'edit' ? onAddItem : undefined}
+      onToggleReorder={actualMode === 'edit' ? handleToggleReorder : undefined}
+      reorderMode={reorderMode}
+      onReorderItems={actualMode === 'edit' ? handleReorderItems : undefined}
     />
   );
 };

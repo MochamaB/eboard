@@ -263,3 +263,60 @@ export const MINUTES_STATUS_ICONS: Record<MinutesStatus, string> = {
   approved: 'CheckCircleOutlined',
   published: 'SendOutlined',
 };
+
+// ============================================================================
+// MINUTES TEMPLATES
+// ============================================================================
+
+export const BoardTypeSchema = z.enum(['main', 'subsidiary', 'factory', 'committee', 'all']);
+export const MeetingTypeSchema = z.enum(['regular', 'emergency', 'agm', 'special', 'committee', 'all']);
+
+export const MinutesTemplateSectionSchema = z.object({
+  orderIndex: z.number(),
+  title: z.string(),
+  placeholder: z.string(),
+  required: z.boolean(),
+  autoPopulate: z.boolean(),
+});
+
+export const MinutesTemplateSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().nullable().optional(),
+  boardType: BoardTypeSchema,
+  meetingType: MeetingTypeSchema,
+  sections: z.array(MinutesTemplateSectionSchema),
+  htmlTemplate: z.string(),
+  createdBy: z.number(),
+  createdByName: z.string(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  isGlobal: z.boolean(),
+});
+
+export const CreateMinutesTemplatePayloadSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+  boardType: BoardTypeSchema,
+  meetingType: MeetingTypeSchema,
+  sections: z.array(MinutesTemplateSectionSchema),
+  htmlTemplate: z.string(),
+  isGlobal: z.boolean().default(false),
+});
+
+export const UpdateMinutesTemplatePayloadSchema = CreateMinutesTemplatePayloadSchema.partial();
+
+export const MinutesTemplateFiltersSchema = z.object({
+  boardType: BoardTypeSchema.optional(),
+  meetingType: MeetingTypeSchema.optional(),
+  isGlobal: z.boolean().optional(),
+});
+
+// Type exports
+export type BoardType = z.infer<typeof BoardTypeSchema>;
+export type MeetingType = z.infer<typeof MeetingTypeSchema>;
+export type MinutesTemplateSection = z.infer<typeof MinutesTemplateSectionSchema>;
+export type MinutesTemplate = z.infer<typeof MinutesTemplateSchema>;
+export type CreateMinutesTemplatePayload = z.infer<typeof CreateMinutesTemplatePayloadSchema>;
+export type UpdateMinutesTemplatePayload = z.infer<typeof UpdateMinutesTemplatePayloadSchema>;
+export type MinutesTemplateFilters = z.infer<typeof MinutesTemplateFiltersSchema>;

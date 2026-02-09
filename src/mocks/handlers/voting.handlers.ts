@@ -7,6 +7,7 @@ import { http, HttpResponse } from 'msw';
 import type {
   VoteDetail,
   CreateVotePayload,
+  UpdateVotePayload,
   ConfigureVotePayload,
   CastVotePayload,
   CloseVotePayload,
@@ -81,6 +82,67 @@ export const createVoteHandler = http.post('/api/votes', async ({ request }) => 
   } catch (error) {
     return HttpResponse.json(
       { error: 'Failed to create vote', details: error },
+      { status: 500 }
+    );
+  }
+});
+
+/**
+ * PUT /api/votes/:voteId - Update vote basic information
+ */
+export const updateVoteHandler = http.put('/api/votes/:voteId', async ({ params, request }) => {
+  try {
+    const { voteId } = params as { voteId: string };
+    const payload = await request.json() as UpdateVotePayload;
+    const currentUserId = getCurrentUserId();
+    const currentUserName = 'System User';
+
+    // Validate vote exists
+    const voteIndex = votesTable.findIndex((v) => v.id === voteId);
+    if (voteIndex === -1) {
+      return HttpResponse.json({ error: 'Vote not found' }, { status: 404 });
+    }
+
+    const vote = votesTable[voteIndex];
+
+    // Check if update is allowed (only draft or configured votes can be updated)
+    if (vote.status !== 'draft' && vote.status !== 'configured') {
+      return HttpResponse.json(
+        { error: 'Cannot update vote after it has been opened' },
+        { status: 400 }
+      );
+    }
+
+    // Update vote fields
+    if (payload.title !== undefined) {
+      vote.title = payload.title;
+    }
+    if (payload.description !== undefined) {
+      vote.description = payload.description;
+    }
+    if (payload.entityType !== undefined) {
+      vote.entityType = payload.entityType;
+    }
+    if (payload.entityId !== undefined) {
+      vote.entityId = payload.entityId;
+    }
+
+    // Insert updated action
+    insertVoteAction(
+      voteId,
+      'updated',
+      currentUserId,
+      currentUserName,
+      {
+        updatedFields: Object.keys(payload),
+      }
+    );
+
+    // Return updated vote
+    return HttpResponse.json(vote);
+  } catch (error) {
+    return HttpResponse.json(
+      { error: 'Failed to update vote', details: error },
       { status: 500 }
     );
   }
@@ -539,6 +601,7 @@ export const deleteVoteHandler = http.delete('/api/votes/:voteId', async ({ para
 
 export const votingHandlers = [
   createVoteHandler,
+  updateVoteHandler,
   configureVoteHandler,
   openVoteHandler,
   castVoteHandler,

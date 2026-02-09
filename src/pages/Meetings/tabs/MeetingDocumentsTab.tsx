@@ -9,12 +9,16 @@ import {
   UploadOutlined,
   PlusOutlined,
   FolderOpenOutlined,
+  StopOutlined,
+  CheckCircleOutlined,
 } from '@ant-design/icons';
 import { useBoardContext } from '../../../contexts';
+import { useMeetingPermissions } from '../../../hooks/meetings/useMeetingPermissions';
 import {
   useMeetingDocuments,
   useAttachDocumentToMeeting,
   useDetachDocumentFromMeeting,
+  useDocument,
 } from '../../../hooks/api/useDocuments';
 import {
   AttachedDocumentsList,
@@ -37,20 +41,44 @@ export const MeetingDocumentsTab: React.FC<MeetingDocumentsTabProps> = ({
   themeColor,
 }) => {
   const { theme, currentBoard } = useBoardContext();
+  const permissions = useMeetingPermissions();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [viewerDocument, setViewerDocument] = useState<Document | null>(null);
+  const [viewingDocumentId, setViewingDocumentId] = useState<string | null>(null);
+
+  // Fetch full document when viewing
+  const { data: fullDocument, isLoading: loadingFullDocument } = useDocument(
+    viewingDocumentId || '',
+    {
+      enabled: !!viewingDocumentId,
+    }
+  );
+
+  // Set viewer document when full document is loaded
+  React.useEffect(() => {
+    if (fullDocument && viewingDocumentId) {
+      setViewerDocument(fullDocument);
+      setViewingDocumentId(null);
+    }
+  }, [fullDocument, viewingDocumentId]);
+
+  // Status flags
+  const isCancelled = meeting.status === 'cancelled';
+  const isApproved = meeting.status === 'scheduled' && meeting.subStatus === 'approved';
+  const isCompleted = meeting.status === 'completed';
+  const isRejected = meeting.status === 'scheduled' && meeting.subStatus === 'rejected';
+
+  // Determine if documents can be edited
+  const canEditDocuments = 
+    meeting.status === 'draft' || 
+    (meeting.status === 'scheduled' && (meeting.subStatus === 'pending_approval' || meeting.subStatus === 'rejected'));
 
   // Fetch meeting documents
   const { data: attachments = [], isLoading, error, refetch } = useMeetingDocuments(meeting.id);
 
-  // Map attachments to documents with entity metadata preserved
-  const documents = attachments.map(att => ({
-    ...att.document,
-    entityLabel: att.entityLabel,
-    entityType: att.entityType,
-    entityId: att.entityId,
-  }));
+  // Extract documents from attachments
+  const documents = attachments.map(att => att.document);
 
   // Mutations
   const attachMutation = useAttachDocumentToMeeting(meeting.id, {
@@ -100,7 +128,8 @@ export const MeetingDocumentsTab: React.FC<MeetingDocumentsTabProps> = ({
   }, [detachMutation]);
 
   const handleViewDocument = useCallback((document: Document | DocumentSummary) => {
-    setViewerDocument(document as Document);
+    // Fetch full document before viewing
+    setViewingDocumentId(document.id);
   }, []);
 
   const handleDownloadDocument = useCallback((document: Document | DocumentSummary) => {
@@ -140,34 +169,51 @@ export const MeetingDocumentsTab: React.FC<MeetingDocumentsTabProps> = ({
 
   return (
     <div style={{ padding: '8px 0' }}>
-      {/* Action Buttons */}
-      <Card
-        style={{
-          marginBottom: 16,
-          backgroundColor: theme.backgroundSecondary,
-        }}
-        bodyStyle={{ padding: 16 }}
-      >
-        <Space>
-          <Button
-            type="primary"
-            icon={<UploadOutlined />}
-            onClick={() => setUploadOpen(true)}
-            style={{
-              backgroundColor: themeColor || theme.primaryColor,
-              borderColor: themeColor || theme.primaryColor,
-            }}
-          >
-            Upload New
-          </Button>
-          <Button
-            icon={<PlusOutlined />}
-            onClick={() => setPickerOpen(true)}
-          >
-            Attach Existing
-          </Button>
-        </Space>
-      </Card>
+      {/* Cancellation Banner */}
+      {isCancelled && (
+        <Alert
+          message="Meeting Cancelled"
+          description="This meeting has been cancelled. Documents are read-only."
+          type="warning"
+          icon={<StopOutlined />}
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+      )}
+
+      {/* Approved Banner */}
+      {isApproved && (
+        <Alert
+          message="Meeting Approved"
+          description="This meeting has been approved. Documents are finalized and cannot be modified."
+          type="info"
+          icon={<CheckCircleOutlined />}
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+      )}
+
+      {/* Rejected Banner */}
+      {isRejected && (
+        <Alert
+          message="Meeting Rejected"
+          description="This meeting was rejected. You can modify documents and resubmit."
+          type="warning"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+      )}
+
+      {/* Completed Banner */}
+      {isCompleted && (
+        <Alert
+          message="Meeting Completed"
+          description="This meeting has been completed. Documents are archived and read-only."
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+      )}
 
       {/* Documents List */}
       <Card>
@@ -216,12 +262,12 @@ export const MeetingDocumentsTab: React.FC<MeetingDocumentsTabProps> = ({
             documents={documents}
             onView={handleViewDocument}
             onDownload={handleDownloadDocument}
-            onRemove={handleRemoveDocument}
-            onAttach={() => setPickerOpen(true)}
-            onUpload={() => setUploadOpen(true)}
-            showAttachButton={true}
-            showUploadButton={true}
-            showRemoveButton={true}
+            onRemove={canEditDocuments ? handleRemoveDocument : undefined}
+            onAttach={canEditDocuments ? () => setPickerOpen(true) : undefined}
+            onUpload={canEditDocuments ? () => setUploadOpen(true) : undefined}
+            showAttachButton={canEditDocuments}
+            showUploadButton={canEditDocuments}
+            showRemoveButton={canEditDocuments}
             showEntityLabels={true}
             title="Meeting Documents"
             emptyText="No documents attached"

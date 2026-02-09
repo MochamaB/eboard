@@ -1,0 +1,135 @@
+/**
+ * MinutesDocument Styles
+ * Two-column responsive layout with professional document styling
+ */
+
+/* Base Document Styles */
+.minutes-document {
+  background-color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.5;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+/* Two-Column Layout */
+.minutes-document__layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 32px;
+  padding: 24px 32px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Main Content Column */
+.minutes-document__content {
+  min-width: 0; /* Prevent grid blowout */
+  background: #fff;
+  padding: 32px;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  border: 1px solid #f0f0f0;
+}
+
+/* Sidebar Column */
+.minutes-document__sidebar {
+  min-width: 0;
+  background: #fafafa;
+  padding: 24px;
+  border-radius: 8px;
+  border: 1px solid #f0f0f0;
+  height: fit-content;
+}
+
+/* Mobile Layout - Stack Vertically */
+.minutes-document__layout--mobile {
+  grid-template-columns: 1fr;
+  padding: 16px;
+  gap: 16px;
+}
+
+.minutes-document__layout--mobile .minutes-document__content {
+  padding: 24px;
+  order: 2; /* Content shows first on mobile */
+}
+
+.minutes-document__layout--mobile .minutes-document__sidebar {
+  order: 1; /* Sidebar shows second on mobile */
+  position: static;
+}
+
+/* Tablet Adjustments */
+@media (max-width: 1024px) {
+  .minutes-document__layout {
+    grid-template-columns: 1fr 280px;
+    gap: 24px;
+    padding: 16px 24px;
+  }
+  
+  .minutes-document__content {
+    padding: 24px;
+  }
+  
+  .minutes-document__sidebar {
+    padding: 20px;
+  }
+}
+
+/* Mobile Adjustments */
+@media (max-width: 768px) {
+  .minutes-document__layout {
+    grid-template-columns: 1fr;
+    padding: 12px;
+    gap: 12px;
+  }
+  
+  .minutes-document__content {
+    padding: 20px;
+    border-radius: 6px;
+  }
+  
+  .minutes-document__sidebar {
+    padding: 16px;
+    border-radius: 6px;
+  }
+  
+  .minutes-document__header {
+    border-radius: 0;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .minutes-document {
+    background: white !important;
+  }
+  
+  .minutes-document__layout {
+    display: block !important;
+    padding: 0 !important;
+  }
+  
+  .minutes-document__content {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+  }
+  
+  .minutes-document__sidebar {
+    display: none !important;
+  }
+  
+  .minutes-document__header {
+    border-bottom: none !important;
+  }
+}
+
+/* Page Break Controls */
+.minutes-document__header {
+  page-break-inside: avoid;
+  page-break-after: avoid;
+}
+
+.minutes-document__content {
+  page-break-inside: auto;
+}

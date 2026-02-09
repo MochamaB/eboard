@@ -9,7 +9,7 @@ import {
   Form,
   Input,
   Select,
-  Switch,
+  Checkbox,
   Space,
   message,
   Tag,
@@ -107,6 +107,8 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
   }, [form, onClose]);
 
   const handleSubmit = async () => {
+    console.log('=== UPLOAD SUBMIT STARTED ===');
+    
     if (!selectedFile) {
       message.warning('Please select a file to upload');
       return;
@@ -114,6 +116,14 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
 
     try {
       const values = await form.validateFields();
+      
+      // Debug logging
+      console.log('[DocumentUploadModal] Form values:', values);
+      console.log('[DocumentUploadModal] Flags:', {
+        isConfidential: values.isConfidential,
+        watermarkEnabled: values.watermarkEnabled,
+      });
+      console.log('[DocumentUploadModal] All form fields:', form.getFieldsValue());
       
       await uploadMutation.mutateAsync({
         file: selectedFile,
@@ -186,8 +196,8 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
         initialValues={{
           category: defaultCategory,
           accessLevel: 'board_members',
-          isConfidential: false,
-          watermarkEnabled: false,
+          isConfidential: true,
+          watermarkEnabled: true,
           tags: [],
         }}
       >
@@ -291,10 +301,9 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
             valuePropName="checked"
             style={{ marginBottom: 0 }}
           >
-            <Space>
-              <Switch size="small" />
-              <span style={{ color: theme.textPrimary }}>Confidential</span>
-            </Space>
+            <Checkbox style={{ color: theme.textPrimary }}>
+              Confidential
+            </Checkbox>
           </Form.Item>
 
           <Form.Item
@@ -302,10 +311,9 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
             valuePropName="checked"
             style={{ marginBottom: 0 }}
           >
-            <Space>
-              <Switch size="small" />
-              <span style={{ color: theme.textPrimary }}>Enable Watermark</span>
-            </Space>
+            <Checkbox style={{ color: theme.textPrimary }}>
+              Enable Watermark
+            </Checkbox>
           </Form.Item>
         </div>
       </Form>

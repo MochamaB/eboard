@@ -58,6 +58,7 @@ export interface DocumentRow {
   status: DocumentStatus;
 
   // Security Features
+  isConfidential: boolean;
   watermarkEnabled: boolean;
 
   // Timestamps
@@ -83,7 +84,8 @@ const createDocument = (
   uploadedByName: string,
   uploadedAt: string,
   options: Partial<DocumentRow> = {},
-  watermarkEnabled: boolean = false
+  watermarkEnabled: boolean = false,
+  isConfidential: boolean = false
 ): DocumentRow => ({
   id,
   name,
@@ -97,7 +99,7 @@ const createDocument = (
   storageProvider: 'local',
   storageKey: `documents/${id}/${fileName}`,
   storageBucket: null,
-  url: `/mock-documents/${fileName}`,
+  url: `/mock-documents/sample.pdf`, // All documents point to sample.pdf for development
   thumbnailUrl: null,
   categoryId,
   boardId,
@@ -106,6 +108,7 @@ const createDocument = (
   uploadedAt,
   source: 'upload',
   status: 'published',
+  isConfidential,
   watermarkEnabled,
   createdAt: uploadedAt,
   updatedAt: uploadedAt,

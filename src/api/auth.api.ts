@@ -130,7 +130,9 @@ export const authApi = {
    */
   getCurrentUser: async (): Promise<LoginResponse['user']> => {
     const response = await apiClient.get('/auth/me');
-    return LoginResponseSchema.shape.user.parse(response.data);
+    // Mock API returns { data: user }, real API might return user directly
+    const userData = response.data.data || response.data;
+    return LoginResponseSchema.shape.user.parse(userData);
   },
 
   /**

@@ -120,7 +120,7 @@ const transformDocument = (row: DocumentRow) => ({
   boardName: getBoardName(row.boardId),
   // Computed fields from related tables
   isSigned: isDocumentSigned(row.id),
-  isConfidential: isDocumentConfidential(row.id),
+  isConfidential: row.isConfidential, // Use the field from document row directly
   category: row.categoryId, // For backward compatibility
 });
 
@@ -144,7 +144,7 @@ const getDocumentSummary = (documentId: string) => {
     uploadedAt: doc.uploadedAt,
     status: doc.status,
     isSigned: isDocumentSigned(doc.id),
-    isConfidential: isDocumentConfidential(doc.id),
+    isConfidential: doc.isConfidential, // Use the field from document row directly
     watermarkEnabled: doc.watermarkEnabled,
   };
 };
@@ -257,6 +257,14 @@ export const documentHandlers = [
       const isConfidential = formData.get('isConfidential') === 'true';
       const watermarkEnabled = formData.get('watermarkEnabled') === 'true';
 
+      // Debug logging
+      console.log('[Mock API] Upload document - flags:', {
+        isConfidential,
+        watermarkEnabled,
+        isConfidentialRaw: formData.get('isConfidential'),
+        watermarkEnabledRaw: formData.get('watermarkEnabled'),
+      });
+
       if (!file || !name || !category || !boardId) {
         return HttpResponse.json(
           { success: false, message: 'Missing required fields' },
@@ -291,6 +299,7 @@ export const documentHandlers = [
         uploadedAt: now,
         source: 'upload',
         status: 'published',
+        isConfidential,
         watermarkEnabled,
         createdAt: now,
         updatedAt: now,

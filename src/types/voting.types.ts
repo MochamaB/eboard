@@ -32,6 +32,7 @@ export const VotingMethodSchema = z.enum([
 ]);
 
 export const VoteEntityTypeSchema = z.enum([
+  'agenda',        // Vote on entire agenda
   'agenda_item',   // Vote on agenda item
   'minutes',       // Approve minutes
   'action_item',   // Vote on action item
@@ -67,9 +68,9 @@ export const VoteActionTypeSchema = z.enum([
 export const VoteSchema = z.object({
   id: z.string(),
 
-  // Polymorphic entity relationship
-  entityType: VoteEntityTypeSchema,
-  entityId: z.string(),
+  // Polymorphic entity relationship (optional for general votes)
+  entityType: VoteEntityTypeSchema.optional(),
+  entityId: z.string().optional(),
 
   // Context (denormalized for performance)
   meetingId: z.string(),
@@ -170,7 +171,7 @@ export const VoteActionSchema = z.object({
   actionType: VoteActionTypeSchema,
   performedBy: z.number(),
   performedByName: z.string(),
-  metadata: z.record(z.any()).optional(), // JSON metadata
+  metadata: z.record(z.string(), z.any()).optional(), // JSON metadata
   createdAt: z.string(),
 });
 
@@ -244,12 +245,22 @@ export const VoteDetailSchema = VoteSchema.extend({
  * Create Vote Payload
  */
 export const CreateVotePayloadSchema = z.object({
-  entityType: VoteEntityTypeSchema,
-  entityId: z.string(),
+  entityType: VoteEntityTypeSchema.optional(),
+  entityId: z.string().optional(),
   meetingId: z.string(),
   boardId: z.string(),
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
+});
+
+/**
+ * Update Vote Payload
+ */
+export const UpdateVotePayloadSchema = z.object({
+  title: z.string().min(1, 'Title is required').optional(),
+  description: z.string().optional(),
+  entityType: VoteEntityTypeSchema.optional(),
+  entityId: z.string().optional(),
 });
 
 /**
@@ -322,6 +333,7 @@ export type VoteWithResults = z.infer<typeof VoteWithResultsSchema>;
 export type VoteDetail = z.infer<typeof VoteDetailSchema>;
 
 export type CreateVotePayload = z.infer<typeof CreateVotePayloadSchema>;
+export type UpdateVotePayload = z.infer<typeof UpdateVotePayloadSchema>;
 export type ConfigureVotePayload = z.infer<typeof ConfigureVotePayloadSchema>;
 export type OpenVotePayload = z.infer<typeof OpenVotePayloadSchema>;
 export type CastVotePayload = z.infer<typeof CastVotePayloadSchema>;
@@ -382,6 +394,7 @@ export const PASSING_RULE_THRESHOLDS: Record<PassingRule, number> = {
 };
 
 export const VOTE_ENTITY_TYPE_LABELS: Record<VoteEntityType, string> = {
+  agenda: 'Agenda',
   agenda_item: 'Agenda Item',
   minutes: 'Minutes',
   action_item: 'Action Item',

@@ -4,7 +4,7 @@
  * Renders different views based on meeting phase and minutes status
  */
 
-import React, { useMemo } from 'react';
+import React, { useState } from 'react';
 import { Empty, Alert, Card, Space, Button, Spin, Typography, Result } from 'antd';
 import {
   ClockCircleOutlined,
@@ -13,11 +13,16 @@ import {
   PlusOutlined,
   ExclamationCircleOutlined,
   CheckCircleOutlined,
+  EditOutlined,
+  EyeOutlined,
 } from '@ant-design/icons';
 import { useBoardContext, useMeetingPhase } from '../../../contexts';
 import { useMinutesByMeeting, useCreateMinutes } from '../../../hooks/api/useMinutes';
 import { useAuth } from '../../../contexts';
 import { MinutesStatusBadge } from '../../../components/common/Minutes/MinutesStatusBadge';
+import { MinutesDocument } from '../../../components/common/Minutes/MinutesDocument';
+import { MinutesEditor } from '../../../components/common/Minutes/MinutesEditor';
+import { useUpdateMinutes } from '../../../hooks/api/useMinutes';
 import type { Meeting } from '../../../types/meeting.types';
 
 const { Title, Text, Paragraph } = Typography;
@@ -31,24 +36,46 @@ export const MeetingMinutesTab: React.FC<MeetingMinutesTabProps> = ({
   meeting,
   themeColor,
 }) => {
-  const { theme } = useBoardContext();
+  const { theme, logo, currentBoard } = useBoardContext();
   const { phaseInfo } = useMeetingPhase();
-  const { user, hasRole } = useAuth();
-  const { data: minutes, isLoading, error } = useMinutesByMeeting(meeting.id);
+  const { user } = useAuth();
+  
+  // State for toggling between editor and viewer
+  const [isEditing, setIsEditing] = useState(false);
+  
+  // Only fetch minutes if meeting is completed
+  const shouldFetchMinutes = meeting.status === 'completed';
+  const { data: minutes, isLoading, error } = useMinutesByMeeting(
+    meeting.id,
+    { enabled: shouldFetchMinutes }
+  );
+  
   const createMinutesMutation = useCreateMinutes();
+  // Always call hook, but use empty string if no minutes yet
+  const updateMinutesMutation = useUpdateMinutes(
+    minutes?.id || '',
+    meeting.id
+  );
 
-  // Permission checks using hasRole helper
-  const isSecretary = hasRole('board_secretary') || hasRole('secretary');
-  const isChairman = hasRole('chairman');
-  const isBoardMember = hasRole('chairman') || hasRole('director') || hasRole('member');
+  // Permission-based checks using user.permissions array
+  const hasPermission = (permission: string): boolean => {
+    return user?.permissions?.includes(permission) || false;
+  };
+  
+  // Check specific permissions
+  const canEditMeeting = hasPermission('meeting.edit');
+  const canCreateMinutesPermission = hasPermission('minutes.create');
+  const canEditMinutesPermission = hasPermission('minutes.create'); // Use create permission for editing
+  const canApproveMinutes = hasPermission('minutes.approve');
+  const canPublishMinutes = hasPermission('minutes.publish');
 
   // Check if meeting is archived (read-only)
   const isArchived = meeting.status === 'completed' && meeting.subStatus === 'archived';
   const isRecentlyCompleted = meeting.status === 'completed' && meeting.subStatus === 'recent';
 
-  // Determine what to show
-  const canCreateMinutes = isSecretary && phaseInfo?.phase === 'post-meeting' && !isArchived;
-  const canEditMinutes = isSecretary && isRecentlyCompleted;
+  // Determine what to show based on permissions and meeting state
+  const canCreateMinutes = canCreateMinutesPermission && phaseInfo?.phase === 'post-meeting' && !isArchived;
+  const canEditMinutes = canEditMinutesPermission && isRecentlyCompleted;
   const canViewMinutes = minutes !== null && minutes !== undefined;
 
   // Handle create minutes
@@ -72,8 +99,8 @@ export const MeetingMinutesTab: React.FC<MeetingMinutesTabProps> = ({
     );
   }
 
-  // Error state
-  if (error) {
+  // Error state (only show if we should be fetching minutes)
+  if (error && shouldFetchMinutes) {
     return (
       <Result
         status="error"
@@ -150,7 +177,7 @@ export const MeetingMinutesTab: React.FC<MeetingMinutesTabProps> = ({
               <Paragraph style={{ margin: 0 }}>
                 This meeting is currently in progress. Minutes can be created after the meeting concludes.
               </Paragraph>
-              {isSecretary && (
+              {canCreateMinutesPermission && (
                 <Paragraph style={{ margin: 0, fontSize: '12px' }} type="secondary">
                   <strong>Note for Secretary:</strong> You can take live notes during the meeting and 
                   finalize them as official minutes once the meeting is completed.
@@ -168,54 +195,26 @@ export const MeetingMinutesTab: React.FC<MeetingMinutesTabProps> = ({
 
   // POST-MEETING PHASE - Main minutes workflow
   if (phaseInfo?.phase === 'post-meeting') {
-    // Show archived notice if meeting is archived
-    if (isArchived && canViewMinutes) {
+    // Archived meeting - read-only minutes
+    if (meeting.status === 'completed' && meeting.subStatus === 'archived' && minutes) {
       return (
-        <Card>
-          <Space direction="vertical" size={16} style={{ width: '100%' }}>
-            <Alert
-              message="Archived Meeting - Read Only"
-              description="This meeting has been archived. Minutes are in read-only mode and cannot be edited."
-              type="info"
-              showIcon
-              icon={<CheckCircleOutlined />}
-              style={{ marginBottom: 16 }}
-            />
-            
-            {/* Minutes Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Space>
-                <Title level={4} style={{ margin: 0 }}>Meeting Minutes (Archived)</Title>
-                <MinutesStatusBadge status={minutes.status} />
-              </Space>
-              
-              <Space>
-                <Text type="secondary" style={{ fontSize: '12px' }}>
-                  Archived on: {new Date(meeting.statusUpdatedAt).toLocaleDateString()}
-                </Text>
-              </Space>
-            </div>
-
-            {/* Read-only minutes content */}
-            <Card type="inner" style={{ backgroundColor: theme.backgroundSecondary }}>
-              <Space direction="vertical" size={16} style={{ width: '100%' }}>
-                <Text strong>Minutes Content (Read-Only)</Text>
-                <Paragraph type="secondary">
-                  MinutesViewer component will be rendered here in read-only mode
-                </Paragraph>
-                
-                <div style={{ padding: '20px', backgroundColor: '#fff', borderRadius: '4px' }}>
-                  <Text type="secondary" style={{ fontSize: '12px' }}>
-                    Minutes ID: {minutes.id}<br />
-                    Status: {minutes.status}<br />
-                    Word Count: {minutes.wordCount || 0}<br />
-                    Last Updated: {new Date(minutes.updatedAt).toLocaleString()}
-                  </Text>
-                </div>
-              </Space>
-            </Card>
-          </Space>
-        </Card>
+        <MinutesDocument
+          minutes={minutes}
+          meeting={meeting}
+          boardName={meeting.boardName}
+          boardType={meeting.boardType}
+          logoUrl={logo}
+          primaryColor={theme.primaryColor}
+          contactInfo={currentBoard?.contactInfo || null}
+          showActions={true}
+          showSignatures={minutes.status === 'approved' || minutes.status === 'published'}
+          archivedDate={meeting.statusUpdatedAt}
+          onDownloadPDF={() => {
+            if (minutes.pdfUrl) {
+              window.open(minutes.pdfUrl, '_blank');
+            }
+          }}
+        />
       );
     }
 
@@ -267,24 +266,11 @@ export const MeetingMinutesTab: React.FC<MeetingMinutesTabProps> = ({
 
     // Minutes exist - show appropriate view based on status and role
     return (
-      <Card>
+      
         <Space direction="vertical" size={16} style={{ width: '100%' }}>
-          {/* Minutes Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Space>
-              <Title level={4} style={{ margin: 0 }}>Meeting Minutes</Title>
-              <MinutesStatusBadge status={minutes.status} />
-            </Space>
-            
-            <Space>
-              <Text type="secondary" style={{ fontSize: '12px' }}>
-                Created: {new Date(minutes.createdAt).toLocaleDateString()}
-              </Text>
-            </Space>
-          </div>
-
+          
           {/* Status-based content */}
-          {minutes.status === 'draft' && isSecretary && (
+          {minutes.status === 'draft' && canEditMinutesPermission && (
             <Alert
               message="Draft Mode"
               description="You can edit and refine the minutes. Submit for review when ready."
@@ -293,7 +279,7 @@ export const MeetingMinutesTab: React.FC<MeetingMinutesTabProps> = ({
             />
           )}
 
-          {minutes.status === 'pending_review' && (isChairman || isBoardMember) && (
+          {minutes.status === 'pending_review' && canApproveMinutes && (
             <Alert
               message="Pending Review"
               description="Please review the minutes and provide feedback or approve them."
@@ -302,7 +288,7 @@ export const MeetingMinutesTab: React.FC<MeetingMinutesTabProps> = ({
             />
           )}
 
-          {minutes.status === 'revision_requested' && isSecretary && (
+          {minutes.status === 'revision_requested' && canEditMinutesPermission && (
             <Alert
               message="Revision Requested"
               description="The chairman has requested revisions. Please review the comments and update the minutes."
@@ -331,28 +317,62 @@ export const MeetingMinutesTab: React.FC<MeetingMinutesTabProps> = ({
             />
           )}
 
-          {/* Placeholder for actual editor/viewer components */}
-          <Card type="inner" style={{ backgroundColor: theme.backgroundSecondary }}>
-            <Space direction="vertical" size={16} style={{ width: '100%' }}>
-              <Text strong>Minutes Content</Text>
-              <Paragraph type="secondary">
-                {minutes.status === 'draft' && isSecretary
-                  ? 'MinutesEditor component will be rendered here (Phase 9 Step 4)'
-                  : 'MinutesViewer component will be rendered here (Phase 9 Step 3)'}
-              </Paragraph>
+          {/* Minutes Content - Editor or Viewer */}
+          {(minutes.status === 'draft' || minutes.status === 'revision_requested') && isEditing && canEditMinutes ? (
+            <MinutesEditor
+              minutes={minutes}
+              meeting={meeting}
+              onSave={async (content: string) => {
+                if (minutes?.id) {
+                  await updateMinutesMutation.mutateAsync({
+                    content,
+                  });
+                }
+              }}
+              onSubmit={() => {
+                // TODO: Implement submit for review
+                console.log('Submit for review');
+              }}
+              primaryColor={theme.primaryColor}
+              autoSave={true}
+              autoSaveInterval={30000}
+            />
+          ) : (
+            <>
+              {/* Edit/View Toggle Button for Secretary */}
+              {canEditMinutes && (minutes.status === 'draft' || minutes.status === 'revision_requested') && (
+                <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
+                  <Button
+                    type="primary"
+                    icon={isEditing ? <EyeOutlined /> : <EditOutlined />}
+                    onClick={() => setIsEditing(!isEditing)}
+                    style={{ backgroundColor: theme.primaryColor, borderColor: theme.primaryColor }}
+                  >
+                    {isEditing ? 'View Minutes' : 'Edit Minutes'}
+                  </Button>
+                </div>
+              )}
               
-              <div style={{ padding: '20px', backgroundColor: '#fff', borderRadius: '4px' }}>
-                <Text type="secondary" style={{ fontSize: '12px' }}>
-                  Minutes ID: {minutes.id}<br />
-                  Status: {minutes.status}<br />
-                  Word Count: {minutes.wordCount || 0}<br />
-                  Last Updated: {new Date(minutes.updatedAt).toLocaleString()}
-                </Text>
-              </div>
-            </Space>
-          </Card>
+              <MinutesDocument
+                minutes={minutes}
+                meeting={meeting}
+                boardName={meeting.boardName}
+                boardType={meeting.boardType}
+                logoUrl={logo}
+                primaryColor={theme.primaryColor}
+                contactInfo={currentBoard?.contactInfo || null}
+                showActions={true}
+                showSignatures={minutes.status === 'approved' || minutes.status === 'published'}
+                onDownloadPDF={() => {
+                  if (minutes.pdfUrl) {
+                    window.open(minutes.pdfUrl, '_blank');
+                  }
+                }}
+              />
+            </>
+          )}
         </Space>
-      </Card>
+      
     );
   }
 

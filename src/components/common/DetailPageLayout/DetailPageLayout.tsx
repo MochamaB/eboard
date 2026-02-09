@@ -28,6 +28,7 @@ export interface DetailPageLayoutProps {
   primaryAction?: ActionButton;
   dropdownActions?: MenuProps['items'];
   extraActions?: ActionButton[];
+  headerAlert?: React.ReactNode;
   
   // Tabs (optional)
   tabs?: HorizontalTabItem[];
@@ -62,6 +63,7 @@ export const DetailPageLayout: React.FC<DetailPageLayoutProps> = ({
   primaryAction,
   dropdownActions,
   extraActions,
+  headerAlert,
   tabs,
   activeTab,
   onTabChange,
@@ -116,17 +118,7 @@ export const DetailPageLayout: React.FC<DetailPageLayoutProps> = ({
 
   return (
     <div style={{ padding: '0 24px 24px' }}>
-      {/* Back Button */}
-      {showBackButton && onBack && (
-        <Button
-          type="link"
-          icon={<ArrowLeftOutlined />}
-          onClick={onBack}
-          style={{ paddingLeft: 0, marginBottom: 16 }}
-        >
-          {backLabel}
-        </Button>
-      )}
+      
 
       {/* Details Header */}
       <DetailsHeader
@@ -137,6 +129,7 @@ export const DetailPageLayout: React.FC<DetailPageLayoutProps> = ({
         primaryAction={primaryAction}
         dropdownActions={dropdownActions}
         extraActions={extraActions}
+        alert={headerAlert}
         style={headerStyle}
       />
 

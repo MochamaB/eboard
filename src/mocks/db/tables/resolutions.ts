@@ -155,6 +155,34 @@ export const resolutionsTable: ResolutionRow[] = [
   },
 
   // ========================================================================
+  // MTG-007: KTDA MS Board - January 2026 (1 resolution)
+  // ========================================================================
+
+  {
+    id: 'res-mtg007-001',
+    meetingId: 'mtg-007',
+    boardId: 'ktda-ms',
+    resolutionNumber: 'RES-KTDA-2026-002',
+    title: 'Approve Q1 2026 Operational Budget',
+    text: 'RESOLVED that the Q1 2026 Operational Budget totaling KES 520,000,000 (Five Hundred Twenty Million Kenya Shillings), comprising operational expenses of KES 380M, capital expenditure of KES 100M, and marketing and development costs of KES 40M, be and is hereby approved for implementation with immediate effect.',
+    category: 'financial',
+    decision: 'approved',
+    decisionDate: '2026-01-28',
+    voteId: 'vote-mtg007-001',
+    voteSummary: '7 Yes, 0 No, 1 Abstain',
+    agendaItemId: null,
+    relatedDocumentIds: '["doc-q1-budget-2026"]',
+    requiresFollowUp: true,
+    followUpDeadline: '2026-04-30',
+    followUpNotes: 'CFO to provide monthly budget execution reports. Mid-quarter review scheduled for mid-February. Any budget variances exceeding 10% to be reported immediately to board.',
+    implementationStatus: 'pending',
+    implementedAt: null,
+    createdBy: 17,
+    createdAt: '2026-01-28T12:30:00Z',
+    updatedAt: '2026-01-28T12:30:00Z',
+  },
+
+  // ========================================================================
   // MTG-010: Chai Trading Board - January 2025 (1 resolution)
   // ========================================================================
 

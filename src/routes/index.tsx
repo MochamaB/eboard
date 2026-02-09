@@ -6,7 +6,7 @@ import { AuthLayout } from '../layouts/AuthLayout';
 import { Dashboard } from '../pages/Dashboard';
 import { UsersIndexPage, CreateUserPage as CreateUserPageComponent, UserDetailsPage } from '../pages/Users';
 import { BoardsIndexPage, BoardDetailsPage, BoardCreatePage as BoardCreatePageComponent } from '../pages/Boards';
-import { MeetingsIndexPage, MeetingCreatePage, MeetingDetailPage } from '../pages/Meetings';
+import { MeetingsIndexPage, MeetingCreatePage, MeetingDetailPage, MeetingRoomPage } from '../pages/Meetings';
 import { ApprovalsIndexPage, ApprovalReviewPage } from '../pages/Approvals';
 import { DocumentsIndexPage } from '../pages/Documents';
 import { LoginPage } from '../pages/Auth';
@@ -183,6 +183,10 @@ export const router = createBrowserRouter([
       {
         path: 'meetings/:meetingId',
         element: <MeetingDetailPage />,
+      },
+      {
+        path: 'meetings/:meetingId/room',
+        element: <MeetingRoomPage />,
       },
 
       // Approvals

@@ -14,6 +14,7 @@ import { documentHandlers } from './documents.handlers';
 import { documentCategoriesHandlers } from './documentCategories.handlers';
 import { votingHandlers } from './voting.handlers';
 import { minutesHandlers } from './minutes.handlers';
+import { minutesTemplatesHandlers } from './minutesTemplates.handlers';
 import { actionItemsHandlers } from './actionItems.handlers';
 import { resolutionsHandlers } from './resolutions.handlers';
 
@@ -29,6 +30,7 @@ export const handlers = [
   ...documentHandlers,
   ...votingHandlers,
   ...minutesHandlers,
+  ...minutesTemplatesHandlers,
   ...actionItemsHandlers,
   ...resolutionsHandlers,
 ];

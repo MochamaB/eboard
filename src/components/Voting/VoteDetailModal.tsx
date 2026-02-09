@@ -275,7 +275,7 @@ export const VoteDetailModal: React.FC<VoteDetailModalProps> = ({
           Close
         </Button>,
       ]}
-      bodyStyle={{ maxHeight: '70vh', overflowY: 'auto' }}
+      styles={{ body: { maxHeight: '70vh', overflowY: 'auto' } }}
     >
       {isLoading ? (
         <div style={{ textAlign: 'center', padding: '60px 0' }}>

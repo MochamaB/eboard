@@ -5,6 +5,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import type { Meeting, MeetingStatus } from '../types/meeting.types';
+import type { MeetingPermissions } from '../types/meetingPermissions.types';
 
 export type MeetingPhase = 'pre-meeting' | 'during-meeting' | 'post-meeting';
 export type MeetingPhaseStatus = 'active' | 'completed' | 'cancelled' | 'rejected' | 'error';
@@ -20,6 +21,7 @@ interface MeetingPhaseContextType {
   meetingId: string | null;
   meeting: Meeting | null;
   phaseInfo: PhaseInfo | null;
+  permissions: MeetingPermissions | null;
   isInMeetingDetail: boolean;
   setMeeting: (meeting: Meeting | null) => void;
   clearMeeting: () => void;
@@ -152,6 +154,7 @@ export const MeetingPhaseProvider: React.FC<MeetingPhaseProviderProps> = ({ chil
       meetingId: meeting?.id || null,
       meeting,
       phaseInfo,
+      permissions: null, // Will be computed by useMeetingPermissions hook in consuming components
       isInMeetingDetail: meeting !== null,
       setMeeting,
       clearMeeting,

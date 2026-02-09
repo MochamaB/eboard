@@ -141,7 +141,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
   {
     id: 'part-mtg002-002',
     meetingId: 'MTG-002',
-    userId: 2, // Evanson Kibiwott
+    userId: 2, // James Ombasa Omwenot
     roleId: 7,
     roleTitle: 'Vice Chairman',
     rsvpStatus: 'accepted',
@@ -191,7 +191,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
   {
     id: 'part-mtg002-004',
     meetingId: 'MTG-002',
-    userId: 4, // Dr. Kamau Ngotho
+    userId: 4, // Hon G.G Kagombe
     roleId: 7,
     roleTitle: 'Board Member',
     rsvpStatus: 'accepted',
@@ -216,7 +216,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
   {
     id: 'part-mtg002-005',
     meetingId: 'MTG-002',
-    userId: 5, // Jane Wambui
+    userId: 5, // Githinji Mwangi
     roleId: 7,
     roleTitle: 'Board Member',
     rsvpStatus: 'accepted',
@@ -241,7 +241,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
   {
     id: 'part-mtg002-006',
     meetingId: 'MTG-002',
-    userId: 6, // Patrick Njoroge
+    userId: 6, // David Ndung'u
     roleId: 7,
     roleTitle: 'Board Member',
     rsvpStatus: 'accepted',
@@ -266,7 +266,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
   {
     id: 'part-mtg002-007',
     meetingId: 'MTG-002',
-    userId: 7, // Alice Kipchumba
+    userId: 7, // John Mthamo Wasusana
     roleId: 7,
     roleTitle: 'Board Member',
     rsvpStatus: 'tentative',
@@ -291,7 +291,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
   {
     id: 'part-mtg002-008',
     meetingId: 'MTG-002',
-    userId: 8, // Moses Kimutai
+    userId: 8, // Enos Njeru
     roleId: 7,
     roleTitle: 'Board Member',
     rsvpStatus: 'accepted',
@@ -316,7 +316,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
   {
     id: 'part-mtg002-009',
     meetingId: 'MTG-002',
-    userId: 9, // Catherine Mwende
+    userId: 9, // Baptista Kanyaru
     roleId: 7,
     roleTitle: 'Board Member',
     rsvpStatus: 'accepted',
@@ -496,7 +496,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
   {
     id: 'part-mtg003-001',
     meetingId: 'MTG-003',
-    userId: 4, // Dr. Kamau Ngotho (Committee Chair)
+    userId: 4, // Hon G.G Kagombe (Committee Chair)
     roleId: 4,
     roleTitle: 'Committee Chair',
     rsvpStatus: 'accepted',
@@ -521,7 +521,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
   {
     id: 'part-mtg003-002',
     meetingId: 'MTG-003',
-    userId: 5, // Jane Wambui
+    userId: 5, // Githinji Mwangi
     roleId: 7,
     roleTitle: 'Committee Member',
     rsvpStatus: 'accepted',
@@ -546,7 +546,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
   {
     id: 'part-mtg003-003',
     meetingId: 'MTG-003',
-    userId: 8, // Moses Kimutai
+    userId: 8, // Enos Njeru
     roleId: 7,
     roleTitle: 'Committee Member',
     rsvpStatus: 'accepted',
@@ -651,7 +651,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
   {
     id: 'part-mtg004-001',
     meetingId: 'MTG-004',
-    userId: 6, // Patrick Njoroge (KETEPA Chairman)
+    userId: 6, // David Ndung'u (KETEPA Chairman)
     roleId: 4,
     roleTitle: 'Chairman',
     rsvpStatus: 'accepted',
@@ -676,7 +676,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
   {
     id: 'part-mtg004-002',
     meetingId: 'MTG-004',
-    userId: 7, // Alice Kipchumba
+    userId: 7, // John Mthamo Wasusana
     roleId: 7,
     roleTitle: 'Board Member',
     rsvpStatus: 'accepted',
@@ -701,7 +701,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
   {
     id: 'part-mtg004-003',
     meetingId: 'MTG-004',
-    userId: 9, // Catherine Mwende
+    userId: 9, // Baptista Kanyaru
     roleId: 7,
     roleTitle: 'Board Member',
     rsvpStatus: 'accepted',
@@ -856,7 +856,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
   {
     id: 'part-mtg005-001',
     meetingId: 'MTG-005',
-    userId: 5, // Jane Wambui (HR Committee Chair)
+    userId: 5, // Githinji Mwangi (HR Committee Chair)
     roleId: 4,
     roleTitle: 'Committee Chair',
     rsvpStatus: 'accepted',
@@ -881,7 +881,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
   {
     id: 'part-mtg005-002',
     meetingId: 'MTG-005',
-    userId: 7, // Alice Kipchumba
+    userId: 7, // John Mthamo Wasusana
     roleId: 7,
     roleTitle: 'Committee Member',
     rsvpStatus: 'accepted',
@@ -906,7 +906,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
   {
     id: 'part-mtg005-003',
     meetingId: 'MTG-005',
-    userId: 9, // Catherine Mwende
+    userId: 9, // Baptista Kanyaru
     roleId: 7,
     roleTitle: 'Committee Member',
     rsvpStatus: 'accepted',
@@ -1086,7 +1086,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
   {
     id: 'part-mtg006-002',
     meetingId: 'MTG-006',
-    userId: 2, // Evanson Kibiwott
+    userId: 2, // James Ombasa Omwenot
     roleId: 7,
     roleTitle: 'Vice Chairman',
     rsvpStatus: 'accepted',
@@ -1136,7 +1136,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
   {
     id: 'part-mtg006-004',
     meetingId: 'MTG-006',
-    userId: 4, // Dr. Kamau Ngotho
+    userId: 4, // Hon G.G Kagombe
     roleId: 7,
     roleTitle: 'Board Member',
     rsvpStatus: 'accepted',
@@ -1161,7 +1161,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
   {
     id: 'part-mtg006-005',
     meetingId: 'MTG-006',
-    userId: 5, // Jane Wambui
+    userId: 5, // Githinji Mwangi
     roleId: 7,
     roleTitle: 'Board Member',
     rsvpStatus: 'accepted',
@@ -1186,7 +1186,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
   {
     id: 'part-mtg006-006',
     meetingId: 'MTG-006',
-    userId: 6, // Patrick Njoroge
+    userId: 6, // David Ndung'u
     roleId: 7,
     roleTitle: 'Board Member',
     rsvpStatus: 'accepted',
@@ -1211,7 +1211,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
   {
     id: 'part-mtg006-007',
     meetingId: 'MTG-006',
-    userId: 7, // Alice Kipchumba
+    userId: 7, // John Mthamo Wasusana
     roleId: 7,
     roleTitle: 'Board Member',
     rsvpStatus: 'accepted',
@@ -1236,7 +1236,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
   {
     id: 'part-mtg006-008',
     meetingId: 'MTG-006',
-    userId: 8, // Moses Kimutai
+    userId: 8, // Enos Njeru
     roleId: 7,
     roleTitle: 'Board Member',
     rsvpStatus: 'accepted',
@@ -1261,7 +1261,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
   {
     id: 'part-mtg006-009',
     meetingId: 'MTG-006',
-    userId: 9, // Catherine Mwende
+    userId: 9, // Baptista Kanyaru
     roleId: 7,
     roleTitle: 'Board Member',
     rsvpStatus: 'accepted',
@@ -1441,7 +1441,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
   {
     id: 'part-mtg007-001',
     meetingId: 'MTG-007',
-    userId: 8, // Moses Kimutai (Finance Committee Chair)
+    userId: 8, // Enos Njeru (Finance Committee Chair)
     roleId: 4,
     roleTitle: 'Committee Chair',
     rsvpStatus: 'accepted',
@@ -1491,7 +1491,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
   {
     id: 'part-mtg007-003',
     meetingId: 'MTG-007',
-    userId: 4, // Dr. Kamau Ngotho
+    userId: 4, // Hon G.G Kagombe
     roleId: 7,
     roleTitle: 'Committee Member',
     rsvpStatus: 'accepted',
@@ -1696,7 +1696,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
   {
     id: 'part-mtg008-003',
     meetingId: 'MTG-008',
-    userId: 6, // Patrick Njoroge
+    userId: 6, // David Ndung'u
     roleId: 7,
     roleTitle: 'Board Member',
     rsvpStatus: 'accepted',
@@ -1721,7 +1721,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
   {
     id: 'part-mtg008-004',
     meetingId: 'MTG-008',
-    userId: 9, // Catherine Mwende
+    userId: 9, // Baptista Kanyaru
     roleId: 7,
     roleTitle: 'Board Member',
     rsvpStatus: 'accepted',
@@ -1801,7 +1801,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
   {
     id: 'part-mtg009-001',
     meetingId: 'MTG-009',
-    userId: 2, // Evanson Kibiwott (Chairman)
+    userId: 2, // James Ombasa Omwenot (viceChairman)
     roleId: 4,
     roleTitle: 'Chairman',
     rsvpStatus: 'accepted',
@@ -1826,7 +1826,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
   {
     id: 'part-mtg009-002',
     meetingId: 'MTG-009',
-    userId: 5, // Jane Wambui
+    userId: 5, // Githinji Mwangi
     roleId: 7,
     roleTitle: 'Committee Member',
     rsvpStatus: 'accepted',
@@ -1851,7 +1851,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
   {
     id: 'part-mtg009-003',
     meetingId: 'MTG-009',
-    userId: 7, // Alice Kipchumba
+    userId: 7, // John Mthamo Wasusana
     roleId: 7,
     roleTitle: 'Committee Member',
     rsvpStatus: 'declined',

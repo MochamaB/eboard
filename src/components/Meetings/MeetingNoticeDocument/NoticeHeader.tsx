@@ -46,7 +46,7 @@ export const NoticeHeader: React.FC<NoticeHeaderProps> = ({
   const typeLabel = getBoardTypeLabel();
 
   return (
-    <div className="notice-header" style={{ borderBottom: `3px solid ${primaryColor}` }}>
+    <div className="notice-header">
       {/* Letterhead - Logo left, Contact right */}
       <div
         style={{

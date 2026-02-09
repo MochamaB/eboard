@@ -245,6 +245,16 @@ export const meetingsApi = {
     const response = await apiClient.post(`/meetings/${meetingId}/resubmit-for-approval`, payload);
     return ApprovalActionResponseSchema.parse(response.data);
   },
+
+  /**
+   * Download meeting notice as PDF
+   */
+  downloadNoticePDF: async (meetingId: string): Promise<Blob> => {
+    const response = await apiClient.get(`/meetings/${meetingId}/notice/pdf`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
 };
 
 export default meetingsApi;

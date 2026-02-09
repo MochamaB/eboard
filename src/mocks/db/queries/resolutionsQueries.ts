@@ -10,6 +10,7 @@ import type {
   ResolutionCategory,
   ImplementationStatus,
 } from '../tables/resolutions';
+import { idsMatch } from '../utils/idUtils';
 
 // ============================================================================
 // RESOLUTIONS QUERIES
@@ -19,7 +20,7 @@ import type {
  * Get resolution by ID
  */
 export function getResolutionById(resolutionId: string): ResolutionRow | null {
-  return resolutionsTable.find(r => r.id === resolutionId) || null;
+  return resolutionsTable.find(r => idsMatch(r.id, resolutionId)) || null;
 }
 
 /**
@@ -27,7 +28,7 @@ export function getResolutionById(resolutionId: string): ResolutionRow | null {
  */
 export function getResolutionsByMeetingId(meetingId: string): ResolutionRow[] {
   return resolutionsTable
-    .filter(r => r.meetingId === meetingId)
+    .filter(r => idsMatch(r.meetingId, meetingId))
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 }
 
@@ -36,7 +37,7 @@ export function getResolutionsByMeetingId(meetingId: string): ResolutionRow[] {
  */
 export function getResolutionsByBoardId(boardId: string): ResolutionRow[] {
   return resolutionsTable
-    .filter(r => r.boardId === boardId)
+    .filter(r => idsMatch(r.boardId, boardId))
     .sort((a, b) => new Date(b.decisionDate).getTime() - new Date(a.decisionDate).getTime());
 }
 
@@ -56,11 +57,11 @@ export function getAllResolutions(filters?: {
   let results = [...resolutionsTable];
 
   if (filters?.meetingId) {
-    results = results.filter(r => r.meetingId === filters.meetingId);
+    results = results.filter(r => idsMatch(r.meetingId, filters.meetingId!));
   }
 
   if (filters?.boardId) {
-    results = results.filter(r => r.boardId === filters.boardId);
+    results = results.filter(r => idsMatch(r.boardId, filters.boardId!));
   }
 
   if (filters?.decision) {
@@ -96,14 +97,14 @@ export function getAllResolutions(filters?: {
  * Get resolutions requiring follow-up
  */
 export function getResolutionsRequiringFollowUp(boardId?: string): ResolutionRow[] {
-  let results = resolutionsTable.filter(r => 
-    r.requiresFollowUp && 
+  let results = resolutionsTable.filter(r =>
+    r.requiresFollowUp &&
     r.implementationStatus !== 'completed' &&
     r.implementationStatus !== 'cancelled'
   );
 
   if (boardId) {
-    results = results.filter(r => r.boardId === boardId);
+    results = results.filter(r => idsMatch(r.boardId, boardId));
   }
 
   return results.sort((a, b) => {
@@ -125,7 +126,7 @@ export function getOverdueResolutions(boardId?: string): ResolutionRow[] {
   });
 
   if (boardId) {
-    results = results.filter(r => r.boardId === boardId);
+    results = results.filter(r => idsMatch(r.boardId, boardId));
   }
 
   return results.sort((a, b) => 
@@ -200,11 +201,11 @@ export function updateResolution(
     followUpNotes?: string;
   }
 ): ResolutionRow | null {
-  const index = resolutionsTable.findIndex(r => r.id === resolutionId);
+  const index = resolutionsTable.findIndex(r => idsMatch(r.id, resolutionId));
   if (index === -1) return null;
 
   const resolution = resolutionsTable[index];
-  
+
   resolutionsTable[index] = {
     ...resolution,
     title: data.title !== undefined ? data.title : resolution.title,
@@ -212,8 +213,8 @@ export function updateResolution(
     category: data.category !== undefined ? data.category : resolution.category,
     decision: data.decision !== undefined ? data.decision : resolution.decision,
     voteSummary: data.voteSummary !== undefined ? data.voteSummary : resolution.voteSummary,
-    relatedDocumentIds: data.relatedDocumentIds !== undefined 
-      ? JSON.stringify(data.relatedDocumentIds) 
+    relatedDocumentIds: data.relatedDocumentIds !== undefined
+      ? JSON.stringify(data.relatedDocumentIds)
       : resolution.relatedDocumentIds,
     requiresFollowUp: data.requiresFollowUp !== undefined ? data.requiresFollowUp : resolution.requiresFollowUp,
     followUpDeadline: data.followUpDeadline !== undefined ? data.followUpDeadline : resolution.followUpDeadline,
@@ -232,7 +233,7 @@ export function updateImplementationStatus(
   implementationStatus: ImplementationStatus,
   implementedAt?: string
 ): ResolutionRow | null {
-  const index = resolutionsTable.findIndex(r => r.id === resolutionId);
+  const index = resolutionsTable.findIndex(r => idsMatch(r.id, resolutionId));
   if (index === -1) return null;
 
   const now = new Date().toISOString();
@@ -250,7 +251,7 @@ export function updateImplementationStatus(
  * Delete resolution
  */
 export function deleteResolution(resolutionId: string): boolean {
-  const index = resolutionsTable.findIndex(r => r.id === resolutionId);
+  const index = resolutionsTable.findIndex(r => idsMatch(r.id, resolutionId));
   if (index === -1) return false;
 
   resolutionsTable.splice(index, 1);
@@ -263,13 +264,13 @@ export function deleteResolution(resolutionId: string): boolean {
 export function generateResolutionNumber(boardId: string, year?: number): string {
   const resYear = year || new Date().getFullYear();
   const boardPrefix = boardId.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 4);
-  
+
   // Find existing resolutions for this board and year
-  const existingResolutions = resolutionsTable.filter(r => 
-    r.boardId === boardId && 
+  const existingResolutions = resolutionsTable.filter(r =>
+    idsMatch(r.boardId, boardId) &&
     r.resolutionNumber.includes(`-${resYear}-`)
   );
-  
+
   const nextSequence = existingResolutions.length + 1;
   return `RES-${boardPrefix}-${resYear}-${String(nextSequence).padStart(3, '0')}`;
 }

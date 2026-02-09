@@ -14,6 +14,7 @@ import {
   Timeline,
   Button,
   Grid,
+  message,
 } from 'antd';
 import {
   HistoryOutlined,
@@ -23,6 +24,9 @@ import {
   ExclamationCircleOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
+  StopOutlined,
+  FileTextOutlined,
+  WarningOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -30,7 +34,7 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import type { Meeting, MeetingEvent } from '../../../types/meeting.types';
 import { MEETING_EVENT_LABELS, REJECTION_REASON_LABELS } from '../../../types/meeting.types';
 import { useBoardContext } from '../../../contexts';
-import { useMeetingEvents } from '../../../hooks/api/useMeetings';
+import { useMeetingEvents, useDownloadNoticePDF } from '../../../hooks/api/useMeetings';
 import { useAgenda } from '../../../hooks/api/useAgenda';
 import { MeetingNoticeDocument } from '../../../components/Meetings';
 import { getConfirmationDisplayInfo } from '../../../utils/confirmationWorkflow';
@@ -82,21 +86,33 @@ export const MeetingNoticeTab: React.FC<MeetingNoticeTabProps> = ({
   };
 
   // Determine status display (using new status+subStatus model)
+  const isDraftIncomplete = meeting.status === 'draft' && meeting.subStatus === 'incomplete';
+  const isDraftComplete = meeting.status === 'draft' && meeting.subStatus === 'complete';
   const isPending = meeting.status === 'scheduled' && meeting.subStatus === 'pending_approval';
   const isConfirmed = meeting.status === 'scheduled' && meeting.subStatus === 'approved';
   const isRejected = meeting.status === 'scheduled' && meeting.subStatus === 'rejected';
+  const isCancelled = meeting.status === 'cancelled';
+  const isCompleted = meeting.status === 'completed';
 
   const getStatusIcon = () => {
+    if (isCancelled) return <StopOutlined style={{ color: '#8c8c8c', fontSize: 20 }} />;
+    if (isDraftIncomplete) return <WarningOutlined style={{ color: '#faad14', fontSize: 20 }} />;
+    if (isDraftComplete) return <FileTextOutlined style={{ color: '#1890ff', fontSize: 20 }} />;
     if (isPending) return <ExclamationCircleOutlined style={{ color: '#faad14', fontSize: 20 }} />;
     if (isConfirmed) return <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 20 }} />;
     if (isRejected) return <CloseCircleOutlined style={{ color: '#ff4d4f', fontSize: 20 }} />;
+    if (isCompleted) return <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 20 }} />;
     return <InfoCircleOutlined style={{ color: '#1890ff', fontSize: 20 }} />;
   };
 
   const getStatusText = () => {
+    if (isCancelled) return 'Cancelled';
+    if (isDraftIncomplete) return 'Draft - Incomplete';
+    if (isDraftComplete) return 'Draft - Ready for Submission';
     if (isPending) return 'Pending Approval';
     if (isConfirmed) return 'Approved';
     if (isRejected) return 'Rejected';
+    if (isCompleted) return 'Completed';
     // Fallback: format status nicely
     return meeting.subStatus 
       ? `${meeting.subStatus}`.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
@@ -104,10 +120,67 @@ export const MeetingNoticeTab: React.FC<MeetingNoticeTabProps> = ({
   };
 
   const getStatusDescription = () => {
+    if (isCancelled) return 'This meeting has been cancelled and is read-only.';
+    if (isDraftIncomplete) return 'This meeting has validation issues that need to be resolved.';
+    if (isDraftComplete) return 'This meeting is ready to be submitted for approval.';
     if (isPending) return 'This meeting is awaiting approval from the designated approver.';
     if (isConfirmed) return `Approved ${dayjs(meeting.updatedAt).fromNow()}`;
     if (isRejected) return 'This meeting was rejected and needs revision.';
+    if (isCompleted) return 'This meeting has been completed.';
     return `Status updated ${dayjs(meeting.updatedAt).fromNow()}`;
+  };
+
+  // Get rejection details from events
+  const getRejectionDetails = () => {
+    const rejectionEvent = meetingEvents.find((e: MeetingEvent) => e.eventType === 'rejected');
+    if (!rejectionEvent) return null;
+    
+    const metadata = rejectionEvent.metadata as Record<string, unknown> | null;
+    return {
+      reason: metadata?.rejectionReason as string | undefined,
+      comments: metadata?.comments as string | undefined,
+      rejectedBy: rejectionEvent.performedByName,
+      rejectedAt: rejectionEvent.performedAt,
+    };
+  };
+
+  // Get cancellation details from events
+  const getCancellationDetails = () => {
+    const cancellationEvent = meetingEvents.find((e: MeetingEvent) => e.eventType === 'meeting_cancelled');
+    if (!cancellationEvent) return null;
+    
+    const metadata = cancellationEvent.metadata as Record<string, unknown> | null;
+    return {
+      reason: metadata?.cancellationReason as string | undefined,
+      comments: metadata?.comments as string | undefined,
+      cancelledBy: cancellationEvent.performedByName,
+      cancelledAt: cancellationEvent.performedAt,
+    };
+  };
+
+  // PDF download mutation
+  const downloadPDF = useDownloadNoticePDF({
+    onSuccess: (blob) => {
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Meeting-Notice-${meeting.id}-${dayjs(meeting.startDate).format('YYYY-MM-DD')}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      message.success('PDF downloaded successfully');
+    },
+    onError: (error) => {
+      console.error('PDF download error:', error);
+      message.error('Failed to download PDF. Please try again.');
+    },
+  });
+
+  // Handle PDF download
+  const handleDownloadPDF = () => {
+    downloadPDF.mutate(meeting.id);
   };
 
   return (
@@ -136,18 +209,117 @@ export const MeetingNoticeTab: React.FC<MeetingNoticeTabProps> = ({
 
       {/* Right Column: Status & History */}
       <div style={{ order: isMobile ? 1 : 2 }}>
+        {/* Cancellation Banner (if cancelled) */}
+        {isCancelled && (() => {
+          const cancellationDetails = getCancellationDetails();
+          return (
+            <Card 
+              size="small" 
+              style={{ marginBottom: 16, borderColor: '#d9d9d9', background: '#fafafa' }}
+              styles={{ body: { padding: 16 } }}
+            >
+              <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                <Space>
+                  <StopOutlined style={{ color: '#8c8c8c', fontSize: 18 }} />
+                  <Text strong style={{ fontSize: 15, color: '#595959' }}>
+                    Meeting Cancelled
+                  </Text>
+                </Space>
+                {cancellationDetails && (
+                  <>
+                    {cancellationDetails.reason && (
+                      <div>
+                        <Text type="secondary" style={{ fontSize: 11 }}>Reason:</Text>
+                        <br />
+                        <Text style={{ fontSize: 12 }}>{cancellationDetails.reason}</Text>
+                      </div>
+                    )}
+                    {cancellationDetails.comments && (
+                      <Paragraph type="secondary" style={{ fontSize: 11, marginBottom: 0 }}>
+                        {cancellationDetails.comments}
+                      </Paragraph>
+                    )}
+                    <Text type="secondary" style={{ fontSize: 11 }}>
+                      Cancelled by {cancellationDetails.cancelledBy} on {dayjs(cancellationDetails.cancelledAt).format('DD MMM YYYY, HH:mm')}
+                    </Text>
+                  </>
+                )}
+              </Space>
+            </Card>
+          );
+        })()}
+
+        {/* Rejection Details Banner (if rejected) */}
+        {isRejected && (() => {
+          const rejectionDetails = getRejectionDetails();
+          return (
+            <Card 
+              size="small" 
+              style={{ marginBottom: 16, borderColor: '#ff4d4f', background: '#fff2f0' }}
+              styles={{ body: { padding: 16 } }}
+            >
+              <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                <Space>
+                  <CloseCircleOutlined style={{ color: '#ff4d4f', fontSize: 18 }} />
+                  <Text strong style={{ fontSize: 15, color: '#cf1322' }}>
+                    Meeting Rejected
+                  </Text>
+                </Space>
+                {rejectionDetails && (
+                  <>
+                    {rejectionDetails.reason && (
+                      <div>
+                        <Text type="secondary" style={{ fontSize: 11 }}>Reason:</Text>
+                        <br />
+                        <Tag color="error" style={{ fontSize: 11, marginTop: 4 }}>
+                          {REJECTION_REASON_LABELS[rejectionDetails.reason as keyof typeof REJECTION_REASON_LABELS] || rejectionDetails.reason}
+                        </Tag>
+                      </div>
+                    )}
+                    {rejectionDetails.comments && (
+                      <div>
+                        <Text type="secondary" style={{ fontSize: 11 }}>Comments:</Text>
+                        <Paragraph style={{ fontSize: 12, marginTop: 4, marginBottom: 0 }}>
+                          {rejectionDetails.comments}
+                        </Paragraph>
+                      </div>
+                    )}
+                    <Text type="secondary" style={{ fontSize: 11 }}>
+                      Rejected by {rejectionDetails.rejectedBy} on {dayjs(rejectionDetails.rejectedAt).format('DD MMM YYYY, HH:mm')}
+                    </Text>
+                  </>
+                )}
+              </Space>
+            </Card>
+          );
+        })()}
+
         {/* Status Banner */}
         <Card 
           size="small" 
           style={{ marginBottom: 16 }}
           styles={{ body: { padding: 16 } }}
         >
-          <Space direction="vertical" size={4} style={{ width: '100%' }}>
-            <Space>
-              {getStatusIcon()}
-              <Text strong style={{ fontSize: 16 }}>
-                {getStatusText()}
-              </Text>
+          <Space direction="vertical" size={8} style={{ width: '100%' }}>
+            <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+              <Space>
+                {getStatusIcon()}
+                <Text strong style={{ fontSize: 16 }}>
+                  {getStatusText()}
+                </Text>
+              </Space>
+              {/* PDF Download button for approved meetings */}
+              {isConfirmed && (
+                <Button 
+                  type="primary" 
+                  size="small" 
+                  icon={<DownloadOutlined />}
+                  onClick={handleDownloadPDF}
+                  loading={downloadPDF.isPending}
+                >
+                  PDF
+                </Button>
+              )}
             </Space>
             <Text type="secondary" style={{ fontSize: 12 }}>
               {getStatusDescription()}

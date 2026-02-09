@@ -45,6 +45,7 @@ export * from './voteResults';
 export * from './minutes';
 export * from './minutesComments';
 export * from './minutesSignatures';
+export * from './minutesTemplates';
 export * from './actionItems';
 export * from './resolutions';
 

@@ -11,6 +11,7 @@ import type {
   VoteAction,
   VoteResultsSummary,
   CreateVotePayload,
+  UpdateVotePayload,
   ConfigureVotePayload,
   OpenVotePayload,
   CastVotePayload,
@@ -24,6 +25,17 @@ import type {
  */
 export async function createVote(payload: CreateVotePayload): Promise<Vote> {
   const response = await apiClient.post<Vote>('/votes', payload);
+  return response.data;
+}
+
+/**
+ * Update vote basic information (title, description, entity links)
+ */
+export async function updateVote(
+  voteId: string,
+  payload: UpdateVotePayload
+): Promise<Vote> {
+  const response = await apiClient.put<Vote>(`/votes/${voteId}`, payload);
   return response.data;
 }
 
