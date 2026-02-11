@@ -14,12 +14,15 @@ import {
   TeamOutlined 
 } from '@ant-design/icons';
 import { useBoardContext } from '../../../../contexts';
+import { useResponsive } from '../../../../contexts/ResponsiveContext';
 import { useMeetingRoom } from '../../../../contexts/MeetingRoomContext';
 
 const { Text, Title } = Typography;
 
 const SidePanelNotice: React.FC = () => {
   const { roomState } = useMeetingRoom();
+  const { theme } = useBoardContext();
+  const { isMobile } = useResponsive();
   const { 
     meeting, 
     status, 
@@ -33,15 +36,17 @@ const SidePanelNotice: React.FC = () => {
   } = roomState;
   
   const quorumPercentage = expectedCount > 0 ? Math.round((presentCount / expectedCount) * 100) : 0;
+  const panelPadding = isMobile ? 12 : 16;
+  const iconColor = theme.textSecondary;
   
   return (
-    <div style={{ padding: 16 }}>
+    <div style={{ padding: panelPadding }}>
       {/* Meeting Info */}
       <div>
         <Title level={5}>Meeting Notice</Title>
         <Space direction="vertical" style={{ width: '100%' }}>
           <Space align="start">
-            <CalendarOutlined style={{ color: '#666', marginTop: 4 }} />
+            <CalendarOutlined style={{ color: iconColor, marginTop: 4 }} />
             <div>
               <Text strong>{meeting?.title || 'Meeting'}</Text>
               <br />
@@ -50,7 +55,7 @@ const SidePanelNotice: React.FC = () => {
           </Space>
           
           <Space>
-            <ClockCircleOutlined style={{ color: '#666' }} />
+            <ClockCircleOutlined style={{ color: iconColor }} />
             <div>
               <Text>{meeting?.startDate} at {meeting?.startTime}</Text>
               <br />
@@ -59,7 +64,7 @@ const SidePanelNotice: React.FC = () => {
           </Space>
           
           <Space>
-            <EnvironmentOutlined style={{ color: '#666' }} />
+            <EnvironmentOutlined style={{ color: iconColor }} />
             <div>
               <Text style={{ textTransform: 'capitalize' }}>{meeting?.locationType || mode}</Text>
               {meeting?.physicalAddress && (
@@ -73,7 +78,7 @@ const SidePanelNotice: React.FC = () => {
         </Space>
       </div>
       
-      <Divider />
+      <Divider style={{ borderColor: theme.borderColorLight }} />
       
       {/* Quorum Status */}
       <div>
@@ -87,7 +92,7 @@ const SidePanelNotice: React.FC = () => {
           </div>
           
           <Space style={{ width: '100%' }}>
-            <TeamOutlined style={{ color: '#666' }} />
+            <TeamOutlined style={{ color: iconColor }} />
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                 <Text style={{ fontSize: 13 }}>Present: {presentCount}/{expectedCount}</Text>
@@ -96,7 +101,7 @@ const SidePanelNotice: React.FC = () => {
               <Progress 
                 percent={quorumPercentage} 
                 showInfo={false} 
-                strokeColor={quorumMet ? '#52c41a' : '#faad14'}
+                strokeColor={quorumMet ? theme.successColor : theme.warningColor}
                 size="small"
               />
               <Text type="secondary" style={{ fontSize: 11 }}>
@@ -107,7 +112,7 @@ const SidePanelNotice: React.FC = () => {
         </Space>
       </div>
       
-      <Divider />
+      <Divider style={{ borderColor: theme.borderColorLight }} />
       
       {/* Connection Status */}
       <div>
@@ -115,9 +120,9 @@ const SidePanelNotice: React.FC = () => {
         <Space>
           {isConnected ? (
             <>
-              <WifiOutlined style={{ color: '#52c41a' }} />
+              <WifiOutlined style={{ color: theme.successColor }} />
               <div>
-                <Text style={{ color: '#52c41a' }}>Connected</Text>
+                <Text style={{ color: theme.successColor }}>Connected</Text>
                 {lastSyncAt && (
                   <>
                     <br />
@@ -130,9 +135,9 @@ const SidePanelNotice: React.FC = () => {
             </>
           ) : (
             <>
-              <DisconnectOutlined style={{ color: '#ff4d4f' }} />
+              <DisconnectOutlined style={{ color: theme.errorColor }} />
               <div>
-                <Text style={{ color: '#ff4d4f' }}>Disconnected</Text>
+                <Text style={{ color: theme.errorColor }}>Disconnected</Text>
                 <br />
                 <Text type="secondary" style={{ fontSize: 11 }}>Attempting to reconnect...</Text>
               </div>
@@ -141,7 +146,7 @@ const SidePanelNotice: React.FC = () => {
         </Space>
       </div>
       
-      <Divider />
+      <Divider style={{ borderColor: theme.borderColorLight }} />
       
       {/* Meeting Status */}
       <div>
@@ -161,4 +166,4 @@ const SidePanelNotice: React.FC = () => {
   );
 };
 
-export default SidePanelNotice;
+export default React.memo(SidePanelNotice);

@@ -302,7 +302,7 @@ export const MeetingDetailPage: React.FC = () => {
     }
 
     return undefined;
-  }, [meeting, currentBoard?.id]);
+  }, [meeting, currentBoard?.id, permissions, navigate]);
 
   // Dropdown actions - Context-aware based on status
   const dropdownActions: MenuProps['items'] = useMemo(() => {

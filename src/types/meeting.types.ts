@@ -360,6 +360,10 @@ export const CreateMeetingPayloadSchema = z.object({
 
   isRecurring: z.boolean().default(false),
   recurrencePattern: RecurrencePatternSchema.optional(),
+
+  // Validation overrides (for authorized special circumstances)
+  overrides: MeetingOverridesSchema.optional(),
+  overrideReason: z.string().optional(),
 });
 
 export const UpdateMeetingPayloadSchema = CreateMeetingPayloadSchema.partial().extend({

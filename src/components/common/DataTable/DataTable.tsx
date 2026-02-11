@@ -25,6 +25,8 @@ import {
   CloseOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
+import { useResponsive } from '../../../hooks';
+import { responsiveHelpers } from '../../../utils';
 
 const { Text } = Typography;
 
@@ -89,8 +91,34 @@ export function DataTable<T extends { id: number | string }>({
 }: DataTableProps<T>) {
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [localSearchValue, setLocalSearchValue] = useState('');
+  const { isMobile, isTablet, currentBreakpoint } = useResponsive();
 
   const searchVal = searchValue !== undefined ? searchValue : localSearchValue;
+
+  // Responsive search input width
+  const searchWidth = responsiveHelpers.getResponsiveSpacing({
+    xs: 280, // Full width on mobile (will be constrained by container)
+    sm: 280,
+    md: 280,
+    lg: 300,
+    xl: 320,
+  }, currentBreakpoint);
+
+  // Calculate responsive scroll width if not explicitly provided
+  const responsiveScroll = useMemo(() => {
+    if (scroll) return scroll;
+
+    // Only enforce horizontal scroll on small screens (mobile/tablet)
+    // On desktop (lg+) let the table auto-fit the container width
+    const scrollWidths: Partial<Record<typeof currentBreakpoint, number>> = {
+      xs: 600,
+      sm: 700,
+      md: 800,
+    };
+
+    const xWidth = scrollWidths[currentBreakpoint];
+    return xWidth ? { x: xWidth } : undefined;
+  }, [scroll, currentBreakpoint]);
 
   const selectedRows = useMemo(() => {
     return dataSource.filter((item) => {
@@ -166,13 +194,19 @@ export function DataTable<T extends { id: number | string }>({
     <div className="data-table">
       {/* Header with search and actions */}
       <Flex
+        vertical={isMobile}
         justify="space-between"
-        align="center"
-        wrap="wrap"
-        gap={16}
+        align={isMobile ? 'stretch' : 'center'}
+        gap={isMobile ? 8 : 16}
         style={{ marginBottom: 16 }}
       >
-        <Flex gap={12} align="center" wrap="wrap">
+        {/* Search + filters row */}
+        <Flex
+          gap={8}
+          align="center"
+          wrap={isMobile ? undefined : 'wrap'}
+          style={{ flex: isMobile ? undefined : 1 }}
+        >
           {showSearch && (
             <Input.Search
               placeholder={searchPlaceholder}
@@ -180,14 +214,15 @@ export function DataTable<T extends { id: number | string }>({
               value={searchVal}
               onChange={handleSearchChange}
               onSearch={handleSearch}
-              style={{ width: 280 }}
+              style={{ width: isMobile ? '100%' : searchWidth }}
               prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
             />
           )}
           {headerExtra}
         </Flex>
 
-        <Flex gap={8} align="center">
+        {/* Action buttons row */}
+        <Flex gap={8} align="center" justify={isMobile ? 'flex-end' : undefined} style={{ flexShrink: 0 }}>
           {onRefresh && (
             <Tooltip title="Refresh">
               <Button icon={<ReloadOutlined />} onClick={onRefresh} loading={loading} />
@@ -195,7 +230,9 @@ export function DataTable<T extends { id: number | string }>({
           )}
           {exportOptions.length > 0 && (
             <Dropdown menu={{ items: exportMenuItems }} trigger={['click']}>
-              <Button icon={<DownloadOutlined />}>Export</Button>
+              <Button icon={<DownloadOutlined />}>
+                {!isMobile && 'Export'}
+              </Button>
             </Dropdown>
           )}
         </Flex>
@@ -208,13 +245,14 @@ export function DataTable<T extends { id: number | string }>({
           showIcon={false}
           style={{ marginBottom: 16 }}
           message={
-            <Flex justify="space-between" align="center">
-              <Space>
+            <Flex justify="space-between" align="center" wrap="wrap" gap={8}>
+              <Space wrap>
                 <Text strong>{selectedRowKeys.length} selected</Text>
                 {bulkActions.length > 0 && (
                   <>
-                    <span style={{ color: '#d9d9d9' }}>|</span>
-                    {bulkActions.slice(0, 3).map((action) => (
+                    {!isMobile && <span style={{ color: '#d9d9d9' }}>|</span>}
+                    {/* On mobile show max 2 actions inline, rest in dropdown */}
+                    {bulkActions.slice(0, isMobile ? 2 : 3).map((action) => (
                       <Button
                         key={action.key}
                         type="link"
@@ -224,12 +262,12 @@ export function DataTable<T extends { id: number | string }>({
                         disabled={action.disabled}
                         onClick={() => action.onClick(selectedRows)}
                       >
-                        {action.label}
+                        {isMobile ? null : action.label}
                       </Button>
                     ))}
-                    {bulkActions.length > 3 && (
+                    {(isMobile ? bulkActions.length > 2 : bulkActions.length > 3) && (
                       <Dropdown
-                        menu={{ items: bulkActionMenuItems.slice(3) }}
+                        menu={{ items: isMobile ? bulkActionMenuItems.slice(2) : bulkActionMenuItems.slice(3) }}
                         trigger={['click']}
                       >
                         <Button type="link" size="small" icon={<MoreOutlined />}>
@@ -246,7 +284,7 @@ export function DataTable<T extends { id: number | string }>({
                 icon={<CloseOutlined />}
                 onClick={clearSelection}
               >
-                Clear
+                {!isMobile && 'Clear'}
               </Button>
             </Flex>
           }
@@ -262,9 +300,12 @@ export function DataTable<T extends { id: number | string }>({
           pagination === false
             ? false
             : {
-                showSizeChanger: true,
-                showTotal: (total, range) => `${range[0]}-${range[1]} of ${total}`,
+                showSizeChanger: !isMobile,
+                showTotal: isMobile
+                  ? undefined
+                  : (total, range) => `${range[0]}-${range[1]} of ${total}`,
                 pageSizeOptions: ['10', '20', '50', '100'],
+                size: isMobile ? 'small' : 'default',
                 ...pagination,
               }
         }
@@ -279,8 +320,8 @@ export function DataTable<T extends { id: number | string }>({
               })
             : undefined
         }
-        scroll={scroll}
-        size={size}
+        scroll={responsiveScroll}
+        size={isMobile ? 'small' : size}
         locale={{ emptyText }}
       />
     </div>

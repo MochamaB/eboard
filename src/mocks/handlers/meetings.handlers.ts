@@ -396,6 +396,8 @@ export const meetingsHandlers = [
       statusUpdatedAt: new Date().toISOString(),
       isRecurring: payload.isRecurring || false,
       recurrencePattern: payload.recurrencePattern,
+      overrides: payload.overrides ?? undefined,
+      overrideReason: payload.overrideReason ?? undefined,
       createdBy: '17', // Mock user - Kenneth Muhia (Company Secretary)
       createdByName: 'Kenneth Mwangi Muhia',
       createdAt: new Date().toISOString(),

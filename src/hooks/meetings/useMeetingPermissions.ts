@@ -13,11 +13,13 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useBoardContext } from '../../contexts/BoardContext';
 import { useMeetingPhase } from '../../contexts/MeetingPhaseContext';
 import { useMinutesByMeeting } from '../api/useMinutes';
+import { determineMeetingHost, getUserHostRole } from '../../types/meetingRoom.types';
 import type { MeetingPermissions } from '../../types/meetingPermissions.types';
 
 const PERMISSION_CODES = {
   MEETINGS_EDIT: 'meetings.edit',
   MEETINGS_CANCEL: 'meetings.cancel',
+  MEETINGS_CONTROL: 'meetings.control',
   DOCUMENTS_UPLOAD: 'documents.upload',
   DOCUMENTS_DOWNLOAD: 'documents.download',
   DOCUMENTS_VIEW: 'documents.view',
@@ -171,10 +173,27 @@ export function useMeetingPermissions(): MeetingPermissions {
       phase === 'pre-meeting';
     
     // MEETING ROOM ACCESS PERMISSIONS
-    // Can start meeting: host with control permission, when scheduled.approved
-    const hasControlPermission = hasPermission(PERMISSION_CODES.MEETINGS_EDIT, boardId); // Using edit as proxy for control
+    // Determine host from meeting participants
+    const hostInfo = meeting.participants 
+      ? determineMeetingHost(meeting.participants.map(p => ({
+          userId: p.userId,
+          name: p.name,
+          boardRole: p.boardRole,
+        })))
+      : { hostUserId: null, hostName: null, cohostUserId: null, cohostName: null };
+    
+    const userHostRole = getUserHostRole(
+      user.id,
+      hostInfo,
+      user.globalRole?.code
+    );
+    const isSystemAdmin = user.globalRole?.code === 'system_admin';
+    const isHostOrCohost = userHostRole === 'host' || userHostRole === 'cohost';
+    
+    // Can start meeting: host/cohost/admin with control permission, when scheduled.approved
+    const hasControlPermission = hasPermission(PERMISSION_CODES.MEETINGS_CONTROL, boardId);
     const canStartMeeting = 
-      hasControlPermission && 
+      (hasControlPermission || isHostOrCohost || isSystemAdmin) && 
       status === 'scheduled' && 
       subStatus === 'approved';
     

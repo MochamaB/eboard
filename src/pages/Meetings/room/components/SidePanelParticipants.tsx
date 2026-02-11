@@ -15,6 +15,7 @@ import {
   UserDeleteOutlined 
 } from '@ant-design/icons';
 import { useBoardContext } from '../../../../contexts';
+import { useResponsive } from '../../../../contexts/ResponsiveContext';
 import { useMeetingRoom } from '../../../../contexts/MeetingRoomContext';
 import { useMeetingRoomPermissions } from '../../../../hooks/meetings';
 
@@ -22,6 +23,8 @@ const { Text } = Typography;
 
 const SidePanelParticipants: React.FC = () => {
   const { roomState, actions } = useMeetingRoom();
+  const { theme } = useBoardContext();
+  const { isMobile } = useResponsive();
   const { participants } = roomState;
   const permissions = useMeetingRoomPermissions();
   
@@ -31,14 +34,17 @@ const SidePanelParticipants: React.FC = () => {
   const waiting = participants.filter(p => p.attendanceStatus === 'waiting');
   const guests = participants.filter(p => p.isGuest && p.attendanceStatus === 'joined');
   
+  const panelPadding = isMobile ? 12 : 16;
+  const itemGap = isMobile ? 8 : 12;
+  
   const renderParticipant = (participant: typeof participants[0], showControls = false) => (
     <div 
       key={participant.id}
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 12,
-        padding: 8,
+        gap: itemGap,
+        padding: isMobile ? 6 : 8,
         borderRadius: 8,
         cursor: 'default',
       }}
@@ -72,14 +78,14 @@ const SidePanelParticipants: React.FC = () => {
         {participant.connectionStatus !== 'in_room' && (
           <>
             {participant.isMuted ? (
-              <AudioMutedOutlined style={{ color: '#ff4d4f', fontSize: 12 }} />
+              <AudioMutedOutlined style={{ color: theme.errorColor, fontSize: 12 }} />
             ) : (
-              <AudioOutlined style={{ color: '#52c41a', fontSize: 12 }} />
+              <AudioOutlined style={{ color: theme.successColor, fontSize: 12 }} />
             )}
             {participant.isVideoOn ? (
-              <VideoCameraOutlined style={{ color: '#52c41a', fontSize: 12 }} />
+              <VideoCameraOutlined style={{ color: theme.successColor, fontSize: 12 }} />
             ) : (
-              <VideoCameraAddOutlined style={{ color: '#999', fontSize: 12 }} />
+              <VideoCameraAddOutlined style={{ color: theme.textTertiary, fontSize: 12 }} />
             )}
           </>
         )}
@@ -88,7 +94,7 @@ const SidePanelParticipants: React.FC = () => {
             width: 8, 
             height: 8, 
             borderRadius: '50%', 
-            background: '#52c41a',
+            background: theme.successColor,
             display: 'inline-block',
           }} />
         )}
@@ -108,7 +114,7 @@ const SidePanelParticipants: React.FC = () => {
   
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
+      <div style={{ flex: 1, overflow: 'auto', padding: panelPadding }}>
         {/* In-Room Participants */}
         {inRoom.length > 0 && (
           <div style={{ marginBottom: 16 }}>
@@ -149,7 +155,7 @@ const SidePanelParticipants: React.FC = () => {
                     gap: 12,
                     padding: 8,
                     borderRadius: 8,
-                    background: '#fafafa',
+                    background: theme.backgroundTertiary,
                   }}
                 >
                   <Avatar icon={<UserOutlined />} size="small" />
@@ -206,4 +212,4 @@ const SidePanelParticipants: React.FC = () => {
   );
 };
 
-export default SidePanelParticipants;
+export default React.memo(SidePanelParticipants);

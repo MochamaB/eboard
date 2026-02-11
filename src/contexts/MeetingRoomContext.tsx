@@ -20,18 +20,32 @@ import type {
   MeetingRoomState,
   MeetingRoomActions,
   MeetingRoomContextType,
+  MeetingMode,
   RoomStatus,
   RoomParticipant,
   ActiveVote,
   CastingDocument,
+  MeetingHostInfo,
+  MeetingRoomSettings,
+  RoomCapabilities,
+  ModeFeatures,
+  ModeTransition,
+} from '../types/meetingRoom.types';
+import {
+  determineMeetingHost,
+  getStatusCapabilities,
+  computeModeFeatures,
+  DEFAULT_MEETING_ROOM_SETTINGS,
 } from '../types/meetingRoom.types';
 import type { AgendaItem } from '../types/agenda.types';
+import { useAgenda } from '../hooks/api/useAgenda';
+import { useMeetingDocuments } from '../hooks/api/useDocuments';
 
 // ============================================================================
 // CONTEXT
 // ============================================================================
 
-const MeetingRoomContext = createContext<MeetingRoomContextType | undefined>(undefined);
+export const MeetingRoomContext = createContext<MeetingRoomContextType | undefined>(undefined);
 
 // ============================================================================
 // PROVIDER PROPS
@@ -53,6 +67,12 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
   const { meeting } = useMeetingPhase();
   const { currentBoard: _currentBoard } = useBoardContext(); // Will be used for branding
   const { user } = useAuth();
+  
+  // Fetch agenda data dynamically for any meeting
+  const { data: agendaData, isLoading: _isAgendaLoading } = useAgenda(meetingId);
+  
+  // Fetch meeting documents for casting lookup
+  const { data: meetingDocsData } = useMeetingDocuments(meetingId);
   
   // Loading states
   const [isLoading, setIsLoading] = useState(true);
@@ -88,11 +108,23 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
   const [isRecording, setIsRecording] = useState(false);
   const [recordingStartedAt, setRecordingStartedAt] = useState<string | null>(null);
 
+  // Host info
+  const [hostInfo, setHostInfo] = useState<MeetingHostInfo>({
+    hostUserId: null, hostName: null, cohostUserId: null, cohostName: null,
+  });
+
+  // Settings
+  const [settings, setSettings] = useState<MeetingRoomSettings>({ ...DEFAULT_MEETING_ROOM_SETTINGS });
+
+  // Mode transition tracking
+  const [previousMode, setPreviousMode] = useState<MeetingMode | null>(null);
+  const [modeTransitions, setModeTransitions] = useState<ModeTransition[]>([]);
+
   // ============================================================================
   // COMPUTED VALUES
   // ============================================================================
   
-  const mode = useMemo(() => {
+  const mode = useMemo((): MeetingMode => {
     if (participants.length === 0) return 'physical';
     
     const joinedParticipants = participants.filter(p => p.attendanceStatus === 'joined');
@@ -105,6 +137,30 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
     if (remoteCount > 0) return 'virtual';
     return 'physical';
   }, [participants]);
+
+  // Mode-derived feature visibility (recomputes when mode or participants change)
+  const modeFeatures: ModeFeatures = useMemo(() => {
+    return computeModeFeatures(mode, participants);
+  }, [mode, participants]);
+
+  // Mode-change detection — track transitions and log them
+  useEffect(() => {
+    if (previousMode !== null && previousMode !== mode) {
+      const transition: ModeTransition = {
+        from: previousMode,
+        to: mode,
+        timestamp: new Date().toISOString(),
+        trigger: mode === 'hybrid'
+          ? 'Remote participant joined'
+          : mode === 'physical'
+            ? 'All virtual participants left'
+            : 'All physical participants went remote',
+      };
+      setModeTransitions(prev => [...prev, transition]);
+      console.log(`[MeetingRoom] Mode transition: ${previousMode} → ${mode}`, transition);
+    }
+    setPreviousMode(mode);
+  }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
   
   const presentCount = useMemo(() => {
     return participants.filter(p => p.attendanceStatus === 'joined').length;
@@ -140,36 +196,82 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
       setError(null);
       
       try {
-        // TODO: Fetch meeting data, agenda, participants from API
-        // For now, use data from MeetingPhaseContext
-        
         if (meeting) {
-          // Convert meeting participants to room participants
-          const roomParticipants: RoomParticipant[] = (meeting.participants || []).map(p => ({
-            ...p,
-            attendanceStatus: 'expected' as const,
-            connectionStatus: 'in_room' as const,
-            joinedAt: null,
-            leftAt: null,
-            isMuted: false,
-            isVideoOn: false,
-            isScreenSharing: false,
-            hasRaisedHand: false,
-            handRaisedAt: null,
-            isSpeaking: false,
-            lastActiveAt: null,
-          }));
+          // Determine meeting host from participants
+          const computedHostInfo = determineMeetingHost(
+            (meeting.participants || []).map(p => ({
+              userId: p.userId,
+              name: p.name,
+              boardRole: p.boardRole,
+            }))
+          );
+          setHostInfo(computedHostInfo);
+
+          // Determine initial attendance status based on meeting status + location type
+          const isAlreadyInProgress = meeting.status === 'in_progress';
+          const isPhysical = meeting.locationType === 'physical';
+          const isVirtual = meeting.locationType === 'virtual';
+          // const isHybrid = meeting.locationType === 'hybrid';
+
+          const roomParticipants: RoomParticipant[] = (meeting.participants || []).map(p => {
+            let attendance: 'expected' | 'waiting' | 'joined' = 'expected';
+            let connection: 'in_room' | 'connected' | 'connecting' | 'disconnected' = 'in_room';
+            const accepted = p.rsvpStatus === 'accepted' || p.rsvpStatus === 'no_response';
+
+            if (isAlreadyInProgress) {
+              // Meeting already running — accepted participants are joined
+              attendance = accepted ? 'joined' : 'expected';
+              connection = isPhysical ? 'in_room' : 'connected';
+            } else if (isPhysical) {
+              // Physical meeting lobby: accepted participants have arrived
+              attendance = accepted ? 'joined' : 'expected';
+              connection = 'in_room';
+            } else if (isVirtual) {
+              // Virtual meeting lobby: accepted go to waiting room
+              attendance = accepted ? 'waiting' : 'expected';
+              connection = accepted ? 'connecting' : 'disconnected';
+            } else {
+              // Hybrid: physical participants join, virtual wait
+              // For mock: treat all as physical (joined) since we don't track per-participant location
+              attendance = accepted ? 'joined' : 'expected';
+              connection = 'in_room';
+            }
+
+            return {
+              ...p,
+              attendanceStatus: attendance,
+              connectionStatus: connection,
+              joinedAt: attendance === 'joined' ? new Date().toISOString() : null,
+              leftAt: null,
+              isMuted: false,
+              isVideoOn: false,
+              isScreenSharing: false,
+              hasRaisedHand: false,
+              handRaisedAt: null,
+              isSpeaking: false,
+              lastActiveAt: null,
+            };
+          });
           
           setParticipants(roomParticipants);
           
-          // TODO: Fetch agenda items
-          // setAgendaItems(fetchedAgendaItems);
-          
           // Set initial status based on meeting status
-          if (meeting.status === 'in_progress') {
+          if (isAlreadyInProgress) {
             setStatus('in_progress');
             setStartedAt(meeting.statusUpdatedAt);
+          } else if (meeting.status === 'completed') {
+            setStatus('ended');
+            setEndedAt(meeting.statusUpdatedAt);
+          } else {
+            setStatus('waiting');
           }
+
+          // Apply settings based on location type
+          setSettings(prev => ({
+            ...prev,
+            enableWaitingRoom: !isPhysical, // Only for virtual/hybrid
+            muteParticipantsOnEntry: !isPhysical, // Only for virtual/hybrid
+          }));
         }
         
         // Simulate connection
@@ -186,6 +288,24 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
     
     initializeRoom();
   }, [meetingId, meeting]);
+
+  // Seed agenda items from useAgenda hook when data loads
+  useEffect(() => {
+    if (agendaData?.items && agendaData.items.length > 0) {
+      setAgendaItems(agendaData.items);
+      
+      // For in_progress meetings, find the current item from mock data
+      // (the item with status 'in_progress', or the first non-completed item)
+      if (meeting?.status === 'in_progress' && !currentAgendaItemId) {
+        const inProgressItem = agendaData.items.find(item => item.status === 'in_progress');
+        const firstPendingItem = agendaData.items.find(item => item.status === 'pending');
+        const currentItem = inProgressItem || firstPendingItem;
+        if (currentItem) {
+          setCurrentAgendaItemId(currentItem.id);
+        }
+      }
+    }
+  }, [agendaData, meeting?.status, currentAgendaItemId]);
 
   // ============================================================================
   // DURATION TIMER
@@ -351,21 +471,27 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
   // Document casting actions
   const startCasting = useCallback(async (documentId: string) => {
     try {
-      // TODO: API call to get document details and start casting
+      // Look up document from meeting documents
+      const docAttachment = meetingDocsData?.find(att => att.document.id === documentId);
+      const doc = docAttachment?.document;
+      
       setCastingDocument({
         documentId,
-        documentName: 'Document.pdf', // TODO: Get from API
-        documentUrl: '', // TODO: Get from API
+        documentName: doc?.name || 'Document',
+        documentUrl: doc?.url || '/mock-documents/sample.pdf',
+        fileType: doc?.fileType || 'pdf',
         currentPage: 1,
-        totalPages: 10, // TODO: Get from API
+        totalPages: 10, // DocumentSummary doesn't include pageCount; production will get from full Document
         casterId: user?.id?.toString() || '',
         casterName: user?.fullName || '',
         startedAt: new Date().toISOString(),
+        watermarkEnabled: doc?.watermarkEnabled || false,
+        isConfidential: doc?.isConfidential || false,
       });
     } catch (err) {
       throw err;
     }
-  }, [user]);
+  }, [user, meetingDocsData]);
   
   const stopCasting = useCallback(async () => {
     try {
@@ -411,20 +537,21 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
   const startVote = useCallback(async (_voteId: string) => {
     try {
       // TODO: API call
+      const voteDuration = settings.defaultVoteDuration; // From room settings
       const now = new Date();
-      const endsAt = new Date(now.getTime() + 2 * 60 * 1000); // 2 minutes
+      const endsAt = new Date(now.getTime() + voteDuration * 1000);
       
       setActiveVote(prev => prev ? {
         ...prev,
         status: 'open',
         startedAt: now.toISOString(),
         endsAt: endsAt.toISOString(),
-        timeRemaining: 120,
+        timeRemaining: voteDuration,
       } : null);
     } catch (err) {
       throw err;
     }
-  }, []);
+  }, [settings.defaultVoteDuration]);
   
   const castVote = useCallback(async (_voteId: string, vote: 'for' | 'against' | 'abstain') => {
     try {
@@ -604,14 +731,44 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
   }, []);
 
   // ============================================================================
+  // MODE TRANSITION ACTIONS
+  // ============================================================================
+
+  /**
+   * Toggle a participant's location between in_room ↔ connected.
+   * This triggers mode recomputation (Physical ↔ Hybrid ↔ Virtual).
+   * Used for testing/demo of dynamic mode transitions per Section 3 of 0308.
+   */
+  const toggleParticipantLocation = useCallback((participantId: string) => {
+    setParticipants(prev => prev.map(p => {
+      if (p.id !== participantId) return p;
+      const newConnectionStatus = p.connectionStatus === 'in_room' ? 'connected' as const : 'in_room' as const;
+      return {
+        ...p,
+        connectionStatus: newConnectionStatus,
+        // If switching to virtual, ensure they have virtual defaults
+        isMuted: newConnectionStatus === 'connected' ? (settings.muteParticipantsOnEntry || p.isMuted) : false,
+        isVideoOn: newConnectionStatus === 'connected' ? false : false,
+      };
+    }));
+  }, [settings.muteParticipantsOnEntry]);
+
+  // ============================================================================
   // CONTEXT VALUE
   // ============================================================================
   
+  // Compute capabilities from current room status
+  const capabilities: RoomCapabilities = useMemo(() => {
+    return getStatusCapabilities(status);
+  }, [status]);
+
   const roomState: MeetingRoomState = useMemo(() => ({
     meetingId,
     meeting,
     status,
     mode,
+    previousMode,
+    modeFeatures,
     startedAt,
     endedAt,
     pausedAt,
@@ -624,6 +781,8 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
     presentCount,
     quorumRequired,
     quorumMet,
+    hostInfo,
+    settings,
     activeVote,
     castingDocument,
     isConnected,
@@ -632,10 +791,10 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
     isRecording,
     recordingStartedAt,
   }), [
-    meetingId, meeting, status, mode, startedAt, endedAt, pausedAt, duration,
+    meetingId, meeting, status, mode, previousMode, modeFeatures, startedAt, endedAt, pausedAt, duration,
     currentAgendaItemId, currentAgendaItem, agendaItems, participants,
-    expectedCount, presentCount, quorumRequired, quorumMet, activeVote,
-    castingDocument, isConnected, isSyncing, lastSyncAt, isRecording, recordingStartedAt
+    expectedCount, presentCount, quorumRequired, quorumMet, hostInfo, settings,
+    activeVote, castingDocument, isConnected, isSyncing, lastSyncAt, isRecording, recordingStartedAt
   ]);
   
   const actions: MeetingRoomActions = useMemo(() => ({
@@ -667,22 +826,25 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
     promoteToPresenter,
     startRecording,
     stopRecording,
+    toggleParticipantLocation,
   }), [
     startMeeting, endMeeting, pauseMeeting, resumeMeeting, leaveMeeting,
     navigateToItem, markItemDiscussed, deferItem, startCasting, stopCasting,
     navigatePage, createVote, startVote, castVote, closeVote, raiseHand,
     lowerHand, toggleMute, toggleVideo, startScreenShare, stopScreenShare,
     admitParticipant, admitAllParticipants, removeParticipant, muteParticipant,
-    promoteToPresenter, startRecording, stopRecording
+    promoteToPresenter, startRecording, stopRecording, toggleParticipantLocation
   ]);
   
   const value: MeetingRoomContextType = useMemo(() => ({
     roomState,
     actions,
+    capabilities,
+    modeFeatures,
     isLoading,
     isInitializing,
     error,
-  }), [roomState, actions, isLoading, isInitializing, error]);
+  }), [roomState, actions, capabilities, modeFeatures, isLoading, isInitializing, error]);
 
   return (
     <MeetingRoomContext.Provider value={value}>

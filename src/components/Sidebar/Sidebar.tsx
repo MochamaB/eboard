@@ -1,4 +1,4 @@
-import { Layout, Menu, Drawer, Grid } from 'antd';
+import { Layout, Menu, Drawer } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   DashboardOutlined,
@@ -13,10 +13,11 @@ import {
 } from '@ant-design/icons';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { useBoardContext } from '../../contexts';
+import { useResponsive } from '../../hooks';
+import { responsiveHelpers } from '../../utils';
 import './Sidebar.css';
 
 const { Sider } = Layout;
-const { useBreakpoint } = Grid;
 
 type MenuItem = Required<MenuProps>['items'][number];
 
@@ -83,8 +84,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
   const location = useLocation();
   const { boardId } = useParams<{ boardId: string }>();
   const { theme, currentBoard } = useBoardContext();
-  const screens = useBreakpoint();
-  const isMobile = !screens.md; // md breakpoint = 768px
+  const { isMobile, isTablet, currentBreakpoint } = useResponsive();
+
+  // Use drawer for mobile AND tablet (better UX on smaller screens)
+  const useDrawerMode = isMobile || isTablet;
 
   // Check if we're in "View All" mode (route starts with /all/)
   const isAllView = location.pathname.startsWith('/all/');
@@ -96,6 +99,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
     // Navigate with appropriate prefix (boardId or 'all')
     if (routePrefix) {
       navigate(`/${routePrefix}${key}`);
+    }
+
+    // Close drawer on mobile after navigation
+    if (isMobile) {
+      onCollapse(true);
     }
   };
 
@@ -141,7 +149,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
       {/* Logo Area */}
       <div
         style={{
-          height: collapsed && !isMobile ? 96 : 160,
+          height: collapsed && !useDrawerMode ? 96 : 160,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -152,7 +160,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
           transition: 'height 0.2s',
         }}
       >
-        {collapsed && !isMobile ? (
+        {collapsed && !useDrawerMode ? (
           <div
             style={{
               width: 56,
@@ -203,7 +211,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
         theme="dark"
         mode="inline"
         selectedKeys={getSelectedKeys()}
-        defaultOpenKeys={collapsed && !isMobile ? [] : getOpenKeys()}
+        defaultOpenKeys={collapsed && !useDrawerMode ? [] : getOpenKeys()}
         items={menuItems}
         onClick={handleMenuClick}
         style={{
@@ -215,8 +223,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
     </>
   );
 
-  // Mobile: Use Drawer
-  if (isMobile) {
+  // Mobile & Tablet: Use Drawer (better UX on smaller screens)
+  if (useDrawerMode) {
+    const drawerWidth = responsiveHelpers.getResponsiveSpacing({
+      xs: 280,
+      sm: 300,
+      md: 320
+    }, currentBreakpoint);
+
     return (
       <Drawer
         placement="left"
@@ -224,7 +238,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
         open={!collapsed}
         closable={false}
         size="default"
-        width={250}
+        width={drawerWidth}
         styles={{
           body: {
             padding: 0,
@@ -238,6 +252,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
   }
 
   // Desktop: Use Sider
+  const sidebarWidth = responsiveHelpers.responsiveLayout.getSidebarWidth(collapsed, currentBreakpoint);
+  
   return (
     <Sider
       collapsed={collapsed}
@@ -254,6 +270,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
         bottom: 0,
         background: theme.sidebarBgGradient || theme.sidebarBg,
         transition: 'all 0.15s ease-in-out',
+        width: sidebarWidth,
         // CSS variables for dynamic primary color
         ['--sidebar-primary-color' as string]: theme.primaryColor,
         ['--sidebar-primary-color-hover' as string]: theme.primaryHover || theme.primaryColor,

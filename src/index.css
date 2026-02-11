@@ -78,8 +78,323 @@ body {
 .ant-alert-info .ant-alert-description {
   color: var(--ant-color-primary-text);
 }
-/* Responsive styles for mobile */
-@media (max-width: 768px) {
+
+/* Override Ant Design Collapse panel background */
+/* Remove all borders from collapse content */
+.ant-collapse-content {
+  border-left: none !important;
+  border-top: none !important;
+}
+
+.ant-collapse-content-box {
+  padding: 0 !important;
+  border-left: none !important;
+}
+
+/* Remove the indent/border on ghost collapse */
+.ant-collapse-ghost > .ant-collapse-item > .ant-collapse-content {
+  border: none !important;
+  background: transparent !important;
+}
+
+/* ======================================== */
+/* RESPONSIVE DESIGN SYSTEM                 */
+/* ======================================== */
+
+/* CSS Custom Properties for Responsive Values */
+:root {
+  /* Responsive spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-xxl: 48px;
+  --spacing-xxxl: 64px;
+  
+  /* Responsive container padding */
+  --container-padding-mobile: 16px;
+  --container-padding-tablet: 24px;
+  --container-padding-desktop: 32px;
+  
+  /* Responsive typography */
+  --font-h1-min: 1.5rem;
+  --font-h1-max: 2.5rem;
+  --font-h1-preferred: 4vw;
+  
+  --font-h2-min: 1.25rem;
+  --font-h2-max: 2rem;
+  --font-h2-preferred: 3.5vw;
+  
+  --font-h3-min: 1.125rem;
+  --font-h3-max: 1.5rem;
+  --font-h3-preferred: 3vw;
+  
+  --font-h4-min: 1rem;
+  --font-h4-max: 1.25rem;
+  --font-h4-preferred: 2.5vw;
+  
+  --font-body-min: 0.875rem;
+  --font-body-max: 1rem;
+  --font-body-preferred: 2vw;
+  
+  --font-small-min: 0.75rem;
+  --font-small-max: 0.875rem;
+  --font-small-preferred: 1.5vw;
+  
+  --font-xs-min: 0.625rem;
+  --font-xs-max: 0.75rem;
+  --font-xs-preferred: 1.2vw;
+}
+
+/* Responsive Typography */
+.text-responsive-h1 {
+  font-size: clamp(var(--font-h1-min), var(--font-h1-preferred), var(--font-h1-max));
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.text-responsive-h2 {
+  font-size: clamp(var(--font-h2-min), var(--font-h2-preferred), var(--font-h2-max));
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+.text-responsive-h3 {
+  font-size: clamp(var(--font-h3-min), var(--font-h3-preferred), var(--font-h3-max));
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+.text-responsive-h4 {
+  font-size: clamp(var(--font-h4-min), var(--font-h4-preferred), var(--font-h4-max));
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+.text-responsive-body {
+  font-size: clamp(var(--font-body-min), var(--font-body-preferred), var(--font-body-max));
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+.text-responsive-small {
+  font-size: clamp(var(--font-small-min), var(--font-small-preferred), var(--font-small-max));
+  line-height: 1.4;
+  font-weight: 400;
+}
+
+.text-responsive-xs {
+  font-size: clamp(var(--font-xs-min), var(--font-xs-preferred), var(--font-xs-max));
+  line-height: 1.4;
+  font-weight: 400;
+}
+
+/* Responsive Container */
+.container-responsive {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-left: var(--container-padding-mobile);
+  padding-right: var(--container-padding-mobile);
+}
+
+@media (min-width: 576px) {
+  .container-responsive {
+    padding-left: var(--container-padding-tablet);
+    padding-right: var(--container-padding-tablet);
+  }
+}
+
+@media (min-width: 992px) {
+  .container-responsive {
+    padding-left: var(--container-padding-desktop);
+    padding-right: var(--container-padding-desktop);
+  }
+}
+
+/* Responsive Stack Layout */
+.stack-responsive {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+@media (min-width: 768px) {
+  .stack-responsive {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--spacing-lg);
+  }
+}
+
+/* Responsive Grid Layout */
+.grid-responsive {
+  display: grid;
+  gap: var(--spacing-md);
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 576px) {
+  .grid-responsive {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 768px) {
+  .grid-responsive {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 992px) {
+  .grid-responsive {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Responsive Spacing Utilities */
+.padding-responsive {
+  padding: var(--spacing-md);
+}
+
+@media (min-width: 768px) {
+  .padding-responsive {
+    padding: var(--spacing-lg);
+  }
+}
+
+@media (min-width: 992px) {
+  .padding-responsive {
+    padding: var(--spacing-xl);
+  }
+}
+
+.margin-responsive {
+  margin: var(--spacing-md);
+}
+
+@media (min-width: 768px) {
+  .margin-responsive {
+    margin: var(--spacing-lg);
+  }
+}
+
+@media (min-width: 992px) {
+  .margin-responsive {
+    margin: var(--spacing-xl);
+  }
+}
+
+.gap-responsive {
+  gap: var(--spacing-md);
+}
+
+@media (min-width: 768px) {
+  .gap-responsive {
+    gap: var(--spacing-lg);
+  }
+}
+
+@media (min-width: 992px) {
+  .gap-responsive {
+    gap: var(--spacing-xl);
+  }
+}
+
+/* Responsive Card Component */
+.card-responsive {
+  padding: var(--spacing-md);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: all 0.2s ease;
+}
+
+@media (min-width: 768px) {
+  .card-responsive {
+    padding: var(--spacing-lg);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+}
+
+/* Responsive Button Component */
+.button-responsive {
+  height: 40px;
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  min-height: 44px; /* Touch target size */
+}
+
+@media (min-width: 768px) {
+  .button-responsive {
+    height: 36px;
+    padding: 12px 24px;
+    font-size: 1rem;
+    min-height: 36px;
+  }
+}
+
+/* Responsive Form Component */
+.form-responsive {
+  gap: var(--spacing-sm);
+}
+
+.form-responsive .ant-form-item {
+  margin-bottom: var(--spacing-sm);
+}
+
+@media (min-width: 768px) {
+  .form-responsive {
+    gap: var(--spacing-md);
+  }
+  
+  .form-responsive .ant-form-item {
+    margin-bottom: var(--spacing-md);
+  }
+}
+
+/* Responsive Table Component */
+.table-responsive {
+  font-size: 12px;
+}
+
+.table-responsive .ant-table-cell {
+  padding: var(--spacing-sm) !important;
+}
+
+@media (min-width: 768px) {
+  .table-responsive {
+    font-size: 14px;
+  }
+  
+  .table-responsive .ant-table-cell {
+    padding: var(--spacing-md) !important;
+  }
+}
+
+/* Responsive Chart Component */
+.chart-responsive {
+  height: 250px;
+  margin: var(--spacing-md);
+}
+
+@media (min-width: 768px) {
+  .chart-responsive {
+    height: 300px;
+    margin: var(--spacing-lg);
+  }
+}
+
+@media (min-width: 992px) {
+  .chart-responsive {
+    height: 400px;
+    margin: var(--spacing-xl);
+  }
+}
+
+/* Mobile-specific optimizations */
+@media (max-width: 767px) {
   /* Hide board name in selector on mobile - show only logo */
   .board-selector-name {
     display: none !important;
@@ -99,21 +414,119 @@ body {
   .ant-layout-header {
     padding: 0 12px !important;
   }
-  /* Override Ant Design Collapse panel background */
-/* Remove all borders from collapse content */
-.ant-collapse-content {
-  border-left: none !important;
-  border-top: none !important;
+  
+  /* Touch-friendly spacing */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Mobile scroll indicators */
+  .mobile-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Mobile text overflow */
+  .mobile-ellipsis {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
-.ant-collapse-content-box {
-  padding: 0 !important;
-  border-left: none !important;
+/* Tablet-specific optimizations */
+@media (min-width: 768px) and (max-width: 991px) {
+  .tablet-only {
+    display: block;
+  }
+  
+  .mobile-only {
+    display: none;
+  }
+  
+  .desktop-only {
+    display: none;
+  }
 }
 
-/* Remove the indent/border on ghost collapse */
-.ant-collapse-ghost > .ant-collapse-item > .ant-collapse-content {
-  border: none !important;
-  background: transparent !important;
+/* Desktop-specific optimizations */
+@media (min-width: 992px) {
+  .desktop-only {
+    display: block;
+  }
+  
+  .mobile-only {
+    display: none;
+  }
+  
+  .tablet-only {
+    display: none;
+  }
+  
+  /* Hover effects for desktop */
+  .desktop-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  }
 }
+
+/* Accessibility and reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .card-responsive {
+    border: 2px solid currentColor;
+  }
+  
+  .button-responsive {
+    border: 2px solid currentColor;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .container-responsive {
+    max-width: none;
+    padding: 0;
+  }
+}
+
+/* ======================================== */
+/* MEETING PHASE INDICATOR ANIMATIONS      */
+/* ======================================== */
+
+/* Blinking animation for active meeting phase */
+@keyframes phase-blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.phase-indicator-blink {
+  animation: phase-blink 2s ease-in-out infinite;
+}
+
+/* Disable blinking if user prefers reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .phase-indicator-blink {
+    animation: none;
+  }
 }

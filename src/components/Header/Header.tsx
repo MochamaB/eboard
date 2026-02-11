@@ -11,6 +11,8 @@ import {
 } from '@ant-design/icons';
 import { colors } from '../../theme';
 import { useOrgTheme, useAuth } from '../../contexts';
+import { useResponsive } from '../../hooks';
+import { responsiveHelpers } from '../../utils';
 import { BoardSelector } from './BoardSelector';
 
 const { Header: AntHeader } = Layout;
@@ -109,6 +111,7 @@ const notificationItems: MenuProps['items'] = [
 export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) => {
   const { theme } = useOrgTheme();
   const { user, logout } = useAuth();
+  const { isMobile, currentBreakpoint } = useResponsive();
 
   const handleUserMenuClick: MenuProps['onClick'] = ({ key }) => {
     if (key === 'logout') {
@@ -120,10 +123,20 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) =
     }
   };
 
+  // Responsive header height
+  const headerHeight = responsiveHelpers.responsiveLayout.getHeaderHeight(currentBreakpoint);
+  
+  // Responsive padding
+  const headerPadding = responsiveHelpers.getResponsiveSpacing({
+    xs: 12,
+    md: 20,
+    lg: 24
+  }, currentBreakpoint);
+
   return (
     <AntHeader
       style={{
-        padding: '0 24px',
+        padding: `0 ${headerPadding}px`,
         background: colors.white,
         borderBottom: `1px solid ${colors.border}`,
         display: 'flex',
@@ -132,6 +145,7 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) =
         position: 'sticky',
         top: 0,
         zIndex: 100,
+        height: headerHeight,
       }}
     >
       {/* Left section - Menu toggle + Board Selector */}
@@ -140,23 +154,30 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) =
           type="text"
           icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
           onClick={onToggleCollapse}
-          style={{ fontSize: 16, width: 40, height: 40 }}
+          className="touch-target"
+          style={{ 
+            fontSize: 16, 
+            width: responsiveHelpers.responsiveTouch.getTouchTargetSize(currentBreakpoint), 
+            height: responsiveHelpers.responsiveTouch.getTouchTargetSize(currentBreakpoint) 
+          }}
         />
         <BoardSelector />
       </Space>
 
       {/* Center - Search (hidden on mobile) */}
-      <Input
-        className="header-search-bar"
-        placeholder="Search meetings, documents, users..."
-        prefix={<SearchOutlined style={{ color: colors.textMuted }} />}
-        style={{
-          width: 400,
-          borderRadius: 20,
-          background: colors.tertiary,
-        }}
-        variant="filled"
-      />
+      {!isMobile && (
+        <Input
+          className="header-search-bar"
+          placeholder="Search meetings, documents, users..."
+          prefix={<SearchOutlined style={{ color: colors.textMuted }} />}
+          style={{
+            width: isMobile ? '100%' : 400,
+            borderRadius: 20,
+            background: colors.tertiary,
+          }}
+          variant="filled"
+        />
+      )}
 
       {/* Right section */}
       <Space size="middle">
@@ -170,7 +191,11 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) =
             <Button
               type="text"
               icon={<BellOutlined style={{ fontSize: 18 }} />}
-              style={{ width: 40, height: 40 }}
+              className="touch-target"
+              style={{ 
+                width: responsiveHelpers.responsiveTouch.getTouchTargetSize(currentBreakpoint), 
+                height: responsiveHelpers.responsiveTouch.getTouchTargetSize(currentBreakpoint) 
+              }}
             />
           </Badge>
         </Dropdown>
@@ -186,14 +211,16 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) =
               style={{ backgroundColor: theme.primaryColor }}
               icon={<UserOutlined />}
             />
-            <div className="header-user-info" style={{ lineHeight: 1.3 }}>
-              <div style={{ color: colors.textPrimary, fontWeight: 500 }}>
-                {user?.fullName || 'Guest'}
+            {!isMobile && (
+              <div className="header-user-info" style={{ lineHeight: 1.3 }}>
+                <div style={{ color: colors.textPrimary, fontWeight: 500 }}>
+                  {user?.fullName || 'Guest'}
+                </div>
+                <div style={{ color: colors.textSecondary, fontSize: 11 }}>
+                  {user?.jobTitle || ''}
+                </div>
               </div>
-              <div style={{ color: colors.textSecondary, fontSize: 11 }}>
-                {user?.jobTitle || ''}
-              </div>
-            </div>
+            )}
           </Space>
         </Dropdown>
       </Space>

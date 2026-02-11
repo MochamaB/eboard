@@ -1,7 +1,7 @@
 import { ConfigProvider } from 'antd';
 import { Outlet } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BoardProvider, useBoardContext, AuthProvider } from '../contexts';
+import { BoardProvider, useBoardContext, AuthProvider, ResponsiveProvider } from '../contexts';
 
 // Create React Query client
 const queryClient = new QueryClient({
@@ -29,13 +29,16 @@ const ThemedApp: React.FC = () => {
 const BoardWrapper: React.FC = () => {
   return (
     <BoardProvider>
-      <ThemedApp />
+      <ResponsiveProvider>
+        <ThemedApp />
+      </ResponsiveProvider>
     </BoardProvider>
   );
 };
 
 // Root layout - AuthProvider must be outermost (after QueryClient)
 // because BoardProvider depends on useAuth
+// ResponsiveProvider is inside BoardProvider for clean context hierarchy
 export const RootLayout: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>

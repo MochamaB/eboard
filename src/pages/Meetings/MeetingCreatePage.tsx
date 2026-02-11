@@ -23,10 +23,10 @@ import {
 } from '@ant-design/icons';
 import { WizardForm, type WizardStep, type SelectedParticipant } from '../../components/common';
 import { useBoardContext } from '../../contexts';
-import type { MeetingType, CreateMeetingPayload } from '../../types/meeting.types';
+import type { MeetingType, CreateMeetingPayload, MeetingOverrides } from '../../types/meeting.types';
 import { getMeetingTypeByCode } from '../../mocks/db/tables/meetingTypes';
 import { checkConfirmationRequired, getApproverRole } from '../../utils/meetingConfirmation';
-import meetingsApi from '../../api/meetings.api';
+import { useCreateMeeting } from '../../hooks';
 import {
   BoardSelectionStep,
   MeetingDetailsStep,
@@ -39,7 +39,8 @@ const MeetingCreatePage: React.FC = () => {
   const navigate = useNavigate();
   const { currentBoard, allBoards, committees } = useBoardContext();
   const [form] = Form.useForm();
-  
+  const createMeetingMutation = useCreateMeeting();
+
   // Board selection state
   const [selectedBoardType, setSelectedBoardType] = useState<string | undefined>();
   const [selectedBoardId, setSelectedBoardId] = useState<string | undefined>();
@@ -63,6 +64,10 @@ const MeetingCreatePage: React.FC = () => {
   const [occurrences, setOccurrences] = useState<number>(12);
   const [generatedDates, setGeneratedDates] = useState<{ date: Dayjs; excluded: boolean; conflict?: string }[]>([]);
   const [excludedDates, setExcludedDates] = useState<Set<string>>(new Set());
+
+  // Override state (for ReviewStep)
+  const [overrides, setOverrides] = useState<MeetingOverrides | undefined>(undefined);
+  const [overrideReason, setOverrideReason] = useState<string>('');
 
   // Form field watches
   const locationType = Form.useWatch('locationType', form);
@@ -446,6 +451,10 @@ const MeetingCreatePage: React.FC = () => {
             isRecurring={isRecurring}
             recurrencePattern={recurrencePattern}
             generatedDates={generatedDates}
+            overrides={overrides}
+            overrideReason={overrideReason}
+            onOverridesChange={setOverrides}
+            onOverrideReasonChange={setOverrideReason}
           />
         ),
       },
@@ -473,6 +482,8 @@ const MeetingCreatePage: React.FC = () => {
     endDate,
     occurrences,
     generatedDates,
+    overrides,
+    overrideReason,
   ]);
 
   // Handle form submission
@@ -515,10 +526,12 @@ const MeetingCreatePage: React.FC = () => {
           occurrences: endType === 'occurrences' ? occurrences : undefined,
           excludeDates: isRecurring ? generatedDates.filter(d => d.excluded).map(d => d.date.format('YYYY-MM-DD')) : undefined,
         } : undefined,
+        overrides: overrides ?? undefined,
+        overrideReason: overrideReason || undefined,
       };
 
-      // Call API to create meeting
-      const createdMeeting = await meetingsApi.createMeeting(meetingPayload);
+      // Create meeting via React Query mutation
+      const createdMeeting = await createMeetingMutation.mutateAsync(meetingPayload);
 
       // Show success message based on confirmation requirement
       if (requiresConfirmation) {

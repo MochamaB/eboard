@@ -30,6 +30,7 @@ import type { MeetingListItem, MeetingStatus, MeetingType, LocationType } from '
 import { MEETING_TYPE_LABELS } from '../../types/meeting.types';
 import { useBoardContext } from '../../contexts';
 import { MeetingStatusBadge } from './MeetingStatusBadge';
+import { BoardPackStatusCell } from './BoardPackStatusCell';
 
 const { Text, Title } = Typography;
 
@@ -371,10 +372,20 @@ export const MeetingCard: React.FC<MeetingCardProps> = ({
           )}
         </div>
 
-        {/* Meeting Type Tag */}
-        <Tag color={MEETING_TYPE_COLORS[meeting.meetingType]} style={{ fontSize: 11 }}>
-          {MEETING_TYPE_LABELS[meeting.meetingType]}
-        </Tag>
+        {/* Meeting Type Tag + Board Pack Status */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+          <Tag color={MEETING_TYPE_COLORS[meeting.meetingType]} style={{ fontSize: 11, margin: 0 }}>
+            {MEETING_TYPE_LABELS[meeting.meetingType]}
+          </Tag>
+          <div onClick={(e) => e.stopPropagation()}>
+            <BoardPackStatusCell
+              meetingId={meeting.id}
+              boardId={meeting.boardId}
+              boardPackStatus={meeting.boardPackStatus}
+              meetingStatus={meeting.status}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Actions */}

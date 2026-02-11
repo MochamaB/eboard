@@ -3,23 +3,28 @@
  * Main layout component for the live meeting room
  * 
  * Layout Structure:
- * - Uses collapsed sidebar from app shell
- * - Header with meeting title, status, duration, quorum
- * - Left: Main content area (current item display, participant functions, voting, actions)
- * - Right: Two-column side panel (content panel + icon strip)
+ * - Desktop (≥992px): Main content + inline side panel (icon strip + content panel)
+ * - Tablet (768–991px): Main content full-width + side panel as overlay drawer from right
+ * - Mobile (<768px): Main content full-width + side panel as full-screen drawer + bottom tab bar
+ * 
+ * Board branding applied to icon strip, panel header, and active tab indicators.
  */
 
-import React, { useState } from 'react';
-import { Layout, Button, Tooltip, Typography } from 'antd';
+import React, { useState, useMemo } from 'react';
+import { Layout, Button, Tooltip, Typography, Drawer, Badge } from 'antd';
 import {
   LeftOutlined,
   RightOutlined,
+  CloseOutlined,
   FileTextOutlined,
   UnorderedListOutlined,
   TeamOutlined,
   FolderOutlined,
+  TrophyOutlined,
+  EditOutlined,
 } from '@ant-design/icons';
 import { useBoardContext } from '../../../contexts';
+import { useResponsive } from '../../../contexts/ResponsiveContext';
 import { useMeetingRoom } from '../../../contexts/MeetingRoomContext';
 import type { SidePanelTab } from '../../../types/meetingRoom.types';
 
@@ -29,6 +34,8 @@ import SidePanelNotice from './components/SidePanelNotice';
 import SidePanelAgenda from './components/SidePanelAgenda';
 import SidePanelParticipants from './components/SidePanelParticipants';
 import SidePanelDocuments from './components/SidePanelDocuments';
+import SidePanelVoting from './components/SidePanelVoting';
+import SidePanelMinutes from './components/SidePanelMinutes';
 
 const { Content } = Layout;
 const { Title } = Typography;
@@ -42,12 +49,15 @@ const SIDE_PANEL_TABS: { key: SidePanelTab; label: string; icon: React.ReactNode
   { key: 'agenda', label: 'Agenda', icon: <UnorderedListOutlined /> },
   { key: 'participants', label: 'Participants', icon: <TeamOutlined /> },
   { key: 'documents', label: 'Documents', icon: <FolderOutlined /> },
+  { key: 'voting', label: 'Voting', icon: <TrophyOutlined /> },
+  { key: 'minutes', label: 'Minutes', icon: <EditOutlined /> },
 ];
 
-// Icon strip width
+// Responsive widths
 const ICON_STRIP_WIDTH = 48;
-// Content panel width when expanded
-const CONTENT_PANEL_WIDTH = 420;
+const CONTENT_PANEL_WIDTH_LG = 420;
+const CONTENT_PANEL_WIDTH_MD = 320;
+const DRAWER_WIDTH_MD = 380;
 
 // ============================================================================
 // MAIN COMPONENT
@@ -55,23 +65,53 @@ const CONTENT_PANEL_WIDTH = 420;
 
 const MeetingRoomLayout: React.FC = () => {
   const { theme } = useBoardContext();
-  const { roomState: _roomState } = useMeetingRoom();
+  const { roomState } = useMeetingRoom();
+  const { isMobile, isTablet, isDesktop } = useResponsive();
   
   // Side panel state
   const [isPanelExpanded, setIsPanelExpanded] = useState(true);
   const [activeTab, setActiveTab] = useState<SidePanelTab>('agenda');
   
+  // On mobile/tablet, panel is a drawer — track open state separately
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  
+  // Use drawer mode for mobile and tablet
+  const useDrawerMode = isMobile || isTablet;
+  
+  // Responsive content panel width
+  const contentPanelWidth = isDesktop ? CONTENT_PANEL_WIDTH_LG : CONTENT_PANEL_WIDTH_MD;
+  
+  // Responsive content padding
+  const contentPadding = isMobile ? 8 : isTablet ? 12 : 16;
+  
+  // Waiting room count for badge on participants tab
+  const waitingCount = useMemo(() => {
+    return roomState.participants.filter(p => p.attendanceStatus === 'waiting').length;
+  }, [roomState.participants]);
+
   const togglePanel = () => {
-    setIsPanelExpanded(!isPanelExpanded);
+    if (useDrawerMode) {
+      setIsDrawerOpen(!isDrawerOpen);
+    } else {
+      setIsPanelExpanded(!isPanelExpanded);
+    }
   };
   
   const handleTabClick = (tabKey: SidePanelTab) => {
-    if (activeTab === tabKey && isPanelExpanded) {
-      // Clicking active tab collapses the panel
-      setIsPanelExpanded(false);
+    if (useDrawerMode) {
+      if (activeTab === tabKey && isDrawerOpen) {
+        setIsDrawerOpen(false);
+      } else {
+        setActiveTab(tabKey);
+        setIsDrawerOpen(true);
+      }
     } else {
-      setActiveTab(tabKey);
-      setIsPanelExpanded(true);
+      if (activeTab === tabKey && isPanelExpanded) {
+        setIsPanelExpanded(false);
+      } else {
+        setActiveTab(tabKey);
+        setIsPanelExpanded(true);
+      }
     }
   };
 
@@ -85,6 +125,10 @@ const MeetingRoomLayout: React.FC = () => {
         return <SidePanelParticipants />;
       case 'documents':
         return <SidePanelDocuments />;
+      case 'voting':
+        return <SidePanelVoting />;
+      case 'minutes':
+        return <SidePanelMinutes />;
       default:
         return null;
     }
@@ -94,21 +138,129 @@ const MeetingRoomLayout: React.FC = () => {
     const tab = SIDE_PANEL_TABS.find(t => t.key === activeTab);
     return tab?.label || '';
   };
+  
+  // Tab badge count (e.g. waiting participants)
+  const getTabBadge = (tabKey: SidePanelTab): number => {
+    if (tabKey === 'participants' && waitingCount > 0) return waitingCount;
+    return 0;
+  };
 
-  // Calculate total side panel width
+  // Calculate total side panel width (desktop only)
   const sidePanelWidth = isPanelExpanded 
-    ? ICON_STRIP_WIDTH + CONTENT_PANEL_WIDTH 
+    ? ICON_STRIP_WIDTH + contentPanelWidth 
     : ICON_STRIP_WIDTH;
 
+  // Shared tab button renderer
+  const renderTabButton = (tab: typeof SIDE_PANEL_TABS[0], isHorizontal = false) => {
+    const isActive = activeTab === tab.key;
+    const badge = getTabBadge(tab.key);
+    
+    const button = (
+      <Button
+        type={isActive ? 'primary' : 'text'}
+        icon={tab.icon}
+        onClick={() => handleTabClick(tab.key)}
+        style={{
+          width: isHorizontal ? 'auto' : 40,
+          height: isHorizontal ? 44 : 60,
+          fontSize: isHorizontal ? 16 : 20,
+          borderRadius: isHorizontal ? 8 : 0,
+          borderBottom: isHorizontal ? 'none' : `3px solid ${isActive ? theme.primaryColor : theme.borderColorLight}`,
+          flex: isHorizontal ? 1 : undefined,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 6,
+        }}
+      >
+        {isHorizontal && <span style={{ fontSize: 12 }}>{tab.label}</span>}
+      </Button>
+    );
+
+    if (badge > 0) {
+      return (
+        <Badge key={tab.key} count={badge} size="small" offset={isHorizontal ? [-4, 0] : [-2, 2]}>
+          {isHorizontal ? button : <Tooltip title={tab.label} placement="left">{button}</Tooltip>}
+        </Badge>
+      );
+    }
+
+    return isHorizontal 
+      ? <React.Fragment key={tab.key}>{button}</React.Fragment>
+      : <Tooltip key={tab.key} title={tab.label} placement="left">{button}</Tooltip>;
+  };
+
+  // ========================================================================
+  // DRAWER MODE (Mobile + Tablet)
+  // ========================================================================
+  
+  if (useDrawerMode) {
+    return (
+      <Layout style={{ height: '100%', background: 'transparent' }}>
+        <MeetingRoomHeader />
+        
+        <Content style={{ overflow: 'auto', padding: contentPadding, flex: 1 }}>
+          <MainContentArea />
+        </Content>
+        
+        {/* Bottom Tab Bar (Mobile/Tablet) */}
+        <div 
+          style={{ 
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-around',
+            padding: '4px 8px',
+            borderTop: `1px solid ${theme.borderColor}`,
+            background: theme.backgroundSecondary,
+          }}
+        >
+          {SIDE_PANEL_TABS.map((tab) => renderTabButton(tab, true))}
+        </div>
+        
+        {/* Drawer Panel */}
+        <Drawer
+          title={
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ 
+                width: 4, 
+                height: 20, 
+                borderRadius: 2, 
+                background: theme.primaryColor, 
+                display: 'inline-block' 
+              }} />
+              {getActiveTabLabel()}
+            </div>
+          }
+          placement="right"
+          width={isMobile ? '100%' : DRAWER_WIDTH_MD}
+          open={isDrawerOpen}
+          onClose={() => setIsDrawerOpen(false)}
+          closeIcon={<CloseOutlined />}
+          styles={{
+            header: { 
+              borderBottom: `1px solid ${theme.borderColor}`,
+              background: theme.backgroundTertiary,
+            },
+            body: { padding: 0 },
+          }}
+        >
+          {renderTabContent()}
+        </Drawer>
+      </Layout>
+    );
+  }
+
+  // ========================================================================
+  // DESKTOP MODE — inline side panel
+  // ========================================================================
+  
   return (
     <Layout style={{ height: '100%', background: 'transparent' }}>
-      {/* Meeting Room Header */}
       <MeetingRoomHeader />
       
-      {/* Main Content Area */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden' }}>
         {/* Left: Main Content */}
-        <Content style={{ overflow: 'auto', padding: 16, flex: 1 }}>
+        <Content style={{ overflow: 'auto', padding: contentPadding, flex: 1 }}>
           <MainContentArea />
         </Content>
         
@@ -118,18 +270,18 @@ const MeetingRoomLayout: React.FC = () => {
             display: 'flex',
             width: sidePanelWidth,
             transition: 'width 0.2s ease-in-out',
-            borderLeft: '1px solid #f0f0f0',
-            background: '#fff',
+            borderLeft: `1px solid ${theme.borderColor}`,
+            background: theme.backgroundSecondary,
           }}
         >
           {/* Content Panel (collapsible) */}
           {isPanelExpanded && (
             <div 
               style={{ 
-                width: CONTENT_PANEL_WIDTH,
+                width: contentPanelWidth,
                 display: 'flex',
                 flexDirection: 'column',
-                borderRight: '1px solid #f0f0f0',
+                borderRight: `1px solid ${theme.borderColorLight}`,
                 overflow: 'hidden',
               }}
             >
@@ -140,13 +292,22 @@ const MeetingRoomLayout: React.FC = () => {
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: '12px 16px',
-                  borderBottom: '1px solid #f0f0f0',
-                  background: '#fafafa',
+                  borderBottom: `1px solid ${theme.borderColor}`,
+                  background: theme.backgroundTertiary,
                 }}
               >
-                <Title level={5} style={{ margin: 0 }}>
-                  {getActiveTabLabel()}
-                </Title>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ 
+                    width: 4, 
+                    height: 20, 
+                    borderRadius: 2, 
+                    background: theme.primaryColor, 
+                    display: 'inline-block' 
+                  }} />
+                  <Title level={5} style={{ margin: 0 }}>
+                    {getActiveTabLabel()}
+                  </Title>
+                </div>
                 <Button
                   type="text"
                   size="small"
@@ -163,7 +324,7 @@ const MeetingRoomLayout: React.FC = () => {
             </div>
           )}
           
-          {/* Icon Strip (always visible) */}
+          {/* Icon Strip (always visible on desktop) */}
           <div 
             style={{ 
               width: ICON_STRIP_WIDTH,
@@ -172,7 +333,7 @@ const MeetingRoomLayout: React.FC = () => {
               alignItems: 'center',
               paddingTop: 48,
               gap: 14,
-              background: theme.primaryLight || '#fafafa',
+              background: theme.primaryLight || theme.backgroundTertiary,
             }}
           >
             {/* Expand button when collapsed */}
@@ -189,22 +350,7 @@ const MeetingRoomLayout: React.FC = () => {
             )}
             
             {/* Tab Icons */}
-            {SIDE_PANEL_TABS.map((tab) => (
-              <Tooltip key={tab.key} title={tab.label} placement="left">
-                <Button
-                  type={activeTab === tab.key ? 'primary' : 'text'}
-                  icon={tab.icon}
-                  onClick={() => handleTabClick(tab.key)}
-                  style={{
-                    width: 40,
-                    height: 60,
-                    fontSize: 20,
-                    borderRadius: 0,
-                    borderBottom: '3px solid #c6c6c6',
-                  }}
-                />
-              </Tooltip>
-            ))}
+            {SIDE_PANEL_TABS.map((tab) => renderTabButton(tab, false))}
           </div>
         </div>
       </div>
@@ -212,4 +358,4 @@ const MeetingRoomLayout: React.FC = () => {
   );
 };
 
-export default MeetingRoomLayout;
+export default React.memo(MeetingRoomLayout);

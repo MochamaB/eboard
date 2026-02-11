@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { Steps, Tag } from 'antd';
+import { Steps, Tag, Space } from 'antd';
 import {
   EditOutlined,
   PlayCircleOutlined,
@@ -14,6 +14,7 @@ import {
   ExclamationCircleOutlined,
 } from '@ant-design/icons';
 import { useBoardContext } from '../../../contexts';
+import { useResponsive } from '../../../hooks';
 import type { MeetingPhase, MeetingPhaseStatus } from '../../../contexts/MeetingPhaseContext';
 
 interface MeetingPhaseIndicatorProps {
@@ -30,6 +31,7 @@ export const MeetingPhaseIndicator: React.FC<MeetingPhaseIndicatorProps> = ({
   compact = false,
 }) => {
   const { theme } = useBoardContext();
+  const { isMobile } = useResponsive();
 
   const getCurrentStep = (): number => {
     switch (phase) {
@@ -46,23 +48,21 @@ export const MeetingPhaseIndicator: React.FC<MeetingPhaseIndicatorProps> = ({
 
   const getStepStatus = (stepIndex: number): 'wait' | 'process' | 'finish' | 'error' => {
     const currentStep = getCurrentStep();
-    
+
     // Handle special statuses (these are phaseInfo.status values, not primary meeting statuses)
     // 'cancelled' and 'rejected' are mapped from MeetingPhaseContext
     if (status === 'cancelled' || status === 'rejected') {
       if (stepIndex === currentStep) {
         return 'error';
       }
-      return stepIndex < currentStep ? 'finish' : 'wait';
+      return 'wait'; // Grey out all other steps
     }
-    
-    // Normal flow
-    if (stepIndex < currentStep) {
-      return 'finish';
-    } else if (stepIndex === currentStep) {
+
+    // Normal flow: Only show active phase as active, grey out others
+    if (stepIndex === currentStep) {
       return status === 'completed' ? 'finish' : 'process';
     } else {
-      return 'wait';
+      return 'wait'; // Grey out all non-current phases
     }
   };
 
@@ -118,14 +118,53 @@ export const MeetingPhaseIndicator: React.FC<MeetingPhaseIndicatorProps> = ({
     },
   ];
 
+  const currentStepIndex = getCurrentStep();
+  const currentStepData = steps[currentStepIndex];
+
+  // Mobile: Show only active phase with blinking icon
+  if (isMobile) {
+    return (
+      <Space size={4} align="center">
+        <span
+          className={status === 'active' ? 'phase-indicator-blink' : ''}
+          style={{
+            fontSize: 16,
+            color: status === 'cancelled' || status === 'rejected'
+              ? theme.errorColor
+              : theme.primaryColor,
+          }}
+        >
+          {currentStepData.icon}
+        </span>
+        <span
+          style={{
+            fontSize: 12,
+            fontWeight: 600,
+            color: status === 'cancelled' || status === 'rejected'
+              ? theme.errorColor
+              : theme.primaryColor,
+          }}
+        >
+          {currentStepData.title}
+        </span>
+        {getStatusBadge()}
+      </Space>
+    );
+  }
+
+  // Desktop: Show all phases with Steps component
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
       <Steps
-        current={getCurrentStep()}
+        current={currentStepIndex}
         size="small"
         items={steps.map((step, index) => ({
           title: step.title,
-          icon: step.icon,
+          icon: (
+            <span className={index === currentStepIndex && status === 'active' ? 'phase-indicator-blink' : ''}>
+              {step.icon}
+            </span>
+          ),
           status: getStepStatus(index),
         }))}
         style={{

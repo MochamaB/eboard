@@ -652,210 +652,438 @@ No changes needed to AuthContext or existing permission tables.
 
 ---
 
-## 11. Implementation Plan
+## 11. Prototype Scope
 
-### Phase 1: Foundation (Weeks 3-4)
+This implementation plan targets a **frontend prototype** — no backend API or real-time infrastructure. All state is managed locally via React Context with mock data from the existing MSW mock tables (see MOCK_DATA_PLAN.md). The goal is to simulate the full meeting room experience end-to-end using MTG-006 (in_progress) as the primary test meeting.
 
-**Week 3 Tasks**
-1. Create meetingRoom.types.ts with all type definitions
-2. Create MeetingRoomContext with basic state structure
-3. Create MeetingRoomPage component shell
-4. Set up routing (/meetings/:id/room)
-5. Create MeetingRoomLayout wrapper
+### What Is Simulated (Local State)
 
-**Week 4 Tasks**
-1. Implement room status management
-2. Implement mode computation logic
-3. Create feature visibility system
-4. Add basic meeting controls (start, end, leave)
-5. Connect to meeting API for initial data
+- Meeting lifecycle (waiting → starting → in_progress ↔ paused → ending → ended)
+- Agenda navigation and item status tracking
+- Participant join/leave and attendance status
+- Voting creation, casting, and results
+- Document casting state (presenter controls, page navigation)
+- Mode computation and transitions (physical ↔ virtual ↔ hybrid)
+- Minutes note-taking (secretary only)
+- Recording state toggle
 
-**Deliverables**
-- Meeting room loads and displays basic info
-- Can start and end meeting
-- Mode computed correctly
+### What Uses Placeholder UI (Deferred to Production)
 
-### Phase 2: Core Components (Weeks 5-6)
+- Video conferencing (Jitsi) — styled placeholder, appears when mode ≠ physical
+- PDF document rendering (PDF.js) — document preview card with page controls, no actual PDF
+- Real-time sync (SignalR/WebSocket) — connection indicator shows "connected" statically
+- Chat panel — deferred entirely
 
-**Week 5 Tasks**
-1. Build AgendaPanel component
-2. Build CurrentAgendaItemCard component
-3. Build ParticipantPanel component
-4. Build QuorumIndicator component
-5. Implement agenda navigation (chairman)
+### What Is Skipped Entirely
 
-**Week 6 Tasks**
-1. Build MeetingHeader component
-2. Build MeetingControls component
-3. Implement participant status tracking
-4. Add raise hand functionality
-5. Style and polish core components
+- Backend API endpoints (all actions use local state mutations with simulated delays)
+- WebSocket service and real-time multi-user sync
+- Optimistic updates / offline queue / state reconciliation
+- JWT authentication for meeting rooms
+- Screen sharing via browser API
 
-**Deliverables**
-- All core panels functional
-- Agenda navigation works
-- Participant list updates
+---
 
-### Phase 3: Document Viewer (Weeks 7-8)
+## 12. Current Implementation Status
 
-**Week 7 Tasks**
-1. Integrate PDF.js for document rendering
-2. Build DocumentViewer component
-3. Implement page navigation
-4. Implement zoom controls
-5. Add document selection from meeting documents
+### Phase 1 (Foundation) — ✅ Complete
 
-**Week 8 Tasks**
-1. Build document casting system
-2. Implement presenter controls
-3. Implement sync/independent browsing toggle
-4. Add pointer/highlight tool (basic)
-5. Test document sync across participants
+| Component | File | Status |
+|-----------|------|--------|
+| `meetingRoom.types.ts` | `src/types/meetingRoom.types.ts` | ✅ 331 lines, all types defined |
+| `MeetingRoomContext` | `src/contexts/MeetingRoomContext.tsx` | ✅ 724 lines, 27 actions, full state |
+| `MeetingRoomPage` | `src/pages/Meetings/room/MeetingRoomPage.tsx` | ✅ Entry point with access guards |
+| Routing (`/meetings/:id/room`) | App router | ✅ Working |
+| `MeetingRoomLayout` | `src/pages/Meetings/room/MeetingRoomLayout.tsx` | ✅ Main + side panel + icon strip |
+| Room status management | `MeetingRoomContext` | ✅ `waiting→starting→in_progress↔paused→ending→ended` |
+| Mode computation | `MeetingRoomContext` | ✅ Derived from participant `connectionStatus` |
+| `useMeetingRoomPermissions` | `src/hooks/meetings/useMeetingRoomPermissions.ts` | ⚠️ Stub — accepts optional `RoomState`, not wired to actual context |
 
-**Deliverables**
-- Documents viewable in meeting room
-- Casting works between participants
-- Sync toggle functional
+### Phase 2 (Core Components) — ⚠️ Partially Complete
 
-### Phase 4: Voting System (Weeks 9-10)
+| Component | File | Status |
+|-----------|------|--------|
+| `MeetingRoomHeader` | `room/components/MeetingRoomHeader.tsx` | ✅ Title, status, timer, quorum, mode, connection |
+| `SidePanelAgenda` | `room/components/SidePanelAgenda.tsx` | ✅ Clickable items, prev/next, mark discussed, defer |
+| `CurrentItemDisplay` | Inside `MainContentArea.tsx` | ✅ Shows current agenda item or cast document |
+| `SidePanelParticipants` | `room/components/SidePanelParticipants.tsx` | ✅ Grouped by in-room/remote/waiting/guests, host controls |
+| `SidePanelNotice` | `room/components/SidePanelNotice.tsx` | ✅ Meeting info, quorum detail, connection status |
+| `SidePanelDocuments` | `room/components/SidePanelDocuments.tsx` | ⚠️ Uses hardcoded placeholder data, not wired to mock |
+| `ActiveVotePanel` | Inside `MainContentArea.tsx` | ✅ Vote display, For/Against/Abstain buttons, progress |
+| `ParticipantFunctions` | Inside `MainContentArea.tsx` | ⚠️ Basic buttons only — raise hand, notes, follow presenter |
+| **`MeetingControlsBar`** | — | ❌ **MISSING** — No UI to start/pause/resume/end/leave |
+| **`VoteCreationModal`** | — | ❌ **MISSING** — No way to create a vote from room UI |
+| **`ParticipantStrip`** | — | ❌ **MISSING** — No Zoom-like avatar row in main area |
+| Feature visibility by mode | — | ❌ **MISSING** — No conditional show/hide by physical/virtual/hybrid |
+| Side panel: Voting tab | — | ❌ **MISSING** — Only 4 tabs (notice, agenda, participants, documents) |
+| Side panel: Minutes tab | — | ❌ **MISSING** — Secretary minutes panel not built |
+| Mock data seeding | `MeetingRoomContext` | ❌ **MISSING** — Agenda items and documents not loaded from mock data |
 
-**Week 9 Tasks**
-1. Build VoteCreationModal component
-2. Build VotingPanel component
-3. Build VoteResultsCard component
-4. Implement vote creation flow
-5. Implement vote casting flow
+### Reusable Components from Detail Page
 
-**Week 10 Tasks**
-1. Implement vote closing and results
-2. Add timer functionality
-3. Add anonymous voting support
-4. Implement quorum check for voting
-5. Link votes to resolutions
+| Detail Component | Reuse in Room | Adaptation |
+|-----------------|---------------|------------|
+| `VotesView` (`components/Voting`) | **High** — vote list + results | Use in `execute` mode inside new `SidePanelVoting` |
+| `MinutesEditor` (`components/common/Minutes`) | **High** — rich text editor | Wrap in compact `SidePanelMinutes` for side panel |
+| `MeetingStatusBadge` | **Direct reuse** | Already used |
+| `AgendaView` (`pages/Meetings/agenda`) | **Low** — room has own `SidePanelAgenda` | Room's simplified version is better for live context |
+| `MeetingNoticeDocument` | **Medium** — formal notice rendering | Could embed in `SidePanelNotice` |
 
-**Deliverables**
-- Full voting workflow functional
-- Results display correctly
-- Resolutions created from passed votes
+---
 
-### Phase 5: Real-Time Infrastructure (Weeks 11-12)
+## 13. Implementation Plan (Prototype)
 
-**Week 11 Tasks**
-1. Create WebSocket service
-2. Implement connection management
-3. Implement event handlers for all server events
-4. Add reconnection logic
-5. Create useRealTimeSync hook
+### Cross-Cutting: Responsive Design Guidelines
 
-**Week 12 Tasks**
-1. Implement optimistic updates
-2. Add offline queue for events
-3. Implement state reconciliation
-4. Add connection status UI
-5. Test multi-user scenarios
+All meeting room components MUST follow the responsive design approach established in `RESPONSIVE_APPROACH_COMPARISON.md`. These rules apply across **every phase**:
 
-**Deliverables**
-- Real-time sync working
-- Multiple participants see updates
-- Handles disconnection gracefully
+1. **Use `useResponsive()` from `ResponsiveContext`** — never create new `ResizeObserver` instances. One observer for the entire app.
+2. **Prefer CSS/Tailwind for styling** — use `className="p-4 md:p-6"` instead of `style={{ padding: isMobile ? 16 : 24 }}`.
+3. **Use JS (`useResponsive`) only for** conditional rendering (show/hide components) and different component logic per breakpoint.
+4. **Use Ant Design responsive Grid** — `<Row gutter={{ xs: 8, sm: 16, md: 24 }}>` and `<Col xs={24} md={12}>`.
+5. **Memoize layout components** — wrap with `React.memo` to prevent unnecessary re-renders from context changes.
+6. **Breakpoints** (Ant Design standard): xs: 0, sm: 576, md: 768, lg: 992, xl: 1200, xxl: 1600.
 
-### Phase 6: Virtual Meeting Integration (Weeks 13-14)
+**Meeting Room Responsive Considerations:**
 
-**Week 13 Tasks**
-1. Integrate Jitsi React SDK
-2. Build JitsiContainer component
-3. Build PreJoinScreen component
-4. Implement audio/video controls
-5. Configure Jitsi settings
+| Component | Desktop (lg+) | Tablet (md) | Mobile (< md) |
+|-----------|--------------|-------------|----------------|
+| `MeetingRoomLayout` | Main + side panel side-by-side | Main + collapsed side panel | Full-width main, side panel as bottom sheet/overlay |
+| `MeetingRoomHeader` | Full info row (title, status, timer, quorum, mode, connection) | Compact row, quorum collapses to icon | Stacked: title row + status row |
+| `MeetingControlsBar` | All buttons visible with labels | Icons + labels | Icons only, overflow menu for secondary actions |
+| `ParticipantStrip` | Up to 15 avatars visible | Up to 8 avatars + "+N" overflow | Up to 5 avatars + "+N" overflow |
+| `SidePanel` content | 420px fixed width | 360px width | Full-width overlay/drawer |
+| `VoteCreationModal` | Centered modal (480px) | Centered modal (90% width) | Full-screen drawer |
+| `MainContentArea` | Flexible with side panel | Full width when panel collapsed | Full width, stacked layout |
 
-**Week 14 Tasks**
-1. Build WaitingRoom component
-2. Implement admit/deny functionality
-3. Build screen sharing controls
-4. Implement recording controls
-5. Add chat panel
+---
 
-**Deliverables**
-- Video conferencing functional
-- Waiting room works
-- Recording available
+### Phase 1: Data Wiring & Remaining Foundation
 
-### Phase 7: Minutes Capture (Weeks 15-16)
-
-**Week 15 Tasks**
-1. Build MinutesPanel component
-2. Integrate rich text editor
-3. Implement auto-save
-4. Build ActionItemForm component
-5. Build ResolutionForm component
-
-**Week 16 Tasks**
-1. Implement auto-capture (votes, attendance)
-2. Link minutes to agenda items
-3. Add export functionality
-4. Test minutes workflow end-to-end
-5. Polish and bug fixes
-
-**Deliverables**
-- Secretary can capture minutes live
-- Action items and resolutions recorded
-- Auto-capture working
-
-### Phase 8: Polish and Testing (Weeks 17-18)
+**Goal**: Make existing components work with real mock data and complete the foundation gaps.
 
 **Tasks**
-1. Cross-browser testing
-2. Mobile responsiveness
-3. Performance optimization
-4. Accessibility audit
-5. User acceptance testing
-6. Bug fixes and refinements
+
+1. **Seed agenda items from mock data**
+   - In `MeetingRoomContext` initialization, fetch MTG-006 agenda items using existing `useAgenda` hook or direct mock table import
+   - Set first agenda item as current when meeting starts
+   - Agenda panel should display all 8 items from MTG-006
+
+2. **Wire documents from mock data**
+   - Replace hardcoded documents in `SidePanelDocuments` with meeting documents fetched via existing `useMeetingDocuments` hook
+   - Group by "current item documents" vs "all meeting documents"
+
+3. **Wire `useMeetingRoomPermissions` to actual context**
+   - Remove optional `RoomState` parameter from `useMeetingRoomPermissions`
+   - Have hook read directly from `useMeetingRoom()` context
+   - All room components already call this hook — wiring it means permissions become live
+
+4. **Implement feature visibility system**
+   - Create `useModeVisibility` hook or utility that returns `{ showVirtualFeatures, showPhysicalFeatures, showHybridFeatures }` based on computed mode
+   - Components use these flags to conditionally render mode-specific sections
 
 **Deliverables**
-- Production-ready meeting room
-- All features tested
-- Documentation complete
+- Agenda panel shows 8 real items from MTG-006
+- Documents panel shows real meeting documents
+- Permissions respond to actual room state changes
+- Mode-aware feature visibility working
 
 ---
 
-## 12. Technical Dependencies
+### Phase 2: Missing Core Components
 
-### Frontend Libraries
+**Goal**: Build the critical missing UI components that enable the meeting flow.
 
-| Library | Purpose |
-|---------|---------|
-| @jitsi/react-sdk | Video conferencing |
-| react-pdf / pdfjs-dist | PDF rendering |
-| @tiptap/react | Rich text editor for minutes |
-| socket.io-client or @microsoft/signalr | WebSocket client |
+**Tasks**
 
-### Backend Requirements
+1. **Build `MeetingControlsBar` component**
+   - Sticky bar at the bottom of the main content area (or top, below header)
+   - Status-aware buttons:
+     - `waiting` state: "Start Meeting" button (enabled when quorum met, disabled otherwise with tooltip)
+     - `in_progress` state: "Pause" + "End Meeting" + "Leave" buttons
+     - `paused` state: "Resume" + "End Meeting" + "Leave" buttons
+     - `ending`/`ended` state: Disabled/hidden
+   - Permission-gated: Start/Pause/End require `canStartMeeting`/`canPauseMeeting`/`canEndMeeting`
+   - Leave is always available
+   - Additional host controls: "Create Vote" button (opens modal), "Enable Virtual" toggle
 
-| Endpoint | Purpose |
-|----------|---------|
-| POST /meetings/{id}/room/start | Start meeting |
-| POST /meetings/{id}/room/end | End meeting |
-| GET /meetings/{id}/room/state | Get current room state |
-| PUT /meetings/{id}/room/agenda/current | Update current item |
-| POST /meetings/{id}/room/votes | Create vote |
-| POST /meetings/{id}/room/votes/{vid}/cast | Cast vote |
-| POST /meetings/{id}/room/documents/cast | Start document cast |
-| POST /meetings/{id}/room/attendance | Update attendance |
-| WebSocket /hubs/meeting-room | Real-time connection |
+2. **Build `VoteCreationModal` component**
+   - Ant Design Modal with form fields:
+     - Motion/question text (required, textarea)
+     - Vote type: Yes/No/Abstain (default) or custom options
+     - Duration: number input with "minutes" suffix (default 2)
+     - Anonymous toggle (switch)
+   - On submit: calls `actions.createVote()` then `actions.startVote()`
+   - Quorum check before allowing creation
+   - Only visible when `permissions.canCreateVote` is true
+
+3. **Build `ParticipantStrip` component**
+   - Horizontal scrollable strip at the bottom of `MainContentArea`
+   - Shows circular avatar for each joined participant
+   - Visual indicators overlaid on avatar:
+     - Green ring: speaking
+     - Hand emoji badge: raised hand
+     - Mic-off icon: muted
+     - Small "remote" icon: virtual participant
+   - Clicking avatar could show participant info tooltip
+   - Gives the meeting room a "Zoom-like" feel without actual video
+
+4. **Enhance `ActiveVotePanel` with countdown timer**
+   - Add `useEffect` interval that decrements `timeRemaining` every second
+   - Show visual countdown (progress bar or digital timer)
+   - Auto-close vote when timer reaches 0
+
+5. **Extend side panel with Voting and Minutes tabs**
+   - Update `SidePanelTab` type: add `'voting'` and `'minutes'`
+   - Add two new icon strip buttons (trophy/gavel icon for voting, pen icon for minutes)
+   - `SidePanelVoting`: wraps existing `VotesView` component in `execute` mode
+   - `SidePanelMinutes`: wraps existing `MinutesEditor` in compact form (secretary-only)
+
+**Deliverables**
+- Can start, pause, resume, end meeting from the UI
+- Can create and run votes from the room
+- Participant avatars visible in main content area
+- Vote timer counts down
+- 6 side panel tabs: Notice, Agenda, Participants, Documents, Voting, Minutes
 
 ---
 
-## 13. Success Criteria
+### Phase 3: Document & Virtual Placeholders
 
-1. Single unified UI adapts to all meeting modes
-2. Mode transitions happen seamlessly without page reload
-3. Real-time sync keeps all participants in sync
-4. Voting workflow completes end-to-end
-5. Document casting works across all participants
-6. Virtual meeting integration functional
-7. Minutes capture works for secretary
-8. Performance acceptable with 20+ participants
-9. Handles network issues gracefully
+**Goal**: Add mode-aware placeholders for features that need external libraries in production.
+
+**Tasks**
+
+1. **Build `DocumentPreview` placeholder component**
+   - Replaces current simple icon+text in `CurrentItemDisplay`
+   - Styled card showing:
+     - Document name and type icon
+     - "Page X of Y" indicator with prev/next buttons (calls `actions.navigatePage`)
+     - Presenter name and "Casting to all" indicator
+     - Large centered area with document icon and "PDF Viewer — Integration Pending" text
+     - "Stop Casting" button for presenter
+   - Uses `castingDocument` state from context
+
+2. **Build `VirtualConferencePlaceholder` component**
+   - Only visible when `showVirtualFeatures` is true (mode ≠ physical)
+   - Styled container in `MainContentArea` showing:
+     - Grid of participant avatar cards (simulating video tiles)
+     - "Video Conference — Jitsi Integration Pending" overlay text
+     - Audio/Video/ScreenShare toggle buttons at bottom of placeholder
+     - These toggles call existing context actions (`toggleMute`, `toggleVideo`, `startScreenShare`)
+   - Fades in/out with mode transitions
+
+3. **Build `PhysicalAttendancePlaceholder` component**
+   - Only visible when `showPhysicalFeatures` is true (mode ≠ virtual)
+   - Shows:
+     - "Physical Check-In" card with QR code placeholder
+     - Manual check-in button for secretary
+     - Check-in count indicator
+
+4. **Mode-aware layout in `MainContentArea`**
+   - Reorganize `MainContentArea` to conditionally render:
+     - Virtual conference placeholder (when mode includes virtual)
+     - Physical attendance card (when mode includes physical)
+     - Current item display (always)
+     - Participant strip (always)
+     - Active vote panel (when vote exists)
+     - Meeting controls bar (always, at bottom)
+
+**Deliverables**
+- Document casting shows styled preview with page controls
+- Virtual placeholder appears/disappears based on mode
+- Physical features appear/disappear based on mode
+- Mode transitions visually change the room layout
+
+---
+
+### Phase 4: Minutes Panel & Component Integration
+
+**Goal**: Add live minutes capture and integrate reusable components from the detail page.
+
+**Tasks**
+
+1. **Build `SidePanelMinutes` component**
+   - Compact wrapper around existing `MinutesEditor`
+   - Only visible to users with `canTakeMinutes` permission (secretary)
+   - Shows current agenda item context at top
+   - Rich text editor area for discussion notes
+   - Quick-add buttons for:
+     - Action item (assignee, due date, description — simple inline form)
+     - Resolution (text, link to vote)
+   - Auto-save indicator
+
+2. **Build `SidePanelVoting` component**
+   - Wraps existing `VotesView` in `execute` mode
+   - Shows vote history for current meeting
+   - Active vote highlighted at top
+   - "Create Vote" button at top (opens `VoteCreationModal`)
+   - Vote results display for closed votes
+
+3. **Integrate `MeetingNoticeDocument` into `SidePanelNotice`**
+   - Optionally embed the formal meeting notice rendering below the current notice info
+   - Or add a "View Full Notice" button that expands the notice
+
+**Deliverables**
+- Secretary can take notes during meeting via side panel
+- Vote history visible in side panel
+- All 6 side panel tabs populated with content
+
+---
+
+### Phase 5: Demo Flow & Polish
+
+**Goal**: Ensure the complete meeting flow works end-to-end and feels polished.
+
+**Tasks**
+
+1. **End-to-end flow verification**
+   - Walk through: Enter room (waiting) → Start meeting → Navigate agenda items → Cast document → Create vote → Members vote → Close vote → End meeting
+   - Verify all state transitions, button states, and permission gates work correctly
+   - Verify timer ticks, quorum updates, and vote countdown work
+
+2. **Mode transition demonstration**
+   - Build a small `DemoToolbar` (dev-only, toggleable) that allows:
+     - Toggle individual participants between `in_room` ↔ `connected` connection status
+     - Observe mode badge in header changing dynamically
+     - Observe virtual/physical features appearing/disappearing
+   - This demonstrates the computed mode architecture
+
+3. **Styling and consistency**
+   - Apply board theme colors consistently across all room components
+   - Ensure side panel transitions are smooth
+   - Ensure meeting controls bar matches the overall design language
+   - Status-appropriate colors (green for active, orange for paused, etc.)
+
+4. **Error and edge case handling**
+   - "No quorum" warning when trying to start meeting
+   - "Vote already in progress" message when trying to create second vote
+   - Confirmation modals for destructive actions (end meeting, remove participant)
+   - Empty states for all panels when no data
+
+5. **Room entry and exit experience**
+   - Smooth loading state when entering room
+   - Post-meeting redirect to meeting detail page after ending
+   - "Meeting has ended" result screen
+
+6. **Responsive verification**
+   - Test all room components at desktop (1280px+), tablet (768px), and mobile (375px) widths
+   - Verify `MeetingRoomLayout` side panel behavior: side-by-side on desktop, collapsed on tablet, overlay/drawer on mobile
+   - Verify `MeetingControlsBar` adapts: full labels → icons + labels → icons only with overflow
+   - Verify `MeetingRoomHeader` collapses gracefully on smaller screens
+   - Verify `ParticipantStrip` truncates with "+N" indicator
+   - Verify all components use `useResponsive()` from context, not custom observers
+   - Verify CSS/Tailwind used for spacing/sizing, JS only for conditional rendering
+
+**Deliverables**
+- Complete demo flow working seamlessly
+- Mode transitions demonstrable
+- Polished, consistent UI
+- Proper error handling and edge cases
+- Responsive behavior verified at 3 breakpoints (desktop, tablet, mobile)
+
+---
+
+## 14. Technical Dependencies
+
+### Frontend Libraries (Prototype)
+
+| Library | Purpose | Status |
+|---------|---------|--------|
+| antd | UI component library | ✅ Already installed |
+| @ant-design/icons | Icon library | ✅ Already installed |
+| react-router-dom | Routing | ✅ Already installed |
+| @tiptap/react | Rich text editor (minutes panel) | ✅ Already installed (used in detail page) |
+
+### Libraries Deferred to Production
+
+| Library | Purpose | When Needed |
+|---------|---------|-------------|
+| @jitsi/react-sdk | Video conferencing | Production Phase 6 |
+| react-pdf / pdfjs-dist | PDF document rendering | Production Phase 3 |
+| @microsoft/signalr | Real-time WebSocket client | Production Phase 5 |
+
+### Mock Data Sources (Prototype)
+
+| Data | Mock Source | Used By |
+|------|-----------|---------|
+| Meeting (MTG-006) | `mocks/db/tables/meetings.ts` | `MeetingRoomContext` initialization |
+| Participants (15) | `mocks/db/tables/meetingParticipants.ts` | Participant panel, quorum, mode computation |
+| Agenda Items (8) | Fetched via `useAgenda` hook / MSW handlers | Agenda panel, current item display |
+| Documents (5+) | Fetched via `useMeetingDocuments` hook / MSW handlers | Documents panel, casting |
+| Votes (3) | Fetched via `useMeetingVotes` hook / MSW handlers | Voting panel, active vote |
+| Minutes | Fetched via `useMinutesByMeeting` hook / MSW handlers | Minutes panel |
+
+### Backend API Endpoints (Deferred to Production)
+
+| Endpoint | Purpose | Prototype Alternative |
+|----------|---------|----------------------|
+| POST /meetings/{id}/room/start | Start meeting | Local state: `setStatus('in_progress')` |
+| POST /meetings/{id}/room/end | End meeting | Local state: `setStatus('ended')` |
+| GET /meetings/{id}/room/state | Get room state | Built from MeetingPhaseContext + mock data |
+| PUT /meetings/{id}/room/agenda/current | Navigate agenda | Local state: `setCurrentAgendaItemId()` |
+| POST /meetings/{id}/room/votes | Create vote | Local state: `setActiveVote()` |
+| POST /meetings/{id}/room/votes/{vid}/cast | Cast vote | Local state: update vote counts |
+| POST /meetings/{id}/room/documents/cast | Cast document | Local state: `setCastingDocument()` |
+| POST /meetings/{id}/room/attendance | Attendance | Local state: update participant status |
+| WebSocket /hubs/meeting-room | Real-time sync | Not needed — single-user prototype |
+
+---
+
+## 15. Success Criteria (Prototype)
+
+1. Single unified UI adapts to all meeting modes (physical, virtual, hybrid)
+2. Mode transitions happen seamlessly when participant connection status changes
+3. Complete meeting flow works end-to-end: waiting → start → agenda → vote → end
+4. Voting workflow completes: create → cast → close → view results
+5. Document casting UI shows presenter controls with page navigation
+6. Virtual conference placeholder appears/disappears based on mode
+7. Physical attendance features appear/disappears based on mode
+8. Minutes capture panel available for secretary role
+9. All actions gated by two-layer permission system
+10. Mock data from MTG-006 populates all panels correctly
+11. Meeting controls bar provides clear, status-aware host/participant actions
+
+### Production Success Criteria (Deferred)
+
+These criteria from the original plan will be validated when backend integration is complete:
+
+- Real-time sync keeps all participants in sync (SignalR)
+- Video conferencing functional (Jitsi)
+- PDF documents render in viewer (PDF.js)
+- Performance acceptable with 20+ concurrent participants
+- Handles network disconnection and reconnection gracefully
+- Recording start/stop functional
+
+---
+
+## 16. File Structure (Target)
+
+```
+src/pages/Meetings/room/
+├── MeetingRoomPage.tsx              # Entry point, data loading, access guard
+├── MeetingRoomLayout.tsx            # Main + side panel layout
+├── components/
+│   ├── index.ts                     # Barrel exports
+│   ├── MeetingRoomHeader.tsx        # ✅ Title, status, timer, quorum, mode
+│   ├── MainContentArea.tsx          # ✅ Orchestrates main content (needs update)
+│   ├── MeetingControlsBar.tsx       # 🆕 Start/Pause/Resume/End/Leave + Create Vote
+│   ├── ParticipantStrip.tsx         # 🆕 Horizontal avatar row (Zoom-like)
+│   ├── VoteCreationModal.tsx        # 🆕 Form to create a vote
+│   ├── DocumentPreview.tsx          # 🆕 Styled document casting placeholder
+│   ├── VirtualConferencePlaceholder.tsx  # 🆕 Video conference placeholder
+│   ├── PhysicalAttendancePlaceholder.tsx # 🆕 Check-in placeholder
+│   ├── CurrentItemDisplay.tsx       # Extract from MainContentArea
+│   ├── ActiveVotePanel.tsx          # Extract from MainContentArea (+ timer)
+│   ├── ParticipantFunctions.tsx     # Extract from MainContentArea
+│   ├── DemoToolbar.tsx              # 🆕 Dev-only mode transition demo
+│   ├── SidePanelNotice.tsx          # ✅ Meeting info, quorum, connection
+│   ├── SidePanelAgenda.tsx          # ✅ Agenda list with navigation
+│   ├── SidePanelParticipants.tsx    # ✅ Participant groups with controls
+│   ├── SidePanelDocuments.tsx       # ✅ Document list (needs mock data wiring)
+│   ├── SidePanelVoting.tsx          # 🆕 Wraps VotesView in execute mode
+│   └── SidePanelMinutes.tsx         # 🆕 Wraps MinutesEditor (secretary only)
+```
 
 ---
 
@@ -864,3 +1092,4 @@ No changes needed to AuthContext or existing permission tables.
 - 0306_MEETING_ARCHITECTURE_OVERVIEW.md - Overall architecture
 - 0307_PRE_POST_MEETING_IMPLEMENTATION.md - Pre/post meeting details
 - 0305_MEETING_ROOM_IMPLEMENTATION_PLAN.md - Original wireframes and detailed specs
+- MOCK_DATA_PLAN.md - Mock data strategy (MTG-006 is primary test meeting)

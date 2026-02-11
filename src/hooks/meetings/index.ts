@@ -5,6 +5,7 @@
 
 export { useMeetingPermissions } from './useMeetingPermissions';
 export { useMeetingRoomPermissions } from './useMeetingRoomPermissions';
+export { useModeVisibility } from './useModeVisibility';
 
 // Re-export types for convenience
 export type { 
@@ -13,3 +14,4 @@ export type {
   PermissionContext,
   RoomState,
 } from '../../types/meetingPermissions.types';
+export type { ModeVisibility } from './useModeVisibility';

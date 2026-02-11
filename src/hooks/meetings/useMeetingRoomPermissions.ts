@@ -4,17 +4,16 @@
  * 
  * Layer 2 of the two-layer permission system:
  * - Takes base permissions from AuthContext (Layer 1)
- * - Combines with room state to compute contextual permissions
+ * - Combines with room state from MeetingRoomContext to compute contextual permissions
  * - Used in Meeting Room during in_progress meetings
- * 
- * NOTE: This is currently a STUB implementation since MeetingRoomContext doesn't exist yet.
- * It will be fully implemented when the Meeting Room is built.
  */
 
-import { useMemo } from 'react';
+import { useMemo, useContext } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBoardContext } from '../../contexts/BoardContext';
 import { useMeetingPhase } from '../../contexts/MeetingPhaseContext';
+import { MeetingRoomContext } from '../../contexts/MeetingRoomContext';
+import { getUserHostRole } from '../../types/meetingRoom.types';
 import type { 
   MeetingRoomPermissions, 
   RoomState 
@@ -35,15 +34,16 @@ const PERMISSION_CODES = {
 /**
  * Main hook for computing meeting room permissions
  * 
- * TODO: This is a STUB. When MeetingRoomContext is created, replace the stub roomState
- * with actual state from useMeetingRoom() hook.
+ * Reads room state directly from MeetingRoomContext via useContext.
+ * Falls back to safe defaults when called outside the MeetingRoomProvider.
  */
-export function useMeetingRoomPermissions(
-  roomState?: RoomState // Optional for now, will come from MeetingRoomContext later
-): MeetingRoomPermissions {
+export function useMeetingRoomPermissions(): MeetingRoomPermissions {
   const { user, hasPermission } = useAuth();
   const { currentBoard } = useBoardContext();
   const { meeting, phaseInfo } = useMeetingPhase();
+  
+  // Read room context directly (safe — returns undefined if outside provider)
+  const roomContext = useContext(MeetingRoomContext);
   
   return useMemo(() => {
     // Default: minimal permissions
@@ -82,34 +82,59 @@ export function useMeetingRoomPermissions(
     
     const boardId = currentBoard.id;
     
+    // System admin & host detection
+    const isSystemAdmin = user.globalRole?.code === 'system_admin';
+    const hostInfo = roomContext?.roomState?.hostInfo 
+      ?? { hostUserId: null, hostName: null, cohostUserId: null, cohostName: null };
+    const userHostRole = getUserHostRole(user.id, hostInfo, user.globalRole?.code);
+    const isHostOrCohost = userHostRole === 'host' || userHostRole === 'cohost';
+    
     // Check base permissions (Layer 1)
-    const hasControlPermission = hasPermission(PERMISSION_CODES.MEETINGS_CONTROL, boardId);
-    const hasPresentPermission = hasPermission(PERMISSION_CODES.MEETINGS_PRESENT, boardId);
-    const hasCreateVotePermission = hasPermission(PERMISSION_CODES.VOTING_CREATE, boardId);
-    const hasStartVotePermission = hasPermission(PERMISSION_CODES.VOTING_START, boardId);
-    const hasCastVotePermission = hasPermission(PERMISSION_CODES.VOTING_CAST, boardId);
-    const hasViewVotePermission = hasPermission(PERMISSION_CODES.VOTING_VIEW, boardId);
-    const hasViewDocsPermission = hasPermission(PERMISSION_CODES.DOCUMENTS_VIEW, boardId);
-    const hasCreateMinutesPermission = hasPermission(PERMISSION_CODES.MINUTES_CREATE, boardId);
-    const hasViewMinutesPermission = hasPermission(PERMISSION_CODES.MINUTES_VIEW, boardId);
+    // System admin and host/cohost get control permission automatically
+    const hasControlPermission = isSystemAdmin || isHostOrCohost || hasPermission(PERMISSION_CODES.MEETINGS_CONTROL, boardId);
+    const hasPresentPermission = isSystemAdmin || hasPermission(PERMISSION_CODES.MEETINGS_PRESENT, boardId);
+    const hasCreateVotePermission = isSystemAdmin || isHostOrCohost || hasPermission(PERMISSION_CODES.VOTING_CREATE, boardId);
+    const hasStartVotePermission = isSystemAdmin || isHostOrCohost || hasPermission(PERMISSION_CODES.VOTING_START, boardId);
+    const hasCastVotePermission = hasPermission(PERMISSION_CODES.VOTING_CAST, boardId); // Everyone votes on their own
+    const hasViewVotePermission = hasPermission(PERMISSION_CODES.VOTING_VIEW, boardId) || isSystemAdmin;
+    const hasViewDocsPermission = hasPermission(PERMISSION_CODES.DOCUMENTS_VIEW, boardId) || isSystemAdmin;
+    const hasCreateMinutesPermission = isSystemAdmin || hasPermission(PERMISSION_CODES.MINUTES_CREATE, boardId);
+    const hasViewMinutesPermission = hasPermission(PERMISSION_CODES.MINUTES_VIEW, boardId) || isSystemAdmin;
     
-    // STUB: Use provided roomState or create default
-    // When MeetingRoomContext exists, this will come from useMeetingRoom()
-    const defaultRoomState: RoomState = {
-      status: 'waiting',
-      mode: 'physical',
-      quorumRequired: 0,
-      quorumMet: false,
-      activeVote: null,
-      castingDocument: null,
-      isRecording: false,
-      waitingRoomCount: 0,
-    };
+    // Build RoomState from actual MeetingRoomContext, or use defaults if outside provider
+    const rs = roomContext?.roomState;
+    const waitingCount = rs
+      ? rs.participants.filter(p => p.attendanceStatus === 'waiting').length
+      : 0;
     
-    const room = roomState || defaultRoomState;
+    const room: RoomState = rs
+      ? {
+          status: rs.status,
+          mode: rs.mode,
+          quorumRequired: rs.quorumRequired,
+          quorumMet: rs.quorumMet,
+          activeVote: rs.activeVote
+            ? { id: rs.activeVote.id, status: rs.activeVote.status as 'open' | 'closed', userHasVoted: rs.activeVote.userHasVoted }
+            : null,
+          castingDocument: rs.castingDocument
+            ? { documentId: rs.castingDocument.documentId, casterId: rs.castingDocument.casterId }
+            : null,
+          isRecording: rs.isRecording,
+          waitingRoomCount: waitingCount,
+        }
+      : {
+          status: 'waiting',
+          mode: 'physical',
+          quorumRequired: 0,
+          quorumMet: false,
+          activeVote: null,
+          castingDocument: null,
+          isRecording: false,
+          waitingRoomCount: 0,
+        };
     
-    // Only allow room actions if meeting is in_progress
-    const isInProgress = meeting.status === 'in_progress';
+    // Use ROOM status (live local state) not meeting.status (API, may be stale)
+    const isInProgress = room.status === 'in_progress';
     
     // MEETING CONTROL PERMISSIONS
     const canStartMeeting = 
@@ -248,5 +273,5 @@ export function useMeetingRoomPermissions(
       canSendChat,
       canLeave,
     };
-  }, [user, meeting, phaseInfo, currentBoard, roomState, hasPermission]);
+  }, [user, meeting, phaseInfo, currentBoard, roomContext, hasPermission]);
 }

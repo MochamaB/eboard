@@ -1,11 +1,19 @@
 import React from 'react';
-import { Typography, Divider, Alert, Row, Col, Tag } from 'antd';
-import { SyncOutlined } from '@ant-design/icons';
+import { Typography, Divider, Alert, Row, Col, Tag, Switch, Input, Space } from 'antd';
+import {
+  SyncOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  WarningOutlined,
+} from '@ant-design/icons';
 import type { SelectedParticipant } from '../../../components/common';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
+import type { MeetingOverrides } from '../../../types/meeting.types';
+import { checkConfirmationRequired, getApproverRole } from '../../../utils/meetingConfirmation';
 
 const { Title, Text } = Typography;
+const { TextArea } = Input;
 
 const BOARD_TYPE_OPTIONS = [
   { value: 'main', label: 'Main Board' },
@@ -22,12 +30,16 @@ const MEETING_TYPE_OPTIONS = [
 
 interface ReviewStepProps {
   form: any;
-  selectedBoard?: { label: string; value: string };
+  selectedBoard?: { label: string; value: string; type?: string };
   participants: SelectedParticipant[];
   quorumPercentage: number;
   isRecurring: boolean;
   recurrencePattern: 'weekly' | 'monthly' | 'quarterly' | 'annually';
   generatedDates: { date: Dayjs; excluded: boolean }[];
+  overrides?: MeetingOverrides;
+  overrideReason?: string;
+  onOverridesChange: (overrides: MeetingOverrides | undefined) => void;
+  onOverrideReasonChange: (reason: string) => void;
 }
 
 const ReviewStep: React.FC<ReviewStepProps> = ({
@@ -38,12 +50,16 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
   isRecurring,
   recurrencePattern,
   generatedDates,
+  overrides,
+  overrideReason,
+  onOverridesChange,
+  onOverrideReasonChange,
 }) => {
   const allFormValues = form.getFieldsValue(true);
-  
+
   const boardTypeLabel = BOARD_TYPE_OPTIONS.find(b => b.value === allFormValues.boardType)?.label || allFormValues.boardType || '-';
   const meetingTypeLabel = MEETING_TYPE_OPTIONS.find(m => m.value === allFormValues.meetingType)?.label || allFormValues.meetingType || '-';
-  
+
   const locationTypeLabels: Record<string, string> = {
     physical: 'Physical (In-person)',
     virtual: 'Virtual (Jitsi Meet)',
@@ -54,12 +70,34 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
   const requiredForQuorum = Math.ceil((nonGuestCount * quorumPercentage) / 100);
   const canMeetQuorum = nonGuestCount >= requiredForQuorum;
 
+  // Determine approval path
+  const boardType = (selectedBoard as any)?.type as 'main' | 'subsidiary' | 'committee' | 'factory' | undefined;
+  const meetingType = allFormValues.meetingType;
+  const requiresApproval = boardType && meetingType
+    ? checkConfirmationRequired(boardType, meetingType, { type: boardType })
+    : false;
+  const approverRole = boardType ? getApproverRole(boardType) : undefined;
+  const approverLabel = approverRole
+    ? approverRole.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())
+    : undefined;
+
+  // Override helpers
+  const hasAnyOverride = !!(overrides?.skipAgenda || overrides?.skipDocuments || overrides?.skipApproval || overrides?.customMinParticipants);
+  const overrideReasonRequired = hasAnyOverride && !overrideReason?.trim();
+
+  const setOverride = (key: keyof NonNullable<MeetingOverrides>, value: boolean | number | undefined) => {
+    const next = { ...(overrides ?? {}), [key]: value || undefined };
+    // If all values are falsy, clear the entire overrides object
+    const hasAny = Object.values(next).some(Boolean);
+    onOverridesChange(hasAny ? next as MeetingOverrides : undefined);
+  };
+
   return (
     <div>
       <Title level={5} style={{ marginBottom: 4 }}>Review & Create</Title>
       <Text type="secondary">
-        {isRecurring 
-          ? 'Review all details before creating the meeting series.' 
+        {isRecurring
+          ? 'Review all details before creating the meeting series.'
           : 'Review all meeting details before creating the meeting.'}
       </Text>
       <Divider />
@@ -84,6 +122,40 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
               <div><Text strong>{meetingTypeLabel}</Text></div>
             </Col>
           </Row>
+        </div>
+      </div>
+
+      {/* Approval Path */}
+      <div style={{ marginBottom: 24 }}>
+        <Text strong style={{ fontSize: 13, color: '#8c8c8c', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+          Approval Path
+        </Text>
+        <div style={{ marginTop: 12 }}>
+          {overrides?.skipApproval ? (
+            <Alert
+              type="warning"
+              showIcon
+              icon={<WarningOutlined />}
+              message="Approval skipped (override active)"
+              description="This meeting will be scheduled immediately without going through the normal approval workflow."
+            />
+          ) : requiresApproval ? (
+            <Alert
+              type="info"
+              showIcon
+              icon={<ClockCircleOutlined />}
+              message={`Pending approval by ${approverLabel}`}
+              description="This meeting will be saved as a draft and submitted to the approver. It becomes scheduled once approved."
+            />
+          ) : (
+            <Alert
+              type="success"
+              showIcon
+              icon={<CheckCircleOutlined />}
+              message="Auto-approved — will be scheduled immediately"
+              description="No approval is required for this meeting type. It will be scheduled and invitations sent straight away."
+            />
+          )}
         </div>
       </div>
 
@@ -198,12 +270,12 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
             style={{ marginBottom: 12 }}
             showIcon
           />
-          
+
           <div style={{ backgroundColor: '#fafafa', borderRadius: 8, overflow: 'hidden' }}>
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: '40px 1fr 1fr', 
-              padding: '8px 16px', 
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '40px 1fr 1fr',
+              padding: '8px 16px',
               backgroundColor: '#f0f0f0',
               fontWeight: 500,
               fontSize: 12,
@@ -220,11 +292,11 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
                 </div>
               ) : (
                 participants.map((p, index) => (
-                  <div 
-                    key={p.userId} 
-                    style={{ 
-                      display: 'grid', 
-                      gridTemplateColumns: '40px 1fr 1fr', 
+                  <div
+                    key={p.userId}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '40px 1fr 1fr',
                       padding: '8px 16px',
                       borderBottom: index < participants.length - 1 ? '1px solid #f0f0f0' : 'none',
                       fontSize: 13,
@@ -244,6 +316,73 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
               )}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Overrides */}
+      <div style={{ marginBottom: 24 }}>
+        <Text strong style={{ fontSize: 13, color: '#8c8c8c', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+          Special Overrides
+        </Text>
+        <div style={{ marginTop: 12, padding: '12px 16px', backgroundColor: '#fffbe6', borderRadius: 8, border: '1px solid #ffe58f' }}>
+          <Space direction="vertical" style={{ width: '100%' }} size={12}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <Text strong style={{ fontSize: 13 }}>Skip Agenda requirement</Text>
+                <div><Text type="secondary" style={{ fontSize: 12 }}>Allow meeting to proceed without a published agenda</Text></div>
+              </div>
+              <Switch
+                checked={!!overrides?.skipAgenda}
+                onChange={(checked) => setOverride('skipAgenda', checked || undefined)}
+                size="small"
+              />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <Text strong style={{ fontSize: 13 }}>Skip Documents requirement</Text>
+                <div><Text type="secondary" style={{ fontSize: 12 }}>Allow meeting without mandatory supporting documents</Text></div>
+              </div>
+              <Switch
+                checked={!!overrides?.skipDocuments}
+                onChange={(checked) => setOverride('skipDocuments', checked || undefined)}
+                size="small"
+              />
+            </div>
+            {requiresApproval && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <Text strong style={{ fontSize: 13 }}>Skip Approval workflow</Text>
+                  <div><Text type="secondary" style={{ fontSize: 12 }}>Schedule immediately without waiting for {approverLabel} approval</Text></div>
+                </div>
+                <Switch
+                  checked={!!overrides?.skipApproval}
+                  onChange={(checked) => setOverride('skipApproval', checked || undefined)}
+                  size="small"
+                />
+              </div>
+            )}
+          </Space>
+
+          {hasAnyOverride && (
+            <div style={{ marginTop: 16 }}>
+              <Text strong style={{ fontSize: 13 }}>
+                Override Reason <Text type="danger">*</Text>
+              </Text>
+              <TextArea
+                value={overrideReason}
+                onChange={(e) => onOverrideReasonChange(e.target.value)}
+                placeholder="Provide a justification for the override(s) — this will be recorded in the audit trail"
+                rows={3}
+                style={{ marginTop: 6 }}
+                status={overrideReasonRequired ? 'error' : undefined}
+              />
+              {overrideReasonRequired && (
+                <Text type="danger" style={{ fontSize: 12 }}>
+                  A reason is required when overrides are active
+                </Text>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

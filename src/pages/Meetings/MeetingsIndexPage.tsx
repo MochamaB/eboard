@@ -47,6 +47,7 @@ import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 
 import { useBoardContext } from '../../contexts';
+import { useResponsive } from '../../hooks';
 import { useMeetings } from '../../hooks/api';
 import { DataTable, IndexPageLayout, type TabItem } from '../../components/common';
 import { MeetingStatusBadge, BoardCommitteeSelector, MeetingCard, MeetingDateTimeCard, MeetingsCalendarView, BoardPackStatusCell } from '../../components/Meetings';
@@ -86,12 +87,20 @@ export const MeetingsIndexPage: React.FC = () => {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { currentBoard, activeCommittee, theme, viewMode: boardViewMode, allBoards } = useBoardContext();
+  const { isMobile } = useResponsive();
 
   // Check if we're in "View All" mode (route is /all/meetings)
   const isAllBoardsView = location.pathname.startsWith('/all/');
 
-  // View mode state
-  const [viewMode, setViewMode] = useState<ViewMode>('table');
+  // View mode state - default to cards on mobile
+  const [viewMode, setViewMode] = useState<ViewMode>(() => isMobile ? 'cards' : 'table');
+
+  // Force cards view on mobile (table is not suitable for small screens)
+  useEffect(() => {
+    if (isMobile && viewMode === 'table') {
+      setViewMode('cards');
+    }
+  }, [isMobile, viewMode]);
 
   // Smart default tab selection based on priority
   const getSmartDefaultTab = useCallback((meetings: MeetingListItem[] | undefined) => {
@@ -627,73 +636,91 @@ export const MeetingsIndexPage: React.FC = () => {
     >
 
       {/* Filters and View Switcher */}
-      <Flex justify="space-between" align="center" gap={12} wrap="wrap" style={{ marginBottom: 16 }}>
+      <Flex
+        vertical={isMobile}
+        justify="space-between"
+        align={isMobile ? 'stretch' : 'center'}
+        gap={isMobile ? 8 : 12}
+        style={{ marginBottom: 16 }}
+      >
         {/* Search and Filters */}
-        <Flex gap={12} wrap="wrap" flex={1}>
+        <Flex gap={8} wrap="wrap" flex={isMobile ? undefined : 1}>
           <Input.Search
             placeholder="Search meetings..."
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
             onSearch={handleSearch}
             allowClear
-            style={{ width: 280 }}
+            style={{ width: isMobile ? '100%' : 280 }}
           />
 
-          <Select
-            placeholder="Meeting Type"
-            value={meetingTypeFilter}
-            onChange={(value) => {
-              setMeetingTypeFilter(value);
-              setPage(1);
-            }}
-            allowClear
-            style={{ width: 160 }}
-            options={[
-              { label: 'All Types', value: undefined },
-              { label: 'Regular', value: 'regular' },
-              { label: 'Special', value: 'special' },
-              { label: 'Emergency', value: 'emergency' },
-              { label: 'Committee', value: 'committee' },
-            ]}
-          />
+          {/* On mobile: stack selects side by side */}
+          <Flex gap={8} style={{ width: isMobile ? '100%' : undefined }}>
+            <Select
+              placeholder="Type"
+              value={meetingTypeFilter}
+              onChange={(value) => {
+                setMeetingTypeFilter(value);
+                setPage(1);
+              }}
+              allowClear
+              style={{ flex: isMobile ? 1 : undefined, width: isMobile ? undefined : 160 }}
+              options={[
+                { label: 'All Types', value: undefined },
+                { label: 'Regular', value: 'regular' },
+                { label: 'Special', value: 'special' },
+                { label: 'Emergency', value: 'emergency' },
+                { label: 'Committee', value: 'committee' },
+              ]}
+            />
 
-          <Select
-            placeholder="Location Type"
-            value={locationTypeFilter}
-            onChange={(value) => {
-              setLocationTypeFilter(value);
-              setPage(1);
-            }}
-            allowClear
-            style={{ width: 140 }}
-            options={[
-              { label: 'All Locations', value: undefined },
-              { label: 'Virtual', value: 'virtual' },
-              { label: 'Physical', value: 'physical' },
-              { label: 'Hybrid', value: 'hybrid' },
-            ]}
-          />
+            <Select
+              placeholder="Location"
+              value={locationTypeFilter}
+              onChange={(value) => {
+                setLocationTypeFilter(value);
+                setPage(1);
+              }}
+              allowClear
+              style={{ flex: isMobile ? 1 : undefined, width: isMobile ? undefined : 140 }}
+              options={[
+                { label: 'All Locations', value: undefined },
+                { label: 'Virtual', value: 'virtual' },
+                { label: 'Physical', value: 'physical' },
+                { label: 'Hybrid', value: 'hybrid' },
+              ]}
+            />
+          </Flex>
         </Flex>
 
         {/* View Switcher and Actions */}
-        <Flex gap={12} align="center">
+        <Flex gap={8} align="center" justify={isMobile ? 'space-between' : undefined}>
           <Segmented
             value={viewMode}
             onChange={(value) => setViewMode(value as ViewMode)}
-            options={[
-              { label: 'Table', value: 'table', icon: <TableOutlined /> },
-              { label: 'Calendar', value: 'calendar', icon: <CalendarOutlined /> },
-              { label: 'Cards', value: 'cards', icon: <AppstoreOutlined /> },
-            ]}
+            options={
+              isMobile
+                ? [
+                    { value: 'calendar', icon: <CalendarOutlined /> },
+                    { value: 'cards', icon: <AppstoreOutlined /> },
+                  ]
+                : [
+                    { label: 'Table', value: 'table', icon: <TableOutlined /> },
+                    { label: 'Calendar', value: 'calendar', icon: <CalendarOutlined /> },
+                    { label: 'Cards', value: 'cards', icon: <AppstoreOutlined /> },
+                  ]
+            }
           />
 
-          <Tooltip title="Refresh">
-            <Button icon={<ReloadOutlined />} onClick={() => refetch()} />
-          </Tooltip>
+          <Flex gap={8}>
+            <Tooltip title="Refresh">
+              <Button icon={<ReloadOutlined />} onClick={() => refetch()} />
+            </Tooltip>
 
-          <Tooltip title="Export">
-            <Button icon={<DownloadOutlined />} onClick={handleExport} />
-          </Tooltip>
+            <Tooltip title="Export">
+              <Button icon={<DownloadOutlined />} onClick={handleExport} />
+            </Tooltip>
+          </Flex>
         </Flex>
       </Flex>
 
@@ -705,7 +732,6 @@ export const MeetingsIndexPage: React.FC = () => {
           loading={isLoading}
           rowKey="id"
           showSearch={false}
-          scroll={{ x: 900 }}
           pagination={{
             current: page,
             pageSize: pageSize,
@@ -755,8 +781,8 @@ export const MeetingsIndexPage: React.FC = () => {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-                gap: 16,
+                gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(320px, 1fr))',
+                gap: isMobile ? 12 : 16,
               }}
             >
               {(data?.data || []).map((meeting) => (
