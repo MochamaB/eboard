@@ -45,8 +45,11 @@ export const containerPadding = {
 } as const;
 
 // Responsive typography scale
+// Headings: h1–h4 (bold/semibold, used for titles and section headers)
+// Text:     textLg, text, textSm (body copy at different sizes)
+// Meta:     caption, sectionLabel (labels, badges, uppercase headers)
 export const typography = {
-  // Fluid typography using clamp(min, preferred, max)
+  // ── Headings ──
   h1: {
     min: '1.5rem',    // 24px
     preferred: '4vw',
@@ -75,8 +78,49 @@ export const typography = {
     lineHeight: 1.4,
     weight: 500,
   },
+
+  // ── Text (body copy) ──
+  textLg: {
+    min: '0.9375rem', // 15px
+    preferred: '2.2vw',
+    max: '1.0625rem', // 17px
+    lineHeight: 1.5,
+    weight: 400,
+  },
+  text: {
+    min: '0.8125rem', // 13px
+    preferred: '2vw',
+    max: '1rem',      // 16px
+    lineHeight: 1.5,
+    weight: 400,
+  },
+  textSm: {
+    min: '0.75rem',   // 12px
+    preferred: '1.5vw',
+    max: '0.875rem',  // 14px
+    lineHeight: 1.4,
+    weight: 400,
+  },
+
+  // ── Meta (captions, labels, badges) ──
+  caption: {
+    min: '0.6875rem', // 11px
+    preferred: '1.3vw',
+    max: '0.8125rem', // 13px
+    lineHeight: 1.4,
+    weight: 400,
+  },
+  sectionLabel: {
+    min: '0.625rem',  // 10px
+    preferred: '1.2vw',
+    max: '0.75rem',   // 12px
+    lineHeight: 1.4,
+    weight: 600,
+  },
+
+  // ── Aliases (backward compatibility) ──
   body: {
-    min: '0.875rem',  // 14px
+    min: '0.8125rem', // 13px
     preferred: '2vw',
     max: '1rem',      // 16px
     lineHeight: 1.5,

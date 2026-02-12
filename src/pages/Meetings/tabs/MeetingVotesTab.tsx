@@ -22,7 +22,8 @@ export const MeetingVotesTab: React.FC<MeetingVotesTabProps> = ({
   themeColor = '#1890ff',
 }) => {
   // Fetch votes for this meeting
-  const { data: votes = [] } = useMeetingVotes(meeting.id);
+  const { data: votesData } = useMeetingVotes(meeting.id);
+  const votes = Array.isArray(votesData) ? votesData : [];
 
   // Fetch agenda to get agenda items for vote creation
   const { data: agenda } = useAgenda(meeting.id);

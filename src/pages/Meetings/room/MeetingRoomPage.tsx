@@ -18,21 +18,12 @@ import { MeetingRoomProvider, useMeetingRoom } from '../../../contexts/MeetingRo
 import { useMeeting } from '../../../hooks/api/useMeetings';
 import { MeetingRoomThemeProvider, useMeetingRoomTheme } from './MeetingRoomThemeContext';
 import { getBoardById } from '../../../mocks/db/queries/boardQueries';
+import { getTypographyCSS } from '../../../styles/responsive';
 import MeetingRoomLayout from './MeetingRoomLayout';
 
 // ============================================================================
-// DARK SHELL STYLES
+// CENTERED STYLE (reusable for loading/error states)
 // ============================================================================
-
-const darkShellStyle: React.CSSProperties = {
-  width: '100vw',
-  height: '100dvh',
-  background: '#111111',
-  color: '#e0e0e0',
-  overflow: 'hidden',
-  display: 'flex',
-  flexDirection: 'column',
-};
 
 const centeredStyle: React.CSSProperties = {
   display: 'flex',
@@ -50,19 +41,29 @@ const centeredStyle: React.CSSProperties = {
 const MeetingRoomContent: React.FC = () => {
   const { isLoading, isInitializing, error } = useMeetingRoom();
   const mrTheme = useMeetingRoomTheme();
+
+  const shellStyle: React.CSSProperties = {
+    width: '100vw',
+    height: '100dvh',
+    background: mrTheme.backgroundPrimary,
+    color: mrTheme.textPrimary,
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
+  };
   
   if (isInitializing || isLoading) {
     return (
-      <div style={{ ...darkShellStyle, ...centeredStyle }}>
+      <div style={{ ...shellStyle, ...centeredStyle }}>
         <Spin indicator={<LoadingOutlined style={{ fontSize: 48, color: mrTheme.primaryColor }} spin />} />
-        <p style={{ marginTop: 16, color: mrTheme.textSecondary }}>Initializing meeting room...</p>
+        <p style={{ marginTop: 16, color: mrTheme.textSecondary, ...getTypographyCSS('text') }}>Initializing meeting room...</p>
       </div>
     );
   }
   
   if (error) {
     return (
-      <div style={{ ...darkShellStyle, ...centeredStyle }}>
+      <div style={{ ...shellStyle, ...centeredStyle }}>
         <Result
           status="error"
           title={<span style={{ color: mrTheme.textPrimary }}>Room Error</span>}
@@ -73,7 +74,7 @@ const MeetingRoomContent: React.FC = () => {
   }
   
   return (
-    <div style={darkShellStyle}>
+    <div style={shellStyle}>
       <MeetingRoomLayout />
     </div>
   );
@@ -111,14 +112,26 @@ const MeetingRoomLoader: React.FC = () => {
     return () => { document.title = 'eBoard'; };
   }, [meeting, setMeeting]);
   
+  // Static shell style for loader states (outside theme provider)
+  const loaderShell: React.CSSProperties = {
+    width: '100vw',
+    height: '100dvh',
+    background: '#111111',
+    color: '#e0e0e0',
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
+  };
+
   // Handle missing meeting ID
   if (!meetingId) {
     return (
-      <div style={{ ...darkShellStyle, ...centeredStyle }}>
+      <div style={{ ...loaderShell, ...centeredStyle }}>
         <Result
           status="error"
           title={<span style={{ color: '#e0e0e0' }}>Invalid Meeting</span>}
-          subTitle={<span style={{ color: '#a0a0b0' }}>No meeting ID provided.</span>}
+          subTitle={<span style={{ color: '#a0a0a0' }}>No meeting ID provided.</span>}
           extra={
             <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)}>
               Go Back
@@ -132,9 +145,9 @@ const MeetingRoomLoader: React.FC = () => {
   // Loading
   if (isLoading) {
     return (
-      <div style={{ ...darkShellStyle, ...centeredStyle }}>
+      <div style={{ ...loaderShell, ...centeredStyle }}>
         <Spin indicator={<LoadingOutlined style={{ fontSize: 48, color: '#4a6cf7' }} spin />} />
-        <p style={{ marginTop: 16, color: '#a0a0b0' }}>Loading meeting...</p>
+        <p style={{ marginTop: 16, color: '#a0a0a0', fontSize: 13 }}>Loading meeting...</p>
       </div>
     );
   }
@@ -142,11 +155,11 @@ const MeetingRoomLoader: React.FC = () => {
   // Error / not found
   if (error || !meeting) {
     return (
-      <div style={{ ...darkShellStyle, ...centeredStyle }}>
+      <div style={{ ...loaderShell, ...centeredStyle }}>
         <Result
           status="error"
           title={<span style={{ color: '#e0e0e0' }}>Meeting Not Found</span>}
-          subTitle={<span style={{ color: '#a0a0b0' }}>{error?.message || 'The requested meeting could not be found.'}</span>}
+          subTitle={<span style={{ color: '#a0a0a0' }}>{error?.message || 'The requested meeting could not be found.'}</span>}
           extra={
             <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)}>
               Go Back
@@ -164,12 +177,12 @@ const MeetingRoomLoader: React.FC = () => {
   
   if (!canEnterRoom) {
     return (
-      <div style={{ ...darkShellStyle, ...centeredStyle }}>
+      <div style={{ ...loaderShell, ...centeredStyle }}>
         <Result
           status="warning"
           title={<span style={{ color: '#e0e0e0' }}>Meeting Not Available</span>}
           subTitle={
-            <span style={{ color: '#a0a0b0' }}>
+            <span style={{ color: '#a0a0a0' }}>
               Status: {meeting.status}{meeting.subStatus ? ` (${meeting.subStatus})` : ''}
             </span>
           }

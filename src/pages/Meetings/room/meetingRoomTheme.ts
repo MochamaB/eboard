@@ -1,14 +1,33 @@
 /**
- * Meeting Room Dark Theme
+ * Meeting Room Theme System
  * 
- * Jitsi-style dark palette used exclusively inside the meeting room.
- * Mirrors BoardBranding property names so components can consume it
- * the same way they consume the board theme.
+ * Supports two display modes:
+ *   - Dark: Jitsi-style dark palette (default for meeting rooms)
+ *   - Light: Board-branded light palette (uses BoardBranding colors)
  * 
- * The board's primaryColor is preserved as the accent for governance branding.
+ * Both modes share:
+ *   - Board accent colors (primaryColor, secondaryColor) for governance branding
+ *   - Consistent typography scale (font family, sizes, weights, line heights)
+ *   - Meeting-room-specific tokens (toolbar, tile, card, button variants)
+ * 
+ * Components should ONLY use useMeetingRoomTheme() inside the meeting room.
+ * Never use useBoardContext().theme directly — the theme provider handles mode switching.
  */
 
 import type { BoardBranding } from '../../../types/board.types';
+
+// ============================================================================
+// DISPLAY MODE
+// ============================================================================
+
+export type DisplayMode = 'dark' | 'light';
+
+// ============================================================================
+// TYPOGRAPHY
+// ============================================================================
+// Typography is now centralized in src/styles/responsive.ts
+// Use getTypographyCSS('h1') | getTypographyCSS('text') | etc.
+// See: typography variants — h1–h4, textLg, text, textSm, caption, sectionLabel
 
 // ============================================================================
 // DARK PALETTE CONSTANTS
@@ -24,7 +43,7 @@ const DARK = {
   bgActive: '#333333',
 
   // Toolbar / header
-  toolbar: '#1c1c1c',
+  toolbar: 'rgba(28, 28, 28, 0.95)',
   toolbarBorder: '#2a2a2a',
 
   // Text
@@ -71,15 +90,28 @@ const DARK = {
 } as const;
 
 // ============================================================================
-// BUILD DARK THEME FROM BOARD BRANDING
+// BUILD THEME — MODE-AWARE
 // ============================================================================
 
 /**
- * Creates a dark meeting room theme that preserves the board's accent colors
- * (primaryColor, secondaryColor) but overrides all surface/text/border colors
- * with the dark Jitsi-style palette.
+ * Creates a meeting room theme from the board's branding and a display mode.
+ * 
+ * - Dark mode: overrides all surfaces/text/borders with DARK palette, keeps board accents.
+ * - Light mode: passes through BoardBranding as-is, adds meeting-room-specific tokens.
  */
-export const buildMeetingRoomTheme = (boardTheme: BoardBranding): MeetingRoomTheme => ({
+export const buildMeetingRoomTheme = (
+  boardTheme: BoardBranding,
+  mode: DisplayMode = 'dark',
+): MeetingRoomTheme => {
+  if (mode === 'light') {
+    return buildLightTheme(boardTheme);
+  }
+  return buildDarkTheme(boardTheme);
+};
+
+// ── Dark builder ──
+
+const buildDarkTheme = (boardTheme: BoardBranding): MeetingRoomTheme => ({
   // Preserve board accent colors for governance branding
   primaryColor: boardTheme.primaryColor,
   primaryHover: boardTheme.primaryHover,
@@ -113,7 +145,7 @@ export const buildMeetingRoomTheme = (boardTheme: BoardBranding): MeetingRoomThe
   borderColorStrong: DARK.borderStrong,
   borderColorFocus: boardTheme.primaryColor,
 
-  // Semantic colors (same, work well on dark)
+  // Semantic colors
   successColor: DARK.success,
   successLight: DARK.successLight,
   warningColor: DARK.warning,
@@ -138,8 +170,8 @@ export const buildMeetingRoomTheme = (boardTheme: BoardBranding): MeetingRoomThe
   linkHover: boardTheme.accentColor,
   linkActive: boardTheme.primaryHover,
 
-  // Sidebar (not used in meeting room, but keeping for type compat)
-  sidebarBg: DARK.toolbar,
+  // Sidebar
+  sidebarBg: DARK.bgSecondary,
   sidebarTextColor: DARK.textSecondary,
   sidebarActiveColor: boardTheme.accentColor,
   sidebarActiveBg: `${boardTheme.accentColor}25`,
@@ -161,6 +193,94 @@ export const buildMeetingRoomTheme = (boardTheme: BoardBranding): MeetingRoomThe
   btnDanger: DARK.btnDanger,
   btnDangerHover: DARK.btnDangerHover,
   btnActive: DARK.btnActive,
+
+});
+
+// ── Light builder ──
+
+const buildLightTheme = (b: BoardBranding): MeetingRoomTheme => ({
+  // Pass through all board branding colors
+  primaryColor: b.primaryColor,
+  primaryHover: b.primaryHover,
+  primaryLight: b.primaryLight,
+  primaryContrast: b.primaryContrast,
+  secondaryColor: b.secondaryColor,
+  secondaryHover: b.secondaryHover,
+  accentColor: b.accentColor,
+
+  // Light backgrounds (from board branding)
+  backgroundPrimary: b.backgroundPrimary,
+  backgroundSecondary: b.backgroundSecondary,
+  backgroundTertiary: b.backgroundTertiary,
+  backgroundQuaternary: b.backgroundQuaternary,
+  backgroundHover: b.backgroundHover,
+  backgroundActive: b.backgroundActive,
+  backgroundDisabled: b.backgroundDisabled,
+
+  // Light text (from board branding)
+  textPrimary: b.textPrimary,
+  textSecondary: b.textSecondary,
+  textTertiary: b.textTertiary,
+  textDisabled: b.textDisabled,
+  textPlaceholder: b.textPlaceholder,
+  textInverse: b.textInverse,
+
+  // Light borders (from board branding)
+  borderColor: b.borderColor,
+  borderColorHover: b.borderColorHover,
+  borderColorLight: b.borderColorLight,
+  borderColorStrong: b.borderColorStrong,
+  borderColorFocus: b.borderColorFocus,
+
+  // Semantic colors (from board branding)
+  successColor: b.successColor,
+  successLight: b.successLight,
+  warningColor: b.warningColor,
+  warningLight: b.warningLight,
+  errorColor: b.errorColor,
+  errorLight: b.errorLight,
+  infoColor: b.infoColor,
+  infoLight: b.infoLight,
+
+  // Surfaces (from board branding)
+  surfaceElevated: b.surfaceElevated,
+  surfaceSunken: b.surfaceSunken,
+  surfaceOverlay: b.surfaceOverlay,
+
+  // Depth (from board branding)
+  depthLevel1Bg: b.depthLevel1Bg,
+  depthLevel2Bg: b.depthLevel2Bg,
+  depthLevel3Bg: b.depthLevel3Bg,
+
+  // Links (from board branding)
+  linkColor: b.linkColor,
+  linkHover: b.linkHover,
+  linkActive: b.linkActive,
+
+  // Sidebar (from board branding)
+  sidebarBg: b.backgroundSecondary,
+  sidebarTextColor: b.textSecondary,
+  sidebarActiveColor: b.primaryColor,
+  sidebarActiveBg: b.primaryLight,
+
+  // Theme mode
+  themeMode: 'light' as const,
+  inheritFromParent: false,
+
+  // Meeting room specific tokens — light equivalents
+  toolbar: 'rgba(255, 255, 255, 0.95)',
+  toolbarBorder: b.borderColor,
+  tile: b.backgroundTertiary,
+  tileBorder: b.borderColor,
+  card: b.backgroundSecondary,
+  cardHover: b.backgroundHover,
+  btnDefault: b.backgroundTertiary,
+  btnDefaultBorder: b.borderColor,
+  btnDefaultText: b.textPrimary,
+  btnDanger: '#dc2626',
+  btnDangerHover: '#ef4444',
+  btnActive: b.backgroundActive,
+
 });
 
 // ============================================================================
@@ -238,7 +358,7 @@ export const defaultMeetingRoomTheme: MeetingRoomTheme = {
   linkHover: '#ffaf00',
   linkActive: '#3b5de8',
 
-  sidebarBg: DARK.toolbar,
+  sidebarBg: DARK.bgSecondary,
   sidebarTextColor: DARK.textSecondary,
   sidebarActiveColor: '#ffaf00',
   sidebarActiveBg: 'rgba(255, 175, 0, 0.15)',
@@ -258,4 +378,5 @@ export const defaultMeetingRoomTheme: MeetingRoomTheme = {
   btnDanger: DARK.btnDanger,
   btnDangerHover: DARK.btnDangerHover,
   btnActive: DARK.btnActive,
+
 };

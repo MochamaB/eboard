@@ -656,16 +656,36 @@ export interface MeetingRoomContextType {
 // ============================================================================
 
 /**
- * Side panel tab options
+ * Side panel tab options (union of all tabs — kept for backward compatibility)
  */
 export type SidePanelTab = 'notice' | 'agenda' | 'participants' | 'documents' | 'voting' | 'minutes' | 'chat' | 'notes';
 
 /**
- * Side panel state
+ * Right sidebar tabs — governance / meeting flow
+ * These panels let users browse meeting structure without affecting the center content.
+ */
+export type RightPanelTab = 'agenda' | 'participants' | 'documents' | 'notice';
+
+/**
+ * Left sidebar tabs — utility / secondary features
+ * These panels provide tools and reference during the meeting.
+ */
+export type LeftPanelTab = 'voting' | 'minutes' | 'chat' | 'notes';
+
+/**
+ * Side panel state (legacy — single panel)
  */
 export interface SidePanelState {
   isCollapsed: boolean;
   activeTab: SidePanelTab;
+}
+
+/**
+ * Panel state for the two-sidebar layout
+ */
+export interface PanelState<T extends string> {
+  open: boolean;
+  tab: T;
 }
 
 // ============================================================================

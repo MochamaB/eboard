@@ -9,15 +9,14 @@
  */
 
 import React from 'react';
-import { Typography, Empty, Spin, Button } from 'antd';
+import { Empty, Spin, Button } from 'antd';
 import { EditOutlined, FileTextOutlined } from '@ant-design/icons';
 import { useMeetingRoomTheme } from '../MeetingRoomThemeContext';
 import { useResponsive } from '../../../../contexts/ResponsiveContext';
+import { getTypographyCSS } from '../../../../styles/responsive';
 import { useMeetingRoom } from '../../../../contexts/MeetingRoomContext';
 import { useMeetingRoomPermissions } from '../../../../hooks/meetings';
 import { useMinutesByMeeting } from '../../../../hooks/api/useMinutes';
-
-const { Text, Title } = Typography;
 
 const SidePanelMinutes: React.FC = () => {
   const { roomState } = useMeetingRoom();
@@ -44,20 +43,20 @@ const SidePanelMinutes: React.FC = () => {
   if (!activeMinutes) {
     return (
       <div style={{ padding: panelPadding, height: '100%', display: 'flex', flexDirection: 'column' }}>
-        <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', display: 'block', marginBottom: 12 }}>
+        <span style={{ ...getTypographyCSS('sectionLabel'), textTransform: 'uppercase', display: 'block', marginBottom: 12, color: theme.textSecondary }}>
           Meeting Minutes
-        </Text>
+        </span>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
           <Empty
             image={<FileTextOutlined style={{ fontSize: 48, color: theme.textTertiary }} />}
             description={
               <div>
-                <Text type="secondary">No minutes created yet</Text>
+                <span style={{ ...getTypographyCSS('text'), color: theme.textSecondary }}>No minutes created yet</span>
                 {permissions.canTakeMinutes && status === 'in_progress' && (
                   <div style={{ marginTop: 8 }}>
-                    <Text type="secondary" style={{ fontSize: 12 }}>
+                    <span style={{ ...getTypographyCSS('textSm'), color: theme.textSecondary }}>
                       Minutes can be started from the Minutes tab in meeting details.
-                    </Text>
+                    </span>
                   </div>
                 )}
               </div>
@@ -71,9 +70,9 @@ const SidePanelMinutes: React.FC = () => {
   // Minutes exist — show status and content preview
   return (
     <div style={{ padding: panelPadding, height: '100%', overflow: 'auto' }}>
-      <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', display: 'block', marginBottom: 12 }}>
+      <span style={{ ...getTypographyCSS('sectionLabel'), textTransform: 'uppercase', display: 'block', marginBottom: 12, color: theme.textSecondary }}>
         Meeting Minutes
-      </Text>
+      </span>
 
       {/* Minutes status card */}
       <div style={{
@@ -84,11 +83,11 @@ const SidePanelMinutes: React.FC = () => {
         marginBottom: 12,
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <Title level={5} style={{ margin: 0, fontSize: 14 }}>
+          <span style={{ ...getTypographyCSS('h4'), margin: 0, color: theme.textPrimary }}>
             Meeting Minutes
-          </Title>
+          </span>
           <span style={{
-            fontSize: 11,
+            ...getTypographyCSS('caption'),
             padding: '2px 8px',
             borderRadius: 4,
             background: activeMinutes.status === 'draft' ? theme.warningColor : theme.successColor,
@@ -100,15 +99,15 @@ const SidePanelMinutes: React.FC = () => {
         </div>
 
         {activeMinutes.version > 1 && (
-          <Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
+          <span style={{ ...getTypographyCSS('caption'), display: 'block', color: theme.textSecondary }}>
             Version {activeMinutes.version}
-          </Text>
+          </span>
         )}
 
         {activeMinutes.updatedAt && (
-          <Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
+          <span style={{ ...getTypographyCSS('caption'), display: 'block', color: theme.textSecondary }}>
             Updated: {new Date(activeMinutes.updatedAt).toLocaleTimeString()}
-          </Text>
+          </span>
         )}
       </div>
 
@@ -122,12 +121,12 @@ const SidePanelMinutes: React.FC = () => {
           textAlign: 'center',
         }}>
           <EditOutlined style={{ fontSize: 24, color: theme.primaryColor, marginBottom: 8 }} />
-          <Text style={{ display: 'block', fontSize: 13, color: theme.primaryColor, fontWeight: 500 }}>
+          <span style={{ display: 'block', ...getTypographyCSS('text'), color: theme.primaryColor, fontWeight: 500 }}>
             Minutes Editor
-          </Text>
-          <Text type="secondary" style={{ display: 'block', fontSize: 11, marginTop: 4, marginBottom: 8 }}>
+          </span>
+          <span style={{ display: 'block', ...getTypographyCSS('caption'), marginTop: 4, marginBottom: 8, color: theme.textSecondary }}>
             Open full minutes editor in meeting details for rich editing.
-          </Text>
+          </span>
           <Button
             size="small"
             icon={<EditOutlined />}
@@ -147,7 +146,7 @@ const SidePanelMinutes: React.FC = () => {
           background: theme.backgroundTertiary,
           maxHeight: 300,
           overflow: 'auto',
-          fontSize: 13,
+          ...getTypographyCSS('text'),
         }}>
           <div dangerouslySetInnerHTML={{ __html: activeMinutes.content }} />
         </div>

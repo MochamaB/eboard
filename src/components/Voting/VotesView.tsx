@@ -50,7 +50,8 @@ export const VotesView: React.FC<VotesViewProps> = ({
   const [selectedVoteId, setSelectedVoteId] = useState<string | null>(null);
 
   // Fetch votes for this meeting
-  const { data: votes = [], isLoading } = useMeetingVotes(meetingId);
+  const { data: votesData, isLoading } = useMeetingVotes(meetingId);
+  const votes = Array.isArray(votesData) ? votesData : [];
 
   // Helper function to get entity label for a vote
   const getEntityLabel = (vote: VoteWithResults): string | undefined => {

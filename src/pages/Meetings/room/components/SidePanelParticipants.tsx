@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { Button, Space, Typography, Avatar, Empty, Badge } from 'antd';
+import { Button, Space, Avatar, Empty, Badge } from 'antd';
 import { 
   UserOutlined, 
   VideoCameraOutlined, 
@@ -16,10 +16,9 @@ import {
 } from '@ant-design/icons';
 import { useMeetingRoomTheme } from '../MeetingRoomThemeContext';
 import { useResponsive } from '../../../../contexts/ResponsiveContext';
+import { getTypographyCSS } from '../../../../styles/responsive';
 import { useMeetingRoom } from '../../../../contexts/MeetingRoomContext';
 import { useMeetingRoomPermissions } from '../../../../hooks/meetings';
-
-const { Text } = Typography;
 
 const SidePanelParticipants: React.FC = () => {
   const { roomState, actions } = useMeetingRoom();
@@ -56,21 +55,21 @@ const SidePanelParticipants: React.FC = () => {
       </div>
       
       <div style={{ flex: 1, minWidth: 0 }}>
-        <Text 
-          strong 
+        <span 
           style={{ 
             display: 'block', 
-            fontSize: 13,
+            ...getTypographyCSS('text'), fontWeight: 600,
+            color: theme.textPrimary,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
           }}
         >
           {participant.name || `User ${participant.userId}`}
-        </Text>
-        <Text type="secondary" style={{ fontSize: 11, textTransform: 'capitalize' }}>
+        </span>
+        <span style={{ ...getTypographyCSS('caption'), color: theme.textSecondary, textTransform: 'capitalize' }}>
           {participant.boardRole || 'Participant'}
-        </Text>
+        </span>
       </div>
       
       {/* Status Icons */}
@@ -118,9 +117,9 @@ const SidePanelParticipants: React.FC = () => {
         {/* In-Room Participants */}
         {inRoom.length > 0 && (
           <div style={{ marginBottom: 16 }}>
-            <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>
+            <span style={{ ...getTypographyCSS('sectionLabel'), textTransform: 'uppercase', display: 'block', marginBottom: 8, color: theme.textSecondary }}>
               🏢 In-Room ({inRoom.length})
-            </Text>
+            </span>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {inRoom.map(p => renderParticipant(p, true))}
             </div>
@@ -130,9 +129,9 @@ const SidePanelParticipants: React.FC = () => {
         {/* Remote Participants */}
         {remote.length > 0 && (
           <div style={{ marginBottom: 16 }}>
-            <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>
+            <span style={{ ...getTypographyCSS('sectionLabel'), textTransform: 'uppercase', display: 'block', marginBottom: 8, color: theme.textSecondary }}>
               💻 Remote ({remote.length})
-            </Text>
+            </span>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {remote.map(p => renderParticipant(p, true))}
             </div>
@@ -142,9 +141,9 @@ const SidePanelParticipants: React.FC = () => {
         {/* Waiting Room */}
         {waiting.length > 0 && (
           <div style={{ marginBottom: 16 }}>
-            <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>
+            <span style={{ ...getTypographyCSS('sectionLabel'), textTransform: 'uppercase', display: 'block', marginBottom: 8, color: theme.textSecondary }}>
               ⏳ Waiting Room ({waiting.length})
-            </Text>
+            </span>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {waiting.map(participant => (
                 <div 
@@ -160,9 +159,9 @@ const SidePanelParticipants: React.FC = () => {
                 >
                   <Avatar icon={<UserOutlined />} size="small" />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <Text strong style={{ fontSize: 13 }}>
+                    <span style={{ ...getTypographyCSS('text'), fontWeight: 600, color: theme.textPrimary }}>
                       {participant.name || `User ${participant.userId}`}
-                    </Text>
+                    </span>
                   </div>
                   {permissions.canAdmitParticipants && (
                     <Button 
@@ -191,9 +190,9 @@ const SidePanelParticipants: React.FC = () => {
         {/* Guests */}
         {guests.length > 0 && (
           <div style={{ marginBottom: 16 }}>
-            <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>
+            <span style={{ ...getTypographyCSS('sectionLabel'), textTransform: 'uppercase', display: 'block', marginBottom: 8, color: theme.textSecondary }}>
               👥 Guests ({guests.length})
-            </Text>
+            </span>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {guests.map(p => renderParticipant(p))}
             </div>

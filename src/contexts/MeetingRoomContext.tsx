@@ -434,23 +434,65 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
   const navigateToItem = useCallback(async (itemId: string) => {
     try {
       // TODO: API call
+      const now = new Date().toISOString();
+
+      // End time-tracking on the previous current item (if any)
+      setAgendaItems(prev => prev.map(item => {
+        if (item.id === currentAgendaItemId && item.actualStartTime && !item.actualEndTime) {
+          const elapsed = Math.round((Date.now() - new Date(item.actualStartTime).getTime()) / 60000);
+          return { ...item, actualEndTime: now, actualDuration: elapsed };
+        }
+        return item;
+      }));
+
+      // Start time-tracking on the new item
+      setAgendaItems(prev => prev.map(item =>
+        item.id === itemId && !item.actualStartTime
+          ? { ...item, status: 'in_progress' as const, actualStartTime: now }
+          : item.id === itemId
+            ? { ...item, status: 'in_progress' as const }
+            : item
+      ));
+
       setCurrentAgendaItemId(itemId);
     } catch (err) {
       throw err;
     }
-  }, []);
+  }, [currentAgendaItemId]);
   
   const markItemDiscussed = useCallback(async (itemId: string) => {
     try {
       // TODO: API call
-      setAgendaItems(prev => prev.map(item =>
-        item.id === itemId ? { ...item, status: 'completed' as const } : item
-      ));
+      const now = new Date().toISOString();
+
+      // Complete the item and record end time
+      setAgendaItems(prev => prev.map(item => {
+        if (item.id === itemId) {
+          const elapsed = item.actualStartTime
+            ? Math.round((Date.now() - new Date(item.actualStartTime).getTime()) / 60000)
+            : 0;
+          return {
+            ...item,
+            status: 'completed' as const,
+            actualEndTime: now,
+            actualDuration: elapsed,
+          };
+        }
+        return item;
+      }));
       
-      // Move to next item
+      // Move to next item and start its time tracking
       const currentIndex = agendaItems.findIndex(item => item.id === itemId);
       if (currentIndex < agendaItems.length - 1) {
-        setCurrentAgendaItemId(agendaItems[currentIndex + 1].id);
+        const nextId = agendaItems[currentIndex + 1].id;
+        setCurrentAgendaItemId(nextId);
+        setAgendaItems(prev => prev.map(item =>
+          item.id === nextId && !item.actualStartTime
+            ? { ...item, status: 'in_progress' as const, actualStartTime: now }
+            : item.id === nextId
+              ? { ...item, status: 'in_progress' as const }
+              : item
+        ));
       }
     } catch (err) {
       throw err;
@@ -460,9 +502,21 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
   const deferItem = useCallback(async (itemId: string) => {
     try {
       // TODO: API call
-      setAgendaItems(prev => prev.map(item =>
-        item.id === itemId ? { ...item, status: 'skipped' as const } : item
-      ));
+      const now = new Date().toISOString();
+      setAgendaItems(prev => prev.map(item => {
+        if (item.id === itemId) {
+          const elapsed = item.actualStartTime
+            ? Math.round((Date.now() - new Date(item.actualStartTime).getTime()) / 60000)
+            : 0;
+          return {
+            ...item,
+            status: 'skipped' as const,
+            actualEndTime: now,
+            actualDuration: elapsed,
+          };
+        }
+        return item;
+      }));
     } catch (err) {
       throw err;
     }

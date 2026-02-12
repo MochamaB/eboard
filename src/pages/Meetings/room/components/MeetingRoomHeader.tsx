@@ -7,17 +7,17 @@
  * - Tablet: Two-row layout, simplified quorum
  * - Mobile: Compact two-row, minimal quorum, icon-only connection
  * 
- * Board branding: header border accent, background, tag colors
+ * Uses useMeetingRoomTheme() for dark/light mode support.
+ * No Ant Design layout components — native HTML + theme tokens.
  */
 
 import React from 'react';
-import { Space, Tag, Progress, Typography, Tooltip } from 'antd';
-import { ClockCircleOutlined, TeamOutlined, WifiOutlined, DisconnectOutlined } from '@ant-design/icons';
-import { useBoardContext } from '../../../../contexts';
+import { Clock, Users, Wifi, WifiOff } from 'lucide-react';
+import { useMeetingRoomTheme } from '../MeetingRoomThemeContext';
 import { useResponsive } from '../../../../contexts/ResponsiveContext';
 import { useMeetingRoom } from '../../../../contexts/MeetingRoomContext';
-
-const { Text, Title } = Typography;
+import { getTypographyCSS } from '../../../../styles/responsive';
+import type { MeetingRoomTheme } from '../meetingRoomTheme';
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -32,22 +32,6 @@ function formatDuration(seconds: number): string {
     return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }
   return `${minutes}:${secs.toString().padStart(2, '0')}`;
-}
-
-function getStatusColor(status: string): string {
-  switch (status) {
-    case 'in_progress':
-      return 'green';
-    case 'paused':
-      return 'orange';
-    case 'waiting':
-      return 'blue';
-    case 'ending':
-    case 'ended':
-      return 'default';
-    default:
-      return 'default';
-  }
 }
 
 function getStatusLabel(status: string): string {
@@ -69,6 +53,25 @@ function getStatusLabel(status: string): string {
   }
 }
 
+function getStatusBadgeStyle(status: string, t: MeetingRoomTheme): React.CSSProperties {
+  const base: React.CSSProperties = {
+    padding: '2px 10px', borderRadius: 3,
+    ...getTypographyCSS('sectionLabel'),
+    lineHeight: '18px', whiteSpace: 'nowrap',
+  };
+  switch (status) {
+    case 'in_progress':
+      return { ...base, background: t.successLight, color: t.successColor };
+    case 'paused':
+      return { ...base, background: t.warningLight, color: t.warningColor };
+    case 'waiting':
+    case 'starting':
+      return { ...base, background: t.infoLight, color: t.infoColor };
+    default:
+      return { ...base, background: t.backgroundQuaternary, color: t.textSecondary };
+  }
+}
+
 function getModeLabel(mode: string): string {
   switch (mode) {
     case 'physical':
@@ -82,14 +85,20 @@ function getModeLabel(mode: string): string {
   }
 }
 
-function getModeColor(mode: string): string {
+function getModeBadgeStyle(mode: string, t: MeetingRoomTheme): React.CSSProperties {
+  const base: React.CSSProperties = {
+    padding: '2px 10px', borderRadius: 3,
+    ...getTypographyCSS('caption'), fontWeight: 500,
+    lineHeight: '18px', whiteSpace: 'nowrap',
+    border: `1px solid ${t.borderColor}`,
+  };
   switch (mode) {
     case 'virtual':
-      return 'purple';
+      return { ...base, background: 'rgba(114, 46, 209, 0.12)', color: '#a855f7', borderColor: 'rgba(114, 46, 209, 0.25)' };
     case 'hybrid':
-      return 'cyan';
+      return { ...base, background: 'rgba(6, 182, 212, 0.12)', color: '#06b6d4', borderColor: 'rgba(6, 182, 212, 0.25)' };
     default:
-      return 'default';
+      return { ...base, background: t.backgroundTertiary, color: t.textSecondary };
   }
 }
 
@@ -98,61 +107,72 @@ function getModeColor(mode: string): string {
 // ============================================================================
 
 const MeetingRoomHeader: React.FC = () => {
-  const { theme } = useBoardContext();
+  const t = useMeetingRoomTheme();
   const { roomState } = useMeetingRoom();
   const { isMobile, isTablet } = useResponsive();
   const { meeting, status, mode, duration, presentCount, expectedCount, quorumRequired, quorumMet, isConnected } = roomState;
   
   const quorumPercentage = expectedCount > 0 ? Math.round((presentCount / expectedCount) * 100) : 0;
+
+  // Shared styles
+  const headerBase: React.CSSProperties = {
+    borderBottom: `2px solid ${t.primaryColor}`,
+    background: t.backgroundSecondary,
+  };
+
+  const durationStyle: React.CSSProperties = {
+    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+    fontWeight: 600,
+    color: t.textPrimary,
+    fontVariantNumeric: 'tabular-nums',
+  };
+
+  const quorumDot = (met: boolean): React.CSSProperties => ({
+    width: 8, height: 8, borderRadius: '50%', display: 'inline-block',
+    background: met ? t.successColor : t.warningColor,
+    flexShrink: 0,
+  });
+
+  const connectionDot = (connected: boolean): React.CSSProperties => ({
+    width: 8, height: 8, borderRadius: '50%', display: 'inline-block',
+    background: connected ? t.successColor : t.errorColor,
+    flexShrink: 0,
+  });
   
   // ---- MOBILE LAYOUT ----
   if (isMobile) {
     return (
-      <div style={{ 
-        borderBottom: `2px solid ${theme.primaryColor}`, 
-        background: theme.backgroundSecondary, 
-        padding: '8px 12px' 
-      }}>
+      <div style={{ ...headerBase, padding: '8px 12px' }}>
         {/* Row 1: Title + Duration */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-          <Title level={5} style={{ margin: 0, fontSize: 14, maxWidth: '55%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span style={{
+            margin: 0, ...getTypographyCSS('h4'), fontWeight: 600,
+            maxWidth: '55%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            color: t.textPrimary,
+          }}>
             {meeting?.title || 'Meeting Room'}
-          </Title>
-          <Space size={4}>
-            <ClockCircleOutlined style={{ fontSize: 14, color: theme.textSecondary }} />
-            <Text style={{ fontSize: 16, fontFamily: 'monospace', fontWeight: 600 }}>
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Clock size={14} style={{ color: t.textSecondary }} />
+            <span style={{ ...durationStyle, ...getTypographyCSS('textLg') }}>
               {formatDuration(duration)}
-            </Text>
-          </Space>
+            </span>
+          </span>
         </div>
         {/* Row 2: Tags + Quorum compact + Connection dot */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Space size={4}>
-            <Tag color={getStatusColor(status)} style={{ margin: 0, fontSize: 11 }}>
-              {getStatusLabel(status)}
-            </Tag>
-            <Tag color={getModeColor(mode)} style={{ margin: 0, fontSize: 11 }}>
-              {getModeLabel(mode)}
-            </Tag>
-          </Space>
-          <Space size={8}>
-            <Tooltip title={`${presentCount}/${expectedCount} present, ${quorumRequired} required`}>
-              <Space size={4}>
-                <TeamOutlined style={{ fontSize: 13, color: theme.textSecondary }} />
-                <Text strong style={{ fontSize: 12 }}>{presentCount}/{expectedCount}</Text>
-                <span style={{ 
-                  width: 8, height: 8, borderRadius: '50%', display: 'inline-block',
-                  background: quorumMet ? theme.successColor : theme.warningColor,
-                }} />
-              </Space>
-            </Tooltip>
-            <Tooltip title={isConnected ? 'Connected' : 'Disconnected'}>
-              <span style={{ 
-                width: 8, height: 8, borderRadius: '50%', display: 'inline-block',
-                background: isConnected ? theme.successColor : theme.errorColor,
-              }} />
-            </Tooltip>
-          </Space>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={getStatusBadgeStyle(status, t)}>{getStatusLabel(status)}</span>
+            <span style={getModeBadgeStyle(mode, t)}>{getModeLabel(mode)}</span>
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }} title={`${presentCount}/${expectedCount} present, ${quorumRequired} required`}>
+              <Users size={13} style={{ color: t.textSecondary }} />
+              <span style={{ ...getTypographyCSS('textSm'), fontWeight: 600, color: t.textPrimary }}>{presentCount}/{expectedCount}</span>
+              <span style={quorumDot(quorumMet)} />
+            </span>
+            <span style={connectionDot(isConnected)} title={isConnected ? 'Connected' : 'Disconnected'} />
+          </span>
         </div>
       </div>
     );
@@ -161,51 +181,56 @@ const MeetingRoomHeader: React.FC = () => {
   // ---- TABLET LAYOUT ----
   if (isTablet) {
     return (
-      <div style={{ 
-        borderBottom: `2px solid ${theme.primaryColor}`, 
-        background: theme.backgroundSecondary, 
-        padding: '10px 16px' 
-      }}>
+      <div style={{ ...headerBase, padding: '10px 16px' }}>
         {/* Row 1: Title + Tags */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <Title level={5} style={{ margin: 0, fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{
+              margin: 0, ...getTypographyCSS('h4'), fontWeight: 600,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              color: t.textPrimary,
+            }}>
               {meeting?.title || 'Meeting Room'}
-            </Title>
-            <Text type="secondary" style={{ fontSize: 11 }}>{meeting?.boardName}</Text>
+            </div>
+            <span style={{ ...getTypographyCSS('caption'), color: t.textTertiary }}>{meeting?.boardName}</span>
           </div>
-          <Space size={6}>
-            <Tag color={getStatusColor(status)} style={{ margin: 0 }}>{getStatusLabel(status)}</Tag>
-            <Tag color={getModeColor(mode)} style={{ margin: 0 }}>{getModeLabel(mode)}</Tag>
-          </Space>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={getStatusBadgeStyle(status, t)}>{getStatusLabel(status)}</span>
+            <span style={getModeBadgeStyle(mode, t)}>{getModeLabel(mode)}</span>
+          </span>
         </div>
         {/* Row 2: Duration + Quorum + Connection */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Space size={8}>
-            <ClockCircleOutlined style={{ fontSize: 16, color: theme.textSecondary }} />
-            <Text style={{ fontSize: 16, fontFamily: 'monospace', fontWeight: 600 }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Clock size={16} style={{ color: t.textSecondary }} />
+            <span style={{ ...durationStyle, ...getTypographyCSS('textLg') }}>
               {formatDuration(duration)}
-            </Text>
-          </Space>
-          <Space size={16}>
-            <Space size={6}>
-              <TeamOutlined style={{ fontSize: 16, color: theme.textSecondary }} />
-              <Text strong>{presentCount}/{expectedCount}</Text>
-              <Tag color={quorumMet ? 'success' : 'warning'} style={{ margin: 0, fontSize: 11 }}>
+            </span>
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Users size={16} style={{ color: t.textSecondary }} />
+              <span style={{ ...getTypographyCSS('text'), fontWeight: 600, color: t.textPrimary }}>{presentCount}/{expectedCount}</span>
+              <span style={{
+                padding: '2px 8px', borderRadius: 3,
+                ...getTypographyCSS('caption'), fontWeight: 500,
+                background: quorumMet ? t.successLight : t.warningLight,
+                color: quorumMet ? t.successColor : t.warningColor,
+              }}>
                 {quorumMet ? '✓ Quorum' : '✗ No Quorum'}
-              </Tag>
-            </Space>
-            <Space size={4}>
+              </span>
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               {isConnected ? (
-                <WifiOutlined style={{ color: theme.successColor }} />
+                <Wifi size={14} style={{ color: t.successColor }} />
               ) : (
-                <DisconnectOutlined style={{ color: theme.errorColor }} />
+                <WifiOff size={14} style={{ color: t.errorColor }} />
               )}
-              <Text style={{ color: isConnected ? theme.successColor : theme.errorColor, fontSize: 12 }}>
+              <span style={{ color: isConnected ? t.successColor : t.errorColor, ...getTypographyCSS('textSm') }}>
                 {isConnected ? 'Connected' : 'Offline'}
-              </Text>
-            </Space>
-          </Space>
+              </span>
+            </span>
+          </span>
         </div>
       </div>
     );
@@ -213,75 +238,78 @@ const MeetingRoomHeader: React.FC = () => {
 
   // ---- DESKTOP LAYOUT ----
   return (
-    <div style={{ 
-      borderBottom: `2px solid ${theme.primaryColor}`, 
-      background: theme.backgroundSecondary, 
-      padding: '12px 16px' 
-    }}>
+    <div style={{ ...headerBase, padding: '12px 16px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         {/* Left: Meeting Title and Status */}
-        <Space size="large">
+        <span style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <div>
-            <Title level={5} style={{ margin: 0 }}>
+            <div style={{ margin: 0, color: t.textPrimary, ...getTypographyCSS('h3'), fontWeight: 600 }}>
               {meeting?.title || 'Meeting Room'}
-            </Title>
-            <Text type="secondary" style={{ fontSize: 12 }}>
+            </div>
+            <span style={{ ...getTypographyCSS('textSm'), color: t.textTertiary }}>
               {meeting?.boardName}
-            </Text>
+            </span>
           </div>
-          <Tag color={getStatusColor(status)}>
-            {getStatusLabel(status)}
-          </Tag>
-          <Tag color={getModeColor(mode)}>
-            {getModeLabel(mode)}
-          </Tag>
-        </Space>
+          <span style={getStatusBadgeStyle(status, t)}>{getStatusLabel(status)}</span>
+          <span style={getModeBadgeStyle(mode, t)}>{getModeLabel(mode)}</span>
+        </span>
         
         {/* Center: Duration */}
-        <Space>
-          <ClockCircleOutlined style={{ fontSize: 18, color: theme.textSecondary }} />
-          <Text style={{ fontSize: 18, fontFamily: 'monospace' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Clock size={18} style={{ color: t.textSecondary }} />
+          <span style={{ ...durationStyle, ...getTypographyCSS('h3') }}>
             {formatDuration(duration)}
-          </Text>
-        </Space>
+          </span>
+        </span>
         
         {/* Right: Quorum and Connection */}
-        <Space size="large">
-          <Space>
-            <TeamOutlined style={{ fontSize: 18, color: theme.textSecondary }} />
+        <span style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Users size={18} style={{ color: t.textSecondary }} />
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Text strong>{presentCount}/{expectedCount}</Text>
-                <Tag color={quorumMet ? 'success' : 'warning'}>
+                <span style={{ ...getTypographyCSS('text'), fontWeight: 600, color: t.textPrimary }}>{presentCount}/{expectedCount}</span>
+                <span style={{
+                  padding: '2px 8px', borderRadius: 3,
+                  ...getTypographyCSS('caption'), fontWeight: 500,
+                  background: quorumMet ? t.successLight : t.warningLight,
+                  color: quorumMet ? t.successColor : t.warningColor,
+                }}>
                   {quorumMet ? '✓ Quorum' : '✗ No Quorum'}
-                </Tag>
+                </span>
               </div>
-              <Progress 
-                percent={quorumPercentage} 
-                size="small" 
-                showInfo={false}
-                strokeColor={quorumMet ? theme.successColor : theme.warningColor}
-                style={{ width: 100, margin: '4px 0' }}
-              />
-              <Text type="secondary" style={{ fontSize: 11 }}>
+              {/* Quorum progress bar */}
+              <div style={{
+                width: 100, height: 4, borderRadius: 2, margin: '4px 0',
+                background: t.backgroundQuaternary,
+                overflow: 'hidden',
+              }}>
+                <div style={{
+                  width: `${Math.min(quorumPercentage, 100)}%`,
+                  height: '100%', borderRadius: 2,
+                  background: quorumMet ? t.successColor : t.warningColor,
+                  transition: 'width 0.3s ease',
+                }} />
+              </div>
+              <span style={{ ...getTypographyCSS('caption'), color: t.textTertiary }}>
                 {quorumRequired} required
-              </Text>
+              </span>
             </div>
-          </Space>
-          <Space>
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             {isConnected ? (
               <>
-                <WifiOutlined style={{ color: theme.successColor }} />
-                <Text style={{ color: theme.successColor, fontSize: 12 }}>Connected</Text>
+                <Wifi size={14} style={{ color: t.successColor }} />
+                <span style={{ color: t.successColor, ...getTypographyCSS('textSm') }}>Connected</span>
               </>
             ) : (
               <>
-                <DisconnectOutlined style={{ color: theme.errorColor }} />
-                <Text style={{ color: theme.errorColor, fontSize: 12 }}>Disconnected</Text>
+                <WifiOff size={14} style={{ color: t.errorColor }} />
+                <span style={{ color: t.errorColor, ...getTypographyCSS('textSm') }}>Disconnected</span>
               </>
             )}
-          </Space>
-        </Space>
+          </span>
+        </span>
       </div>
     </div>
   );

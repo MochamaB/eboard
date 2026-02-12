@@ -1,15 +1,16 @@
 /**
  * BottomControlBar — Jitsi Meet-style floating toolbar
  * 
- * 3-section layout with vertical separators:
- *   Section 1 (AV):     Mic | Camera | Share Screen | Raise Hand
- *   Section 2 (Panels): Notice | Agenda | Participants | Documents | Voting | Minutes
- *   Section 3 (Actions): Chat | Notes | More (...) dropdown → Hangup
+ * 4-section layout with vertical separators:
+ *   Section 1 (AV):          Mic | Camera | Share Screen | Raise Hand
+ *   Section 2 (Right Panel):  Notice | Agenda | Participants | Documents  → opens RIGHT sidebar
+ *   Section 3 (Left Panel):   Voting | Minutes | Chat | Notes            → opens LEFT sidebar
+ *   Section 4 (Actions):      More (...) dropdown → Hangup
  * 
  * Responsive behavior:
  *   Desktop / Tablet: All sections visible
  *   Mobile + Virtual:  AV controls + active panel icon + More (panels in dropdown) + Hangup
- *   Mobile + Physical: Panel tabs + More (chat, notes, actions in dropdown)
+ *   Mobile + Physical: Right panel tabs + More (left tabs, actions in dropdown)
  *   Mobile + Hybrid:   Same as virtual mobile
  * 
  * The More dropdown (dark menu) contains overflow items + lifecycle actions + Create Vote.
@@ -39,12 +40,17 @@ import {
   Settings,
   Maximize,
   CircleDot,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { ExclamationCircleOutlined } from '@ant-design/icons';
 import { useResponsive } from '../../../../contexts/ResponsiveContext';
 import { useMeetingRoom } from '../../../../contexts/MeetingRoomContext';
+import { getTypographyCSS } from '../../../../styles/responsive';
 import { useMeetingRoomPermissions } from '../../../../hooks/meetings';
+import { useMeetingRoomTheme, useDisplayMode } from '../MeetingRoomThemeContext';
 import type { SidePanelTab } from '../../../../types/meetingRoom.types';
+import type { MeetingRoomTheme } from '../meetingRoomTheme';
 
 // ============================================================================
 // CONSTANTS
@@ -53,31 +59,34 @@ import type { SidePanelTab } from '../../../../types/meetingRoom.types';
 const ICON_SIZE = 20;
 const MENU_ICON = 16;
 
-// Governance panels — always in the toolbar on desktop/tablet
-const GOVERNANCE_TABS: { key: SidePanelTab; label: string; icon: React.ReactNode }[] = [
-  { key: 'notice', label: 'Notice', icon: <Bell size={ICON_SIZE} /> },
+// Right sidebar tabs — governance / meeting structure (opens RIGHT sidebar)
+const RIGHT_SIDEBAR_TABS: { key: SidePanelTab; label: string; icon: React.ReactNode }[] = [
+  { key: 'notice', label: 'Details', icon: <Bell size={ICON_SIZE} /> },
   { key: 'agenda', label: 'Agenda', icon: <List size={ICON_SIZE} /> },
-  { key: 'participants', label: 'Participants', icon: <Users size={ICON_SIZE} /> },
+  { key: 'participants', label: 'Members', icon: <Users size={ICON_SIZE} /> },
   { key: 'documents', label: 'Documents', icon: <FolderOpen size={ICON_SIZE} /> },
-  { key: 'voting', label: 'Voting', icon: <Trophy size={ICON_SIZE} /> },
-  { key: 'minutes', label: 'Minutes', icon: <PenLine size={ICON_SIZE} /> },
 ];
 
-// Action tabs — in the toolbar on desktop/tablet, overflow to More on mobile
-const ACTION_TABS: { key: SidePanelTab; label: string; icon: React.ReactNode }[] = [
+// Left sidebar tabs — utility / action panels (opens LEFT sidebar)
+const LEFT_SIDEBAR_TABS: { key: SidePanelTab; label: string; icon: React.ReactNode }[] = [
+  { key: 'voting', label: 'Voting', icon: <Trophy size={ICON_SIZE} /> },
+  { key: 'minutes', label: 'Minutes', icon: <PenLine size={ICON_SIZE} /> },
   { key: 'chat', label: 'Chat', icon: <MessageSquare size={ICON_SIZE} /> },
   { key: 'notes', label: 'Notes', icon: <StickyNote size={ICON_SIZE} /> },
 ];
+
+// Combined for mobile overflow lookup
+const ALL_TABS = [...RIGHT_SIDEBAR_TABS, ...LEFT_SIDEBAR_TABS];
 
 // ============================================================================
 // VERTICAL SEPARATOR
 // ============================================================================
 
-const Sep: React.FC = () => (
+const Sep: React.FC<{ theme: MeetingRoomTheme }> = ({ theme: t }) => (
   <div style={{
     width: 1,
     height: 24,
-    background: 'rgba(255,255,255,0.15)',
+    background: t.borderColorStrong,
     margin: '0 4px',
     flexShrink: 0,
   }} />
@@ -95,19 +104,59 @@ interface TBtnProps {
   disabled?: boolean;
   badge?: number;
   accent?: boolean;
+  /** Show label text below the icon (Zoom-style) */
+  showLabel?: boolean;
+  theme: MeetingRoomTheme;
 }
 
-const TBtn: React.FC<TBtnProps> = ({ icon, label, onClick, active, disabled, badge, accent }) => {
+const TBtn: React.FC<TBtnProps> = ({ icon, label, onClick, active, disabled, badge, accent, showLabel, theme: t }) => {
   const [hovered, setHovered] = useState(false);
 
   let bg = 'transparent';
-  let color = '#d1d5db';
-  if (hovered) { bg = 'rgba(255,255,255,0.1)'; }
-  if (active) { bg = 'rgba(255,255,255,0.15)'; color = '#fff'; }
-  if (accent) { bg = '#246fe5'; color = '#fff'; }
-  if (disabled) { color = '#555'; }
+  let color = t.textSecondary;
+  if (hovered) { bg = t.backgroundHover; }
+  if (active) { bg = t.backgroundActive; color = t.textPrimary; }
+  if (accent) { bg = t.primaryColor; color = t.primaryContrast; }
+  if (disabled) { color = t.textDisabled; }
 
-  const btn = (
+  const btnContent = showLabel ? (
+    <button
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        width: 64,
+        height: 52,
+        borderRadius: 8,
+        border: 'none',
+        background: bg,
+        color,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 2,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        transition: 'background 0.15s',
+        opacity: disabled ? 0.4 : 1,
+        flexShrink: 0,
+        outline: 'none',
+        padding: '4px 0',
+      }}
+    >
+      {icon}
+      <span style={{
+        ...getTypographyCSS('sectionLabel'), fontWeight: active ? 600 : 400,
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        maxWidth: 60,
+      }}>
+        {label}
+      </span>
+    </button>
+  ) : (
     <Tooltip title={label} placement="top">
       <button
         onClick={disabled ? undefined : onClick}
@@ -137,16 +186,16 @@ const TBtn: React.FC<TBtnProps> = ({ icon, label, onClick, active, disabled, bad
   );
 
   if (badge && badge > 0) {
-    return <Badge count={badge} size="small" offset={[-6, 6]} style={{ boxShadow: 'none' }}>{btn}</Badge>;
+    return <Badge count={badge} size="small" offset={[-6, 6]} style={{ boxShadow: 'none' }}>{btnContent}</Badge>;
   }
-  return btn;
+  return btnContent;
 };
 
 // ============================================================================
 // HANGUP / END BUTTON (red pill)
 // ============================================================================
 
-const HangupBtn: React.FC<{ label: string; onClick: () => void }> = ({ label, onClick }) => {
+const HangupBtn: React.FC<{ label: string; onClick: () => void; theme: MeetingRoomTheme }> = ({ label, onClick, theme: t }) => {
   const [hovered, setHovered] = useState(false);
   return (
     <Tooltip title={label} placement="top">
@@ -159,8 +208,8 @@ const HangupBtn: React.FC<{ label: string; onClick: () => void }> = ({ label, on
           height: 38,
           borderRadius: 10,
           border: 'none',
-          background: hovered ? '#ff2020' : '#ee1133',
-          color: '#fff',
+          background: hovered ? t.btnDangerHover : t.btnDanger,
+          color: t.primaryContrast,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -202,6 +251,8 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
   const { roomState, actions, capabilities, modeFeatures } = useMeetingRoom();
   const { isMobile } = useResponsive();
   const permissions = useMeetingRoomPermissions();
+  const mrTheme = useMeetingRoomTheme();
+  const { isDark, toggleMode } = useDisplayMode();
   const { status, quorumMet, participants } = roomState;
 
   const [, setLoading] = useState<string | null>(null);
@@ -232,43 +283,37 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
   const moreMenuItems: MenuProps['items'] = useMemo(() => {
     const items: MenuProps['items'] = [];
 
-    // On mobile, overflow panels & action tabs go into the menu
+    // On mobile, overflow panels go into the menu
     if (isMobile) {
       if (isVirtual) {
-        // Mobile + virtual: governance panels go to dropdown
+        // Mobile + virtual: right sidebar tabs go to dropdown
         items.push({
-          key: 'panels-header',
+          key: 'right-panels-header',
           type: 'group',
-          label: 'Panels',
-          children: GOVERNANCE_TABS.map(tab => ({
+          label: 'Meeting',
+          children: RIGHT_SIDEBAR_TABS.map(tab => ({
             key: `panel-${tab.key}`,
             icon: React.cloneElement(tab.icon as React.ReactElement<{ size: number }>, { size: MENU_ICON }),
             label: tab.label,
             onClick: () => onTabClick(tab.key),
           })),
         });
-        items.push({ type: 'divider', key: 'div-panels' });
+        items.push({ type: 'divider', key: 'div-right-panels' });
       }
-      // Chat & Notes always in dropdown on mobile
-      items.push(
-        {
-          key: `panel-chat`,
-          icon: <MessageSquare size={MENU_ICON} />,
-          label: 'Chat',
-          onClick: () => onTabClick('chat'),
-        },
-        {
-          key: `panel-notes`,
-          icon: <StickyNote size={MENU_ICON} />,
-          label: 'Notes',
-          onClick: () => onTabClick('notes'),
-        },
-      );
+      // Left sidebar tabs always in dropdown on mobile
+      items.push({
+        key: 'left-panels-header',
+        type: 'group',
+        label: 'Tools',
+        children: LEFT_SIDEBAR_TABS.map(tab => ({
+          key: `panel-${tab.key}`,
+          icon: React.cloneElement(tab.icon as React.ReactElement<{ size: number }>, { size: MENU_ICON }),
+          label: tab.label,
+          onClick: () => onTabClick(tab.key),
+        })),
+      });
       items.push({ type: 'divider', key: 'div-actions' });
     }
-
-    // On desktop/tablet, Chat & Notes are shown as toolbar buttons,
-    // so the dropdown only has actions
 
     // Lifecycle actions
     if ((status === 'waiting' || status === 'starting') && permissions.canStartMeeting) {
@@ -336,6 +381,14 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
       },
     });
 
+    // Dark / Light mode toggle
+    items.push({
+      key: 'toggle-theme',
+      icon: isDark ? <Sun size={MENU_ICON} /> : <Moon size={MENU_ICON} />,
+      label: isDark ? 'Light Mode' : 'Dark Mode',
+      onClick: toggleMode,
+    });
+
     // Settings placeholder
     items.push({
       key: 'settings',
@@ -346,7 +399,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
     });
 
     return items;
-  }, [isMobile, isVirtual, status, quorumMet, permissions, capabilities, actions, onCreateVote, onTabClick]);
+  }, [isMobile, isVirtual, status, quorumMet, permissions, capabilities, actions, onCreateVote, onTabClick, isDark, toggleMode]);
 
   // Ended state — thin centered message
   if (status === 'ended' || status === 'ending') {
@@ -356,11 +409,11 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
         bottom: 16,
         left: '50%',
         transform: 'translateX(-50%)',
-        background: 'rgba(28,28,28,0.9)',
+        background: mrTheme.toolbar,
         borderRadius: 12,
         padding: '10px 24px',
-        color: '#999',
-        fontSize: 13,
+        color: mrTheme.textTertiary,
+        ...getTypographyCSS('text'),
       }}>
         {status === 'ending' ? 'Meeting is ending...' : 'Meeting has ended'}
       </div>
@@ -381,7 +434,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
         display: 'flex',
         alignItems: 'center',
         gap: isMobile ? 2 : 4,
-        background: 'rgba(28, 28, 28, 0.95)',
+        background: mrTheme.toolbar,
         borderRadius: '14px 14px 0 0',
         padding: isMobile ? '6px 8px' : '6px 12px',
         zIndex: 100,
@@ -391,23 +444,23 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
       {/* ── SECTION 1: AV Controls (virtual/hybrid only) ── */}
       {isVirtual && (
         <>
-          <TBtn icon={<MicOff size={ICON_SIZE} />} label="Mute" onClick={actions.toggleMute} />
-          <TBtn icon={<VideoOff size={ICON_SIZE} />} label="Camera" onClick={actions.toggleVideo} />
+          <TBtn icon={<MicOff size={ICON_SIZE} />} label="Mute" onClick={actions.toggleMute} theme={mrTheme} />
+          <TBtn icon={<VideoOff size={ICON_SIZE} />} label="Camera" onClick={actions.toggleVideo} theme={mrTheme} />
           {showAllSections && (
-            <TBtn icon={<MonitorUp size={ICON_SIZE} />} label="Share Screen" onClick={() => actions.startScreenShare()} />
+            <TBtn icon={<MonitorUp size={ICON_SIZE} />} label="Share Screen" onClick={() => actions.startScreenShare()} theme={mrTheme} />
           )}
-          <TBtn icon={<Hand size={ICON_SIZE} />} label="Raise Hand" onClick={actions.raiseHand} />
-          <Sep />
+          <TBtn icon={<Hand size={ICON_SIZE} />} label="Raise Hand" onClick={actions.raiseHand} theme={mrTheme} />
+          <Sep theme={mrTheme} />
         </>
       )}
 
-      {/* ── SECTION 2: Governance Panel Tabs ── */}
-      {/* Desktop/Tablet: show all governance panels */}
-      {/* Mobile + Physical: show governance panels (primary interaction) */}
+      {/* ── SECTION 2: Right Sidebar Tabs (governance) ── */}
+      {/* Desktop/Tablet: show all right sidebar tabs */}
+      {/* Mobile + Physical: show right sidebar tabs (primary interaction) */}
       {/* Mobile + Virtual: show only active panel icon (rest in More dropdown) */}
       {(showAllSections || !isVirtual) ? (
         <>
-          {GOVERNANCE_TABS.map(tab => (
+          {RIGHT_SIDEBAR_TABS.map(tab => (
             <TBtn
               key={tab.key}
               icon={tab.icon}
@@ -415,48 +468,56 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
               onClick={() => onTabClick(tab.key)}
               active={activeTab === tab.key}
               badge={tab.key === 'participants' ? waitingCount : 0}
+              showLabel
+              theme={mrTheme}
             />
           ))}
         </>
       ) : (
         /* Mobile + Virtual: only show active panel button if one is open */
-        activeTab && GOVERNANCE_TABS.find(t => t.key === activeTab) ? (
+        activeTab && ALL_TABS.find(at => at.key === activeTab) ? (
           <TBtn
-            icon={GOVERNANCE_TABS.find(t => t.key === activeTab)!.icon}
-            label={GOVERNANCE_TABS.find(t => t.key === activeTab)!.label}
+            icon={ALL_TABS.find(at => at.key === activeTab)!.icon}
+            label={ALL_TABS.find(at => at.key === activeTab)!.label}
             onClick={() => onTabClick(activeTab)}
             active
+            theme={mrTheme}
           />
         ) : null
       )}
 
-      {/* Separator between panels and actions */}
-      {showAllSections && <Sep />}
+      {/* Separator between right and left sidebar tabs */}
+      {showAllSections && <Sep theme={mrTheme} />}
 
-      {/* ── SECTION 3: Action Tabs + More ── */}
-      {/* Desktop/Tablet: show Chat, Notes, More */}
+      {/* ── SECTION 3: Left Sidebar Tabs (utility / actions) ── */}
+      {/* Desktop/Tablet: show Voting, Minutes, Chat, Notes */}
       {showAllSections && (
         <>
-          {ACTION_TABS.map(tab => (
+          {LEFT_SIDEBAR_TABS.map(tab => (
             <TBtn
               key={tab.key}
               icon={tab.icon}
               label={tab.label}
               onClick={() => onTabClick(tab.key)}
               active={activeTab === tab.key}
+              showLabel
+              theme={mrTheme}
             />
           ))}
         </>
       )}
+
+      {/* Separator before actions */}
+      {showAllSections && <Sep theme={mrTheme} />}
 
       {/* More dropdown */}
       <Dropdown
         menu={{
           items: moreMenuItems,
           style: {
-            background: '#1e1e1e',
+            background: mrTheme.backgroundTertiary,
             borderRadius: 8,
-            border: '1px solid #2e2e2e',
+            border: `1px solid ${mrTheme.borderColor}`,
             padding: '4px 0',
             minWidth: 200,
           },
@@ -466,13 +527,13 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
         overlayClassName="meeting-room-more-dropdown"
       >
         <span>
-          <TBtn icon={<MoreHorizontal size={ICON_SIZE} />} label="More" onClick={() => {}} />
+          <TBtn icon={<MoreHorizontal size={ICON_SIZE} />} label="More" onClick={() => {}} theme={mrTheme} />
         </span>
       </Dropdown>
 
       {/* ── End / Hangup — red pill ── */}
       {(status === 'in_progress' || status === 'paused') && permissions.canEndMeeting && (
-        <HangupBtn label="End Meeting" onClick={confirmEnd} />
+        <HangupBtn label="End Meeting" onClick={confirmEnd} theme={mrTheme} />
       )}
     </div>
   );

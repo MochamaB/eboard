@@ -6,17 +6,15 @@
  */
 
 import React from 'react';
-import { Typography } from 'antd';
 import { useBoardContext } from '../../../../contexts';
 import { useMeetingRoomTheme } from '../MeetingRoomThemeContext';
 import { useResponsive } from '../../../../contexts/ResponsiveContext';
+import { getTypographyCSS } from '../../../../styles/responsive';
 import { useMeetingRoom } from '../../../../contexts/MeetingRoomContext';
 import { useMeetingRoomPermissions } from '../../../../hooks/meetings';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { useAgenda } from '../../../../hooks/api/useAgenda';
 import { VotesView } from '../../../../components/Voting';
-
-const { Text } = Typography;
 
 const SidePanelVoting: React.FC = () => {
   const { roomState } = useMeetingRoom();
@@ -39,9 +37,9 @@ const SidePanelVoting: React.FC = () => {
 
   return (
     <div style={{ padding: isMobile ? 12 : 16, height: '100%', overflow: 'auto' }}>
-      <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', display: 'block', marginBottom: 12 }}>
+      <span style={{ ...getTypographyCSS('sectionLabel'), textTransform: 'uppercase', display: 'block', marginBottom: 12, color: theme.textSecondary }}>
         Meeting Votes
-      </Text>
+      </span>
 
       <VotesView
         meetingId={meetingId}

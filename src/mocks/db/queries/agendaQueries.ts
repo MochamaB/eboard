@@ -6,6 +6,8 @@
 import { agendasTable, type AgendaRow } from '../tables/agendas';
 import { agendaItemsTable, type AgendaItemRow } from '../tables/agendaItems';
 import { agendaTemplatesTable, type AgendaTemplateRow, type AgendaTemplateItemData } from '../tables/agendaTemplates';
+import { usersTable } from '../tables/users';
+import { documentAttachmentsTable } from '../tables/documentAttachments';
 import type { Agenda, AgendaItem, AgendaTemplate } from '../../../types/agenda.types';
 import { idsMatch } from '../utils/idUtils';
 
@@ -189,17 +191,36 @@ export function calculateItemNumbers(items: AgendaItemRow[]): void {
 
 /**
  * Map AgendaItemRow to AgendaItem type
+ * - Resolves presenterName from usersTable via presenterId
+ * - Resolves attachedDocumentIds from documentAttachments table
  */
 function mapAgendaItemRowToType(row: AgendaItemRow): AgendaItem {
+  // Resolve presenter name from users table (authoritative source)
+  let resolvedPresenterName = row.presenterName || undefined;
+  if (row.presenterId) {
+    const user = usersTable.find(u => u.id === row.presenterId);
+    if (user) {
+      resolvedPresenterName = user.fullName;
+    }
+  }
+
+  // Resolve attached documents from documentAttachments table
+  const attachments = documentAttachmentsTable.filter(
+    att => att.entityType === 'agenda_item' && idsMatch(att.entityId, row.id)
+  );
+  const resolvedDocIds = attachments.length > 0
+    ? attachments.map(att => att.documentId)
+    : JSON.parse(row.attachedDocumentIds); // fallback to inline field
+
   return {
     ...row,
     description: row.description || undefined,
     presenterId: row.presenterId || undefined,
-    presenterName: row.presenterName || undefined,
+    presenterName: resolvedPresenterName,
     actualStartTime: row.actualStartTime || undefined,
     actualEndTime: row.actualEndTime || undefined,
     actualDuration: row.actualDuration || undefined,
-    attachedDocumentIds: JSON.parse(row.attachedDocumentIds),
+    attachedDocumentIds: resolvedDocIds,
     parentItemId: row.parentItemId || undefined,
   };
 }

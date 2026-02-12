@@ -1,5 +1,5 @@
 /**
- * Meeting Room Layout — Phase-Aware Jitsi Meet-style
+ * Meeting Room Layout — Two-Sidebar Architecture
  * 
  * Two distinct layouts based on meeting status:
  * 
@@ -10,30 +10,39 @@
  *    - Mobile/Tablet: Lobby sidebar takes full width, notice hidden
  * 
  * 2. IN-MEETING (in_progress/paused/ended):
- *    - CENTER: Video placeholder / content area (Jitsi-style, auto-hide header)
- *    - RIGHT: Side panels toggle from toolbar
+ *    Three-column layout with decoupled center content:
+ *    - LEFT SIDEBAR: Utility panels (Voting, Minutes, Chat, Notes)
+ *    - CENTER: Priority-based content (Document Cast > Active Vote > Current Agenda Item > Placeholder)
+ *    - RIGHT SIDEBAR: Governance panels (Agenda, Participants, Documents, Notice)
  *    - BOTTOM: Floating toolbar with auto-hide
+ * 
+ * Key design principle:
+ *   The center content is controlled ONLY by roomState (host actions),
+ *   never by which sidebar tab is open. Sidebars are personal browsing views.
+ * 
+ * Responsive behavior:
+ *   Desktop (lg+): Both sidebars can be open simultaneously
+ *   Tablet (md): Only one sidebar at a time
+ *   Mobile (< md): Sidebar opens as full-width overlay, one at a time
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { X, Clock, User, Paperclip } from 'lucide-react';
-import { Typography, Space, Tag } from 'antd';
+import { X } from 'lucide-react';
 import { useMeetingRoom } from '../../../contexts/MeetingRoomContext';
 import { useBoardContext } from '../../../contexts';
 import { useMeetingRoomTheme } from './MeetingRoomThemeContext';
 import { useResponsive } from '../../../contexts/ResponsiveContext';
 import { useAgenda } from '../../../hooks/api/useAgenda';
+import { getTypographyCSS } from '../../../styles/responsive';
 import { MeetingNoticeDocument } from '../../../components/Meetings';
-import { ItemNumberBadge, ItemTypeTag } from '../../../components/common';
-import { AgendaItemDocuments, AgendaItemVotes } from '../agenda/components';
-import { getChildItems, generateHierarchicalNumber } from '../../../utils/agendaHierarchy';
-import type { SidePanelTab, MeetingRoomState } from '../../../types/meetingRoom.types';
-import type { Agenda } from '../../../types/agenda.types';
-import type { Board, BoardBranding } from '../../../types/board.types';
+import type { RightPanelTab, LeftPanelTab } from '../../../types/meetingRoom.types';
+import type { MeetingRoomTheme } from './meetingRoomTheme';
 import BottomControlBar from './components/BottomControlBar';
 import PreMeetingLobby from './components/PreMeetingLobby';
-import SidePanelNotice from './components/SidePanelNotice';
-import SidePanelAgenda from './components/SidePanelAgenda';
+import ActiveAgendaContent from './components/ActiveAgendaContent';
+import DocumentPreview from './components/DocumentPreview';
+import RoomNoticePanel from './components/RoomNoticePanel';
+import RoomAgendaPanel from './components/RoomAgendaPanel';
 import SidePanelParticipants from './components/SidePanelParticipants';
 import SidePanelDocuments from './components/SidePanelDocuments';
 import SidePanelVoting from './components/SidePanelVoting';
@@ -48,207 +57,109 @@ const PANEL_WIDTH = 360;
 const PANEL_WIDTH_MOBILE = '100%';
 const LOBBY_WIDTH = 280;
 
-const TAB_LABELS: Record<SidePanelTab, string> = {
-  notice: 'Notice',
+const RIGHT_TAB_LABELS: Record<RightPanelTab, string> = {
   agenda: 'Agenda',
   participants: 'Participants',
   documents: 'Documents',
+  notice: 'Details',
+};
+
+const LEFT_TAB_LABELS: Record<LeftPanelTab, string> = {
   voting: 'Voting',
   minutes: 'Minutes',
   chat: 'Chat',
   notes: 'Notes',
 };
 
+// Which tabs belong to which sidebar
+const RIGHT_TABS: Set<string> = new Set(['agenda', 'participants', 'documents', 'notice']);
+const LEFT_TABS: Set<string> = new Set(['voting', 'minutes', 'chat', 'notes']);
+
 // ============================================================================
-// ACTIVE AGENDA ITEM — Main Content Area
+// SIDEBAR CONTAINER (reusable for left and right)
 // ============================================================================
 
-const { Text } = Typography;
-
-interface ActiveAgendaContentProps {
-  roomState: MeetingRoomState;
-  agendaData?: Agenda;
-  meeting: MeetingRoomState['meeting'];
-  currentBoard: Board;
-  theme: BoardBranding;
+interface SidebarContainerProps {
+  open: boolean;
+  label: string;
+  onClose: () => void;
+  side: 'left' | 'right';
+  isMobile: boolean;
+  theme: MeetingRoomTheme;
+  children: React.ReactNode;
 }
 
-const ActiveAgendaContent: React.FC<ActiveAgendaContentProps> = ({
-  roomState,
-  agendaData,
-  meeting,
-  currentBoard,
-  theme,
+const SidebarContainer: React.FC<SidebarContainerProps> = ({
+  open,
+  label,
+  onClose,
+  side,
+  isMobile,
+  theme: t,
+  children,
 }) => {
-  const { currentAgendaItemId, currentAgendaItem, agendaItems } = roomState;
-  const item = currentAgendaItem;
-
-  if (!item || !currentAgendaItemId) {
-    return (
-      <div style={{
-        width: '100%', height: '100%',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: '#888',
-      }}>
-        No active agenda item
-      </div>
-    );
-  }
-
-  const hierarchicalNumber = generateHierarchicalNumber(item, agendaItems);
-  const children = getChildItems(item.id, agendaItems);
-  const hasChildren = children.length > 0;
-  const meetingId = meeting?.id || '';
-  const boardId = currentBoard?.id || '';
+  const panelWidth = isMobile ? PANEL_WIDTH_MOBILE : PANEL_WIDTH;
+  const borderSide = side === 'left' ? 'borderRight' : 'borderLeft';
 
   return (
     <div style={{
-      width: '100%',
-      height: '100%',
-      overflow: 'auto',
-      background: '#121212',
-      padding: 32,
+      width: open ? panelWidth : 0,
+      transition: 'width 0.25s ease',
+      overflow: 'hidden',
+      flexShrink: 0,
       display: 'flex',
-      justifyContent: 'center',
+      flexDirection: 'column',
+      background: t.backgroundSecondary,
+      [borderSide]: open ? `1px solid ${t.borderColor}` : 'none',
+      // Mobile: overlay positioning
+      ...(isMobile && open ? {
+        position: 'absolute' as const,
+        top: 0,
+        bottom: 0,
+        [side]: 0,
+        zIndex: 200,
+        width: '100%',
+      } : {}),
     }}>
-      <div style={{ maxWidth: 800, width: '100%' }}>
-        {/* Item Card */}
-        <div style={{
-          background: '#fff',
-          borderRadius: 12,
-          padding: 24,
-          boxShadow: '0 2px 12px rgba(0,0,0,0.3)',
-        }}>
-          {/* Header: Item Number + Title + Type */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 16 }}>
-            <ItemNumberBadge number={hierarchicalNumber} isParent={!item.parentItemId} size="large" />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <Typography.Title level={4} style={{ margin: 0, color: theme.textPrimary }}>
-                  {item.title}
-                </Typography.Title>
-                <ItemTypeTag type={item.itemType} />
-                {item.isAdHoc && (
-                  <Tag color="orange" style={{ fontSize: 11 }}>AD-HOC</Tag>
-                )}
-              </div>
+      {/* Panel Header */}
+      <div style={{
+        height: 48,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 16px',
+        borderBottom: `1px solid ${t.borderColor}`,
+        flexShrink: 0,
+        background: t.backgroundTertiary,
+      }}>
+        <span style={{ color: t.textPrimary, ...getTypographyCSS('h4') }}>
+          {label}
+        </span>
+        <button
+          onClick={onClose}
+          style={{
+            width: 32, height: 32, borderRadius: '50%',
+            border: 'none', background: 'transparent', color: t.textTertiary,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', transition: 'background 0.15s',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = t.backgroundHover)}
+          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+        >
+          <X size={18} />
+        </button>
+      </div>
 
-              {/* Metadata row */}
-              <Space size="middle" style={{ marginTop: 8, fontSize: 13, color: theme.textSecondary }}>
-                {item.estimatedDuration && (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Clock size={14} />
-                    {item.estimatedDuration}m
-                  </span>
-                )}
-                {item.presenterName && (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <User size={14} />
-                    {item.presenterName}
-                  </span>
-                )}
-                {item.attachedDocumentIds && item.attachedDocumentIds.length > 0 && (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Paperclip size={14} />
-                    {item.attachedDocumentIds.length} document{item.attachedDocumentIds.length !== 1 ? 's' : ''}
-                  </span>
-                )}
-              </Space>
-            </div>
-          </div>
-
-          {/* Description */}
-          {item.description && (
-            <div style={{
-              marginBottom: 20,
-              padding: 16,
-              background: theme.backgroundTertiary || '#fafafa',
-              borderRadius: 8,
-              borderLeft: `3px solid ${theme.primaryColor}`,
-            }}>
-              <Text style={{ fontSize: 13, color: theme.textSecondary, whiteSpace: 'pre-wrap' }}>
-                {item.description}
-              </Text>
-            </div>
-          )}
-
-          {/* Documents */}
-          <AgendaItemDocuments
-            agendaItemId={item.id}
-            mode="execute"
-            boardId={boardId}
-            meetingId={meetingId}
-          />
-
-          {/* Votes */}
-          {agendaData && (
-            <AgendaItemVotes
-              agendaItemId={item.id}
-              agendaId={agendaData.id}
-              meetingId={meetingId}
-              boardId={boardId}
-              mode="execute"
-              agendaItems={agendaItems.map(ai => ({
-                id: ai.id,
-                title: ai.title,
-                itemNumber: ai.itemNumber,
-                parentItemId: ai.parentItemId ?? null,
-              }))}
-            />
-          )}
-
-          {/* Sub-items */}
-          {hasChildren && (
-            <div style={{ marginTop: 20 }}>
-              <Text strong style={{ display: 'block', marginBottom: 12, fontSize: 14 }}>
-                Sub-Items ({children.length})
-              </Text>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {children.map(child => {
-                  const childNumber = generateHierarchicalNumber(child, agendaItems);
-                  return (
-                    <div
-                      key={child.id}
-                      style={{
-                        padding: 12,
-                        borderRadius: 8,
-                        border: `1px solid ${theme.borderColor || '#e8e8e8'}`,
-                        background: theme.backgroundSecondary || '#fafafa',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <ItemNumberBadge number={childNumber} isParent={false} size="small" />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <Text style={{ fontSize: 13, fontWeight: 500 }}>{child.title}</Text>
-                          <Space size="small" style={{ display: 'flex', marginTop: 4, fontSize: 12, color: theme.textSecondary }}>
-                            <ItemTypeTag type={child.itemType} size="small" showIcon={false} />
-                            {child.estimatedDuration && (
-                              <span><Clock size={12} /> {child.estimatedDuration}m</span>
-                            )}
-                            {child.presenterName && (
-                              <span><User size={12} /> {child.presenterName}</span>
-                            )}
-                          </Space>
-                        </div>
-                        {child.status === 'completed' && (
-                          <Tag color="green" style={{ fontSize: 11 }}>Done</Tag>
-                        )}
-                        {child.status === 'skipped' && (
-                          <Tag style={{ fontSize: 11 }}>Skipped</Tag>
-                        )}
-                      </div>
-                      {child.description && (
-                        <Text type="secondary" style={{ display: 'block', marginTop: 8, fontSize: 12 }}>
-                          {child.description}
-                        </Text>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
+      {/* Panel Content */}
+      <div
+        className="meeting-room-scrollable"
+        style={{
+          flex: 1,
+          overflow: 'auto',
+          minWidth: isMobile ? '100vw' : PANEL_WIDTH,
+        }}
+      >
+        {open && children}
       </div>
     </div>
   );
@@ -269,15 +180,21 @@ const MeetingRoomLayout: React.FC = () => {
   // Has the user "joined" (clicked Join/Start in lobby)?
   const [hasJoined, setHasJoined] = useState(false);
 
-  // Side panel state (for in-meeting)
-  const [activeTab, setActiveTab] = useState<SidePanelTab>('agenda');
-  const [panelOpen, setPanelOpen] = useState(false);
+  // Two independent sidebar states
+  const [rightPanel, setRightPanel] = useState<{ open: boolean; tab: RightPanelTab }>({
+    open: false,
+    tab: 'agenda',
+  });
+  const [leftPanel, setLeftPanel] = useState<{ open: boolean; tab: LeftPanelTab }>({
+    open: false,
+    tab: 'voting',
+  });
 
   // Auto-hide state for toolbar + header (in-meeting only)
   const [controlsVisible, setControlsVisible] = useState(true);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Fetch agenda for notice document
+  // Fetch agenda for notice document (pre-meeting)
   const { data: agendaData } = useAgenda(meeting?.id || '');
   const agendaItems = agendaData?.items || [];
 
@@ -307,15 +224,50 @@ const MeetingRoomLayout: React.FC = () => {
     };
   }, [resetHideTimer, isPreMeeting]);
 
-  // Toggle panel: same tab = close, different tab = open to that tab
-  const handleTabClick = (tabKey: SidePanelTab) => {
-    if (panelOpen && activeTab === tabKey) {
-      setPanelOpen(false);
-    } else {
-      setActiveTab(tabKey);
-      setPanelOpen(true);
+  // ── Sidebar toggle handlers ──
+
+  const handleRightTabClick = useCallback((tab: RightPanelTab) => {
+    setRightPanel(prev => {
+      if (prev.open && prev.tab === tab) {
+        return { ...prev, open: false };
+      }
+      return { open: true, tab };
+    });
+    // On tablet: close left panel when opening right
+    if (isTablet) {
+      setLeftPanel(prev => ({ ...prev, open: false }));
     }
-  };
+    // On mobile: close left panel when opening right
+    if (isMobile) {
+      setLeftPanel(prev => ({ ...prev, open: false }));
+    }
+  }, [isTablet, isMobile]);
+
+  const handleLeftTabClick = useCallback((tab: LeftPanelTab) => {
+    setLeftPanel(prev => {
+      if (prev.open && prev.tab === tab) {
+        return { ...prev, open: false };
+      }
+      return { open: true, tab };
+    });
+    // On tablet: close right panel when opening left
+    if (isTablet) {
+      setRightPanel(prev => ({ ...prev, open: false }));
+    }
+    // On mobile: close right panel when opening left
+    if (isMobile) {
+      setRightPanel(prev => ({ ...prev, open: false }));
+    }
+  }, [isTablet, isMobile]);
+
+  // Unified handler for BottomControlBar (routes to correct sidebar)
+  const handleTabClick = useCallback((tabKey: string) => {
+    if (RIGHT_TABS.has(tabKey)) {
+      handleRightTabClick(tabKey as RightPanelTab);
+    } else if (LEFT_TABS.has(tabKey)) {
+      handleLeftTabClick(tabKey as LeftPanelTab);
+    }
+  }, [handleRightTabClick, handleLeftTabClick]);
 
   const handleJoin = () => {
     setHasJoined(true);
@@ -329,20 +281,69 @@ const MeetingRoomLayout: React.FC = () => {
     window.close();
   };
 
-  const renderPanelContent = () => {
-    switch (activeTab) {
-      case 'notice': return <SidePanelNotice />;
-      case 'agenda': return <SidePanelAgenda />;
+  // ── Render sidebar content ──
+
+  const renderRightPanelContent = () => {
+    switch (rightPanel.tab) {
+      case 'agenda': return <RoomAgendaPanel />;
       case 'participants': return <SidePanelParticipants />;
       case 'documents': return <SidePanelDocuments />;
+      case 'notice': return <RoomNoticePanel />;
+      default: return null;
+    }
+  };
+
+  const renderLeftPanelContent = () => {
+    switch (leftPanel.tab) {
       case 'voting': return <SidePanelVoting />;
       case 'minutes': return <SidePanelMinutes />;
       case 'chat':
-        return <div style={{ padding: 24, color: '#888', textAlign: 'center' }}>Chat — Coming soon</div>;
+        return <div style={{ padding: 24, color: mrTheme.textTertiary, textAlign: 'center', ...getTypographyCSS('text') }}>Chat — Coming soon</div>;
       case 'notes':
-        return <div style={{ padding: 24, color: '#888', textAlign: 'center' }}>Notes — Coming soon</div>;
+        return <div style={{ padding: 24, color: mrTheme.textTertiary, textAlign: 'center', ...getTypographyCSS('text') }}>Notes — Coming soon</div>;
       default: return null;
     }
+  };
+
+  // ── Render center content (priority-based, decoupled from sidebars) ──
+
+  const renderCenterContent = () => {
+    // Priority 1: Document being cast
+    if (roomState.castingDocument) {
+      return <DocumentPreview />;
+    }
+
+    // Priority 2: Current agenda item (always shown when available)
+    // Active vote overlays on top of this via ActiveVotePanel (future)
+    if (roomState.currentAgendaItemId) {
+      return <ActiveAgendaContent />;
+    }
+
+    // Priority 3: No agenda item — waiting placeholder
+    return (
+      <div style={{
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 16,
+      }}>
+        <div style={{
+          width: 120, height: 120, borderRadius: '50%',
+          background: mrTheme.primaryColor,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          ...getTypographyCSS('h1'), fontWeight: 300, color: mrTheme.primaryContrast, userSelect: 'none',
+          opacity: 0.6,
+        }}>
+          {(meeting?.title || 'M')[0].toUpperCase()}
+        </div>
+        <span style={{ color: mrTheme.textTertiary, ...getTypographyCSS('text') }}>
+          Waiting for the host to navigate to an agenda item
+        </span>
+      </div>
+    );
   };
 
   // Format duration
@@ -353,7 +354,12 @@ const MeetingRoomLayout: React.FC = () => {
     ? `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
     : `${mins}:${secs.toString().padStart(2, '0')}`;
 
-  const panelWidth = isMobile ? PANEL_WIDTH_MOBILE : PANEL_WIDTH;
+  // Compute active tab for BottomControlBar highlight
+  const activeTabForToolbar = rightPanel.open
+    ? rightPanel.tab
+    : leftPanel.open
+      ? leftPanel.tab
+      : undefined;
 
   // ========================================================================
   // PRE-MEETING LAYOUT
@@ -364,7 +370,7 @@ const MeetingRoomLayout: React.FC = () => {
         position: 'relative',
         width: '100%',
         height: '100%',
-        background: '#000',
+        background: mrTheme.backgroundPrimary,
         display: 'flex',
         overflow: 'hidden',
       }}>
@@ -372,7 +378,7 @@ const MeetingRoomLayout: React.FC = () => {
         <div style={{
           width: isSmallScreen ? '100%' : LOBBY_WIDTH,
           flexShrink: 0,
-          borderRight: isSmallScreen ? 'none' : '1px solid #2a2a2a',
+          borderRight: isSmallScreen ? 'none' : `1px solid ${mrTheme.borderColor}`,
           overflow: 'hidden',
         }}>
           <PreMeetingLobby onJoin={handleJoin} onLeave={handleLeave} />
@@ -383,7 +389,7 @@ const MeetingRoomLayout: React.FC = () => {
           <div style={{
             flex: 1,
             overflow: 'auto',
-            background: '#121212',
+            background: mrTheme.backgroundPrimary,
             padding: 32,
             display: 'flex',
             justifyContent: 'center',
@@ -417,19 +423,32 @@ const MeetingRoomLayout: React.FC = () => {
 
   // ========================================================================
   // IN-MEETING LAYOUT (in_progress / paused / ending / ended)
+  // Three-column: [Left Sidebar] [Center Content] [Right Sidebar]
   // ========================================================================
   return (
     <div style={{
       position: 'relative',
       width: '100%',
       height: '100%',
-      background: '#000',
+      background: mrTheme.backgroundPrimary,
       overflow: 'hidden',
       cursor: controlsVisible ? 'default' : 'none',
       display: 'flex',
     }}>
 
-      {/* ── LEFT: Main area (black + avatar + overlays) ── */}
+      {/* ── LEFT SIDEBAR: Utility panels (Voting, Minutes, Chat, Notes) ── */}
+      <SidebarContainer
+        open={leftPanel.open}
+        label={LEFT_TAB_LABELS[leftPanel.tab]}
+        onClose={() => setLeftPanel(prev => ({ ...prev, open: false }))}
+        side="left"
+        isMobile={isMobile}
+        theme={mrTheme}
+      >
+        {renderLeftPanelContent()}
+      </SidebarContainer>
+
+      {/* ── CENTER: Main content area ── */}
       <div style={{ flex: 1, position: 'relative', minWidth: 0 }}>
 
         {/* HEADER (Jitsi-style transparent overlay, auto-hides) */}
@@ -444,16 +463,17 @@ const MeetingRoomLayout: React.FC = () => {
           justifyContent: 'center',
           gap: 12,
           zIndex: 90,
-          background: 'linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 100%)',
+          background: mrTheme.themeMode === 'dark'
+            ? 'linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 100%)'
+            : 'linear-gradient(to bottom, rgba(255,255,255,0.85) 0%, transparent 100%)',
           transition: 'opacity 0.3s ease, transform 0.3s ease',
           opacity: controlsVisible ? 1 : 0,
           transform: controlsVisible ? 'translateY(0)' : 'translateY(-20px)',
           pointerEvents: controlsVisible ? 'auto' : 'none',
         }}>
           <span style={{
-            color: '#e0e0e0',
-            fontSize: 14,
-            fontWeight: 500,
+            color: mrTheme.textPrimary,
+            ...getTypographyCSS('h4'),
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -461,129 +481,40 @@ const MeetingRoomLayout: React.FC = () => {
           }}>
             {meeting?.title || 'Meeting Room'}
           </span>
-          <span style={{ color: '#8ab4f8', fontFamily: 'monospace', fontSize: 13 }}>
+          <span style={{ color: mrTheme.infoColor, fontFamily: 'monospace', ...getTypographyCSS('text') }}>
             {timeStr}
           </span>
           <span style={{
-            width: 22, height: 22, borderRadius: '50%', border: '1px solid #555',
+            width: 22, height: 22, borderRadius: '50%', border: `1px solid ${mrTheme.borderColorStrong}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 10, color: '#888', cursor: 'pointer',
+            ...getTypographyCSS('sectionLabel'), color: mrTheme.textTertiary, cursor: 'pointer',
           }}>
             🔒
           </span>
         </div>
 
-        {/* MAIN CONTENT — context-aware */}
-        {panelOpen && activeTab === 'notice' && meeting ? (
-          /* Notice Document in main content when notice panel is active */
-          <div style={{
-            width: '100%',
-            height: '100%',
-            overflow: 'auto',
-            background: '#121212',
-            padding: 32,
-            display: 'flex',
-            justifyContent: 'center',
-          }}>
-            <div style={{ maxWidth: 800, width: '100%' }}>
-              <MeetingNoticeDocument
-                meeting={meeting}
-                board={currentBoard}
-                branding={theme}
-                contactInfo={currentBoard?.contactInfo}
-                logoUrl={logo}
-                mode="execution"
-                agendaItems={agendaItems}
-                compact={false}
-              />
-            </div>
-          </div>
-        ) : panelOpen && activeTab === 'agenda' && roomState.currentAgendaItemId ? (
-          /* Active Agenda Item in main content when agenda panel is active */
-          <ActiveAgendaContent
-            roomState={roomState}
-            agendaData={agendaData}
-            meeting={meeting}
-            currentBoard={currentBoard}
-            theme={theme}
-          />
-        ) : (
-          /* Default: centered avatar (future: Jitsi video) */
-          <div style={{
-            width: '100%',
-            height: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <div style={{
-              width: 200, height: 200, borderRadius: '50%',
-              background: mrTheme.primaryColor,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 80, fontWeight: 300, color: '#fff', userSelect: 'none',
-            }}>
-              {(meeting?.title || 'M')[0].toUpperCase()}
-            </div>
-          </div>
-        )}
+        {/* MAIN CONTENT — priority-based, decoupled from sidebars */}
+        {renderCenterContent()}
 
         {/* FLOATING BOTTOM TOOLBAR */}
         <BottomControlBar
-          activeTab={panelOpen ? activeTab : undefined}
+          activeTab={activeTabForToolbar}
           onTabClick={handleTabClick}
           visible={controlsVisible}
         />
       </div>
 
-      {/* ── RIGHT: Side Panel (dark, slides in) ── */}
-      <div style={{
-        width: panelOpen ? panelWidth : 0,
-        transition: 'width 0.25s ease',
-        overflow: 'hidden',
-        flexShrink: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        background: '#1a1a1a',
-        borderLeft: panelOpen ? '1px solid #2a2a2a' : 'none',
-      }}>
-        {/* Panel Header */}
-        <div style={{
-          height: 48,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0 16px',
-          borderBottom: '1px solid #2a2a2a',
-          flexShrink: 0,
-          background: '#1e1e1e',
-        }}>
-          <span style={{ color: '#e0e0e0', fontSize: 14, fontWeight: 600 }}>
-            {TAB_LABELS[activeTab]}
-          </span>
-          <button
-            onClick={() => setPanelOpen(false)}
-            style={{
-              width: 32, height: 32, borderRadius: '50%',
-              border: 'none', background: 'transparent', color: '#999',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer', transition: 'background 0.15s',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.1)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* Panel Content */}
-        <div style={{
-          flex: 1,
-          overflow: 'auto',
-          minWidth: isMobile ? '100vw' : PANEL_WIDTH,
-        }}>
-          {panelOpen && renderPanelContent()}
-        </div>
-      </div>
+      {/* ── RIGHT SIDEBAR: Governance panels (Agenda, Participants, Documents, Notice) ── */}
+      <SidebarContainer
+        open={rightPanel.open}
+        label={RIGHT_TAB_LABELS[rightPanel.tab]}
+        onClose={() => setRightPanel(prev => ({ ...prev, open: false }))}
+        side="right"
+        isMobile={isMobile}
+        theme={mrTheme}
+      >
+        {renderRightPanelContent()}
+      </SidebarContainer>
     </div>
   );
 };

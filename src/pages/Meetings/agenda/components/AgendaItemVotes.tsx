@@ -38,7 +38,8 @@ export const AgendaItemVotes: React.FC<AgendaItemVotesProps> = ({
   const [voteModalOpen, setVoteModalOpen] = useState(false);
 
   // Fetch all votes for this meeting
-  const { data: allVotes = [] } = useMeetingVotes(meetingId);
+  const { data: allVotesData } = useMeetingVotes(meetingId);
+  const allVotes = Array.isArray(allVotesData) ? allVotesData : [];
 
   // Filter votes linked to this specific agenda item
   const itemVotes = allVotes.filter(

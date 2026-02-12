@@ -4,7 +4,7 @@
  */
 
 import React, { useMemo } from 'react';
-import { Button, Space, Typography, Divider, Spin, Empty, Tooltip } from 'antd';
+import { Button, Space, Divider, Spin, Empty, Tooltip } from 'antd';
 import { 
   FileTextOutlined, 
   FilePdfOutlined,
@@ -18,11 +18,10 @@ import {
 } from '@ant-design/icons';
 import { useMeetingRoomTheme } from '../MeetingRoomThemeContext';
 import { useResponsive } from '../../../../contexts/ResponsiveContext';
+import { getTypographyCSS } from '../../../../styles/responsive';
 import { useMeetingRoom } from '../../../../contexts/MeetingRoomContext';
 import { useMeetingRoomPermissions } from '../../../../hooks/meetings';
 import { useMeetingDocuments } from '../../../../hooks/api/useDocuments';
-
-const { Text } = Typography;
 
 const getFileIcon = (fileExtension?: string, size = 24) => {
   switch (fileExtension?.toLowerCase()) {
@@ -82,9 +81,9 @@ const SidePanelDocuments: React.FC = () => {
       <div style={{ flex: 1, overflow: 'auto', padding: panelPadding }}>
         {/* Current Item Documents */}
         <div>
-          <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', display: 'block', marginBottom: 12 }}>
+          <span style={{ ...getTypographyCSS('sectionLabel'), textTransform: 'uppercase', display: 'block', marginBottom: 12, color: theme.textSecondary }}>
             Current Item Documents ({currentItemDocs.length})
-          </Text>
+          </span>
           
           {currentItemDocs.length === 0 ? (
             <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No documents for this item" />
@@ -107,19 +106,20 @@ const SidePanelDocuments: React.FC = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 12 }}>
                       {getFileIcon(doc.fileExtension, iconSize)}
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <Text 
-                          strong 
+                        <span 
                           style={{ 
                             display: 'block',
+                            ...getTypographyCSS('text'), fontWeight: 600,
+                            color: theme.textPrimary,
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
                           }}
                         >
                           {doc.name}
-                        </Text>
+                        </span>
                         {isCasting && (
-                          <Text style={{ fontSize: 11, color: theme.primaryColor }}>📺 Currently Casting</Text>
+                          <span style={{ ...getTypographyCSS('caption'), color: theme.primaryColor }}>📺 Currently Casting</span>
                         )}
                       </div>
                     </div>
@@ -160,9 +160,9 @@ const SidePanelDocuments: React.FC = () => {
         
         {/* All Meeting Documents */}
         <div>
-          <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', display: 'block', marginBottom: 12 }}>
+          <span style={{ ...getTypographyCSS('sectionLabel'), textTransform: 'uppercase', display: 'block', marginBottom: 12, color: theme.textSecondary }}>
             All Meeting Documents ({allDocs.length})
-          </Text>
+          </span>
           
           {allDocs.length === 0 ? (
             <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No documents attached" />
@@ -180,16 +180,18 @@ const SidePanelDocuments: React.FC = () => {
                   }}
                 >
                   {getFileIcon(doc.fileExtension, iconSize)}
-                  <Text 
+                  <span 
                     style={{ 
                       flex: 1,
+                      ...getTypographyCSS('text'),
+                      color: theme.textPrimary,
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
                     }}
                   >
                     {doc.name}
-                  </Text>
+                  </span>
                   <Button type="text" size="small" icon={<DownloadOutlined />} />
                 </div>
               ))}
