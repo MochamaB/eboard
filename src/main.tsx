@@ -19,9 +19,10 @@ import '@fontsource/dm-sans/500.css';
 import '@fontsource/dm-sans/600.css';
 import '@fontsource/dm-sans/700.css';
 
-// Enable MSW in development
+// Enable MSW when VITE_ENABLE_MOCKING is set or in development
 async function enableMocking() {
-  if (import.meta.env.DEV) {
+  const enableMocking = import.meta.env.VITE_ENABLE_MOCKING === 'true' || import.meta.env.DEV;
+  if (enableMocking) {
     const { worker } = await import('./mocks/browser');
     return worker.start({
       onUnhandledRequest: 'bypass', // Don't warn about unhandled requests
