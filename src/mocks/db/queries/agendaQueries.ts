@@ -3,9 +3,9 @@
  * Helper functions for querying agenda-related data
  */
 
-import { agendasTable, AgendaRow } from '../tables/agendas';
-import { agendaItemsTable, AgendaItemRow } from '../tables/agendaItems';
-import { agendaTemplatesTable, AgendaTemplateRow, AgendaTemplateItemData } from '../tables/agendaTemplates';
+import { agendasTable, type AgendaRow } from '../tables/agendas';
+import { agendaItemsTable, type AgendaItemRow } from '../tables/agendaItems';
+import { agendaTemplatesTable, type AgendaTemplateRow, type AgendaTemplateItemData } from '../tables/agendaTemplates';
 import type { Agenda, AgendaItem, AgendaTemplate } from '../../../types/agenda.types';
 import { idsMatch } from '../utils/idUtils';
 

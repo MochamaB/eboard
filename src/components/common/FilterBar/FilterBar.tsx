@@ -16,7 +16,7 @@ import {
   Divider,
   Tag,
 } from 'antd';
-import type { SelectProps } from 'antd';
+
 import { FilterOutlined, CloseOutlined } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
 

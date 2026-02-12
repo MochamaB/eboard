@@ -9,6 +9,7 @@ import type {
   Meeting,
   MeetingListItem,
   MeetingFilterParams,
+  MeetingStatus,
   CreateMeetingPayload,
   UpdateMeetingPayload,
   AddGuestPayload,
@@ -433,6 +434,63 @@ export const useDownloadNoticePDF = (
 ) => {
   return useMutation({
     mutationFn: (meetingId: string) => meetingsApi.downloadNoticePDF(meetingId),
+    ...options,
+  });
+};
+
+// ============================================================================
+// LIFECYCLE TRANSITION HOOKS
+// ============================================================================
+
+/**
+ * Archive a completed meeting (completed.recent → completed.archived).
+ * Uses refetchQueries (not invalidateQueries) because the detail page is
+ * mounted and must show the updated status immediately — with 5-min staleTime,
+ * invalidateQueries would not trigger a visible UI update.
+ */
+export const useArchiveMeeting = (
+  id: string,
+  options?: UseMutationOptions<Meeting, Error, void>
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => meetingsApi.archiveMeeting(id),
+    onSuccess: async (data) => {
+      // Refetch detail immediately — status must update in the mounted detail page
+      await queryClient.refetchQueries({ queryKey: meetingKeys.detail(id) });
+      // Lazily invalidate lists (not actively mounted, eventual consistency is fine)
+      queryClient.invalidateQueries({ queryKey: meetingKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: meetingKeys.boardMeetings(data.boardId) });
+    },
+    ...options,
+  });
+};
+
+/**
+ * Generic status transition: Start Meeting (→ in_progress), End Meeting (→ completed.recent), etc.
+ * Uses refetchQueries on the detail query because these transitions happen while
+ * the user is on the detail page and the new status must be visible immediately.
+ */
+type TransitionPayload = { status: MeetingStatus; subStatus?: string; reason?: string };
+
+export const useTransitionMeetingStatus = (
+  id: string,
+  options?: UseMutationOptions<Meeting, Error, TransitionPayload>
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: TransitionPayload) => meetingsApi.transitionMeetingStatus(id, payload),
+    onSuccess: async (data) => {
+      // Refetch detail immediately — user is on the detail page watching the status change
+      await queryClient.refetchQueries({ queryKey: meetingKeys.detail(id) });
+      await queryClient.refetchQueries({ queryKey: meetingKeys.meetingEvents(id) });
+      // Lazily invalidate lists and upcoming — not actively mounted
+      queryClient.invalidateQueries({ queryKey: meetingKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: meetingKeys.boardMeetings(data.boardId) });
+      queryClient.invalidateQueries({ queryKey: meetingKeys.upcoming() });
+    },
     ...options,
   });
 };

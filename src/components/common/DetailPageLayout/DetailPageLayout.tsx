@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { Button } from 'antd';
-import { ArrowLeftOutlined } from '@ant-design/icons';
+
 import { DetailsHeader, HorizontalTabs } from '../';
 import type { MetadataItem, ActionButton } from '../DetailsHeader/DetailsHeader';
 import type { HorizontalTabItem } from '../HorizontalTabs/HorizontalTabs';

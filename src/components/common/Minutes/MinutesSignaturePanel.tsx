@@ -34,7 +34,7 @@ interface MinutesSignaturePanelProps {
 }
 
 export const MinutesSignaturePanel: React.FC<MinutesSignaturePanelProps> = ({
-  minutesId,
+  minutesId: _minutesId,
   signatures,
   requiredSigners,
   canSign,

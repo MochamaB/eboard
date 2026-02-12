@@ -14,8 +14,6 @@ import {
   TeamOutlined,
   VideoCameraOutlined,
   HomeOutlined,
-  DeleteOutlined,
-  SendOutlined,
   CheckOutlined,
   CloseOutlined,
   StopOutlined,

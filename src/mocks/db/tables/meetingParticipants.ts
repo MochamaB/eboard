@@ -3,7 +3,7 @@
  * Unified table for members, guests, presenters, and observers
  */
 
-export type RSVPStatus = 'pending' | 'accepted' | 'declined' | 'tentative';
+export type RSVPStatus = 'pending' | 'accepted' | 'declined' | 'tentative' | 'no_response';
 export type AttendanceStatus = 'present' | 'absent' | 'late' | 'left_early' | 'excused' | null;
 
 export interface MeetingParticipantRow {

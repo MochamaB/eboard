@@ -20,6 +20,7 @@ import {
   type CancelMeetingPayload,
   type RescheduleMeetingPayload,
   type MeetingEvent,
+  type MeetingStatus,
   type RejectionReason,
 } from '../types/meeting.types';
 import type { PaginatedResponse } from '../types/api.types';
@@ -244,6 +245,25 @@ export const meetingsApi = {
   ): Promise<{ success: boolean; data?: MeetingEvent; message: string }> => {
     const response = await apiClient.post(`/meetings/${meetingId}/resubmit-for-approval`, payload);
     return ApprovalActionResponseSchema.parse(response.data);
+  },
+
+  /**
+   * Archive a completed meeting (completed.recent → completed.archived)
+   */
+  archiveMeeting: async (meetingId: string): Promise<Meeting> => {
+    const response = await apiClient.post(`/meetings/${meetingId}/archive`);
+    return MeetingSchema.parse(response.data);
+  },
+
+  /**
+   * Generic status transition (start, end, etc.)
+   */
+  transitionMeetingStatus: async (
+    meetingId: string,
+    payload: { status: MeetingStatus; subStatus?: string; reason?: string }
+  ): Promise<Meeting> => {
+    const response = await apiClient.post(`/meetings/${meetingId}/transition`, payload);
+    return MeetingSchema.parse(response.data);
   },
 
   /**

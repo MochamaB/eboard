@@ -35,7 +35,7 @@ interface MinutesEditorProps {
 
 export const MinutesEditor: React.FC<MinutesEditorProps> = ({
   minutes,
-  meeting,
+  meeting: _meeting,
   onSave,
   onSubmit,
   autoSave = true,

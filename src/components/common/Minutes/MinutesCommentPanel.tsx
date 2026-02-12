@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { Card, Space, Typography, Button, Input, Avatar, Tag, Divider, Empty, Tooltip } from 'antd';
+import { Card, Space, Typography, Button, Input, Avatar, Tag, Divider, Empty } from 'antd';
 import {
   UserOutlined,
   CommentOutlined,
@@ -37,7 +37,7 @@ interface MinutesCommentPanelProps {
 }
 
 export const MinutesCommentPanel: React.FC<MinutesCommentPanelProps> = ({
-  minutesId,
+  minutesId: _minutesId,
   comments,
   allowComments,
   onAddComment,

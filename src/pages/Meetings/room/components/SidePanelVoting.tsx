@@ -8,6 +8,7 @@
 import React from 'react';
 import { Typography } from 'antd';
 import { useBoardContext } from '../../../../contexts';
+import { useMeetingRoomTheme } from '../MeetingRoomThemeContext';
 import { useResponsive } from '../../../../contexts/ResponsiveContext';
 import { useMeetingRoom } from '../../../../contexts/MeetingRoomContext';
 import { useMeetingRoomPermissions } from '../../../../hooks/meetings';
@@ -19,7 +20,8 @@ const { Text } = Typography;
 
 const SidePanelVoting: React.FC = () => {
   const { roomState } = useMeetingRoom();
-  const { theme, currentBoard } = useBoardContext();
+  const { currentBoard } = useBoardContext();
+  const theme = useMeetingRoomTheme();
   const { isMobile } = useResponsive();
   const { user } = useAuth();
   const permissions = useMeetingRoomPermissions();

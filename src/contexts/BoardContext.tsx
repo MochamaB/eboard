@@ -16,7 +16,7 @@ import {
   getBranding,
   getMainBoard,
   getAllBoards,
-} from '../mocks/db';
+} from '../mocks/db/queries/boardQueries';
 import { useAuth } from './AuthContext';
 
 // Helper functions
@@ -111,7 +111,7 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
     if (hasGlobalAccess) {
       // Global access users see all boards (excluding committees for main list)
       return getAllBoards()
-        .filter(b => b.type !== 'committee')
+        .filter((b: { type: string }) => b.type !== 'committee')
         .map(toBoardObject);
     }
     return getUserBoards();

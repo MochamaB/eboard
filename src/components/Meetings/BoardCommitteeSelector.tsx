@@ -28,7 +28,7 @@ export const BoardCommitteeSelector: React.FC<BoardCommitteeSelectorProps> = ({
   allowClear = false,
   ...selectProps
 }) => {
-  const { allBoards, currentBoard } = useBoardContext();
+  const { allBoards } = useBoardContext();
 
   // Filter and group boards
   const { boardOptions, committeeOptions } = useMemo(() => {
@@ -61,16 +61,16 @@ export const BoardCommitteeSelector: React.FC<BoardCommitteeSelectorProps> = ({
         <Space>
           <TeamOutlined style={{ color: BOARD_TYPE_COLORS.committee }} />
           <span>{committee.name}</span>
-          {committee.parentBoardName && (
+          {committee.parentName && (
             <Tag color="default" style={{ fontSize: '11px', marginLeft: 4 }}>
-              {committee.parentBoardName}
+              {committee.parentName}
             </Tag>
           )}
         </Space>
       ),
       value: committee.id,
       board: committee,
-      searchValue: `${committee.name} ${committee.shortName} ${committee.parentBoardName || ''}`,
+      searchValue: `${committee.name} ${committee.shortName} ${committee.parentName || ''}`,
     }));
 
     return { boardOptions: boardOpts, committeeOptions: committeeOpts };

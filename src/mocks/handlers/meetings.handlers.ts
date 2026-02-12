@@ -24,11 +24,11 @@ import {
   getAllMeetingListItems,
   toMeetingListItem,
   getMeetingEvents,
+  getLatestApprovalEvent,
   submitMeetingForApproval,
   approveMeeting,
   rejectMeeting,
   startRevision,
-  type MeetingRow,
 } from '../db/queries/meetingQueries';
 import { getBoardById, getBoardMembers } from '../db/queries/boardQueries';
 import { boardsTable } from '../db/tables/boards';
@@ -39,6 +39,7 @@ import { documentSignaturesTable } from '../db/tables/documentSignatures';
 import { meetingEventsTable } from '../db/tables/meetingEvents';
 import { checkConfirmationRequired, getInitialMeetingStatus } from '../../utils/meetingConfirmation';
 import type { BoardRole } from '../../types/board.types';
+import type { MeetingRow } from '../db/tables/meetings';
 
 // In-memory storage for created/updated meetings
 let meetings = getAllMeetingObjects();
@@ -620,7 +621,7 @@ export const meetingsHandlers = [
   }),
 
   // Submit for approval
-  http.post('/api/meetings/:id/submit-for-confirmation', async ({ params, request }) => {
+  http.post('/api/meetings/:id/submit-for-approval', async ({ params, request }) => {
     const { id } = params;
     const body = await request.json() as { notes?: string };
 
@@ -820,6 +821,7 @@ export const meetingsHandlers = [
       uploadedAt: now,
       source: 'signed' as const,
       status: 'published' as const,
+      isConfidential: false,
       watermarkEnabled: false,
       createdAt: now,
       updatedAt: now,
@@ -987,11 +989,171 @@ export const meetingsHandlers = [
       meetingListItems[listIndex].statusUpdatedAt = new Date().toISOString();
     }
     
-    return HttpResponse.json({ 
-      success: true, 
+    return HttpResponse.json({
+      success: true,
       data: event,
-      message: 'Meeting revision started' 
+      message: 'Meeting revision started'
     });
+  }),
+
+  // Get latest approval event
+  http.get('/api/meetings/:id/latest-approval-event', ({ params }) => {
+    const { id } = params;
+    const event = getLatestApprovalEvent(id as string);
+    return HttpResponse.json({ data: event, message: event ? undefined : 'No approval event found' });
+  }),
+
+  // Resubmit for approval (after rejection)
+  http.post('/api/meetings/:id/resubmit-for-approval', async ({ params, request }) => {
+    const { id } = params;
+    const body = await request.json() as { notes?: string };
+
+    const meetingIndex = meetings.findIndex(m => m.id === id);
+    if (meetingIndex === -1) {
+      return HttpResponse.json({ error: 'Meeting not found' }, { status: 404 });
+    }
+
+    const meeting = meetings[meetingIndex];
+    if (meeting.status !== 'scheduled' || meeting.subStatus !== 'rejected') {
+      return HttpResponse.json(
+        { error: 'Meeting must be in scheduled.rejected status to resubmit' },
+        { status: 400 }
+      );
+    }
+
+    const performedAt = new Date().toISOString();
+    const newEvent = {
+      id: `evt-${id}-${Date.now()}`,
+      meetingId: id as string,
+      eventType: 'resubmitted',
+      fromStatus: 'scheduled',
+      fromSubStatus: 'rejected',
+      toStatus: 'scheduled',
+      toSubStatus: 'pending_approval',
+      performedBy: 1,
+      performedByName: 'Current User',
+      performedAt,
+      metadata: { submissionNotes: body.notes || null },
+      createdAt: performedAt,
+    };
+    meetingEventsTable.push(newEvent as any);
+
+    meetings[meetingIndex].status = 'scheduled';
+    meetings[meetingIndex].subStatus = 'pending_approval';
+    meetings[meetingIndex].statusUpdatedAt = performedAt;
+    meetings[meetingIndex].updatedAt = performedAt;
+
+    const listIndex = meetingListItems.findIndex(m => m.id === id);
+    if (listIndex !== -1) {
+      meetingListItems[listIndex].status = 'scheduled';
+      meetingListItems[listIndex].subStatus = 'pending_approval';
+      meetingListItems[listIndex].statusUpdatedAt = performedAt;
+    }
+
+    console.log('🔄 Meeting resubmitted for approval:', id);
+    return HttpResponse.json({ success: true, data: newEvent, message: 'Meeting resubmitted for approval' });
+  }),
+
+  // Archive meeting (completed.recent → completed.archived)
+  http.post('/api/meetings/:id/archive', ({ params }) => {
+    const { id } = params;
+
+    const meetingIndex = meetings.findIndex(m => m.id === id);
+    if (meetingIndex === -1) {
+      return HttpResponse.json({ error: 'Meeting not found' }, { status: 404 });
+    }
+
+    const meeting = meetings[meetingIndex];
+    if (meeting.status !== 'completed' || meeting.subStatus !== 'recent') {
+      return HttpResponse.json(
+        { error: 'Only completed.recent meetings can be archived' },
+        { status: 400 }
+      );
+    }
+
+    const now = new Date().toISOString();
+    meetings[meetingIndex].subStatus = 'archived';
+    meetings[meetingIndex].statusUpdatedAt = now;
+    meetings[meetingIndex].updatedAt = now;
+
+    const listIndex = meetingListItems.findIndex(m => m.id === id);
+    if (listIndex !== -1) {
+      meetingListItems[listIndex].subStatus = 'archived';
+      meetingListItems[listIndex].statusUpdatedAt = now;
+    }
+
+    const newEvent = {
+      id: `evt-${id}-${Date.now()}`,
+      meetingId: id as string,
+      eventType: 'archived',
+      fromStatus: 'completed',
+      fromSubStatus: 'recent',
+      toStatus: 'completed',
+      toSubStatus: 'archived',
+      performedBy: 1,
+      performedByName: 'Current User',
+      performedAt: now,
+      metadata: {},
+      createdAt: now,
+    };
+    meetingEventsTable.push(newEvent as any);
+
+    console.log('📦 Meeting archived:', id);
+    return HttpResponse.json(meetings[meetingIndex]);
+  }),
+
+  // Generic status transition (start meeting, end meeting, etc.)
+  http.post('/api/meetings/:id/transition', async ({ params, request }) => {
+    const { id } = params;
+    const body = await request.json() as { status: string; subStatus?: string; reason?: string };
+
+    const meetingIndex = meetings.findIndex(m => m.id === id);
+    if (meetingIndex === -1) {
+      return HttpResponse.json({ error: 'Meeting not found' }, { status: 404 });
+    }
+
+    const meeting = meetings[meetingIndex];
+    const now = new Date().toISOString();
+
+    // Build event type from transition
+    const eventTypeMap: Record<string, string> = {
+      'in_progress': 'meeting_started',
+      'completed.recent': 'meeting_ended',
+      'cancelled': 'meeting_cancelled',
+    };
+    const targetKey = body.subStatus ? `${body.status}.${body.subStatus}` : body.status;
+    const eventType = eventTypeMap[targetKey] || 'meeting_started';
+
+    const newEvent = {
+      id: `evt-${id}-${Date.now()}`,
+      meetingId: id as string,
+      eventType,
+      fromStatus: meeting.status,
+      fromSubStatus: meeting.subStatus,
+      toStatus: body.status,
+      toSubStatus: body.subStatus || null,
+      performedBy: 1,
+      performedByName: 'Current User',
+      performedAt: now,
+      metadata: { reason: body.reason || null },
+      createdAt: now,
+    };
+    meetingEventsTable.push(newEvent as any);
+
+    meetings[meetingIndex].status = body.status as any;
+    meetings[meetingIndex].subStatus = (body.subStatus || null) as any;
+    meetings[meetingIndex].statusUpdatedAt = now;
+    meetings[meetingIndex].updatedAt = now;
+
+    const listIndex = meetingListItems.findIndex(m => m.id === id);
+    if (listIndex !== -1) {
+      meetingListItems[listIndex].status = body.status as any;
+      meetingListItems[listIndex].subStatus = (body.subStatus || null) as any;
+      meetingListItems[listIndex].statusUpdatedAt = now;
+    }
+
+    console.log(`🔄 Meeting transitioned to ${body.status}.${body.subStatus || '-'}:`, id);
+    return HttpResponse.json(meetings[meetingIndex]);
   }),
 ];
 

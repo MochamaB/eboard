@@ -44,7 +44,7 @@ export const VoteCreateModal: React.FC<VoteCreateModalProps> = ({
   const [currentStep, setCurrentStep] = useState(0);
   const [createdVoteId, setCreatedVoteId] = useState<string | null>(editVoteId || null);
   const [linkToEntity, setLinkToEntity] = useState(false);
-  const [basicInfo, setBasicInfo] = useState<{
+  const [_basicInfo, setBasicInfo] = useState<{
     title: string;
     description?: string;
     entityType?: 'agenda' | 'agenda_item' | 'minutes' | 'action_item' | 'resolution';

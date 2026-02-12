@@ -17,17 +17,14 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Card, Button, Space, Progress, Typography, Empty, Tooltip } from 'antd';
+import { Card, Button, Space, Progress, Typography, Empty } from 'antd';
 import {
   UserOutlined,
-  FormOutlined,
 } from '@ant-design/icons';
 import { useBoardContext } from '../../../../contexts';
 import { useResponsive } from '../../../../contexts/ResponsiveContext';
 import { useMeetingRoom } from '../../../../contexts/MeetingRoomContext';
 import { useMeetingRoomPermissions } from '../../../../hooks/meetings';
-import MeetingControlsBar from './MeetingControlsBar';
-import VoteCreationModal from './VoteCreationModal';
 import DocumentPreview from './DocumentPreview';
 import ParticipantPanel from './ParticipantPanel';
 
@@ -104,50 +101,6 @@ const CurrentItemDisplay: React.FC = () => {
         }
         style={{ minHeight: contentMinHeight, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}
       />
-    </Card>
-  );
-};
-
-// ============================================================================
-// PARTICIPANT FUNCTIONS
-// ============================================================================
-
-const ParticipantFunctions: React.FC = () => {
-  const { actions } = useMeetingRoom();
-  const { isMobile } = useResponsive();
-  
-  // Mobile: icon-only buttons with tooltips
-  if (isMobile) {
-    return (
-      <Card size="small" styles={{ body: { padding: '8px 12px' } }}>
-        <Space wrap>
-          <Tooltip title="Raise Hand">
-            <Button icon={<span>✋</span>} onClick={actions.raiseHand} />
-          </Tooltip>
-          <Tooltip title="My Notes">
-            <Button icon={<FormOutlined />} />
-          </Tooltip>
-          <Tooltip title="Follow Presenter">
-            <Button icon={<UserOutlined />} />
-          </Tooltip>
-        </Space>
-      </Card>
-    );
-  }
-
-  return (
-    <Card title="Participant Functions" size="small">
-      <Space wrap>
-        <Button icon={<span>✋</span>} onClick={actions.raiseHand}>
-          Raise Hand
-        </Button>
-        <Button icon={<FormOutlined />}>
-          My Notes
-        </Button>
-        <Button icon={<UserOutlined />}>
-          Follow Presenter
-        </Button>
-      </Space>
     </Card>
   );
 };
@@ -339,7 +292,6 @@ const ActiveVotePanel: React.FC = () => {
 const MainContentArea: React.FC = () => {
   const { isMobile } = useResponsive();
   const { capabilities } = useMeetingRoom();
-  const [voteModalOpen, setVoteModalOpen] = useState(false);
   const gap = isMobile ? 8 : 16;
 
   return (
@@ -347,25 +299,11 @@ const MainContentArea: React.FC = () => {
       {/* Current Item Display / Document Preview */}
       <CurrentItemDisplay />
 
-      {/* Unified Participant Panel (adaptive cards, mode badges, AV controls) */}
+      {/* Unified Participant Panel (theme-branded, max 5 cards) */}
       {capabilities.showParticipantStrip && <ParticipantPanel />}
-      
-      {/* Participant Functions */}
-      <ParticipantFunctions />
       
       {/* Active Vote (conditional — only when status allows) */}
       {capabilities.showActiveVote && <ActiveVotePanel />}
-      
-      {/* Spacer to push controls to bottom */}
-      <div style={{ flex: 1 }} />
-      
-      {/* Meeting Controls Bar */}
-      {capabilities.showControlsBar && (
-        <MeetingControlsBar onCreateVote={() => setVoteModalOpen(true)} />
-      )}
-      
-      {/* Vote Creation Modal */}
-      <VoteCreationModal open={voteModalOpen} onClose={() => setVoteModalOpen(false)} />
     </div>
   );
 };

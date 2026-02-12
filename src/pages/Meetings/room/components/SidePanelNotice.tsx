@@ -13,7 +13,7 @@ import {
   DisconnectOutlined,
   TeamOutlined 
 } from '@ant-design/icons';
-import { useBoardContext } from '../../../../contexts';
+import { useMeetingRoomTheme } from '../MeetingRoomThemeContext';
 import { useResponsive } from '../../../../contexts/ResponsiveContext';
 import { useMeetingRoom } from '../../../../contexts/MeetingRoomContext';
 
@@ -21,7 +21,7 @@ const { Text, Title } = Typography;
 
 const SidePanelNotice: React.FC = () => {
   const { roomState } = useMeetingRoom();
-  const { theme } = useBoardContext();
+  const theme = useMeetingRoomTheme();
   const { isMobile } = useResponsive();
   const { 
     meeting, 

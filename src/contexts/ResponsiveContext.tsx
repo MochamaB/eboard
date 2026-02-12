@@ -4,7 +4,7 @@
  * Uses Ant Design's Grid.useBreakpoint() for consistency
  */
 
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, type ReactNode } from 'react';
 import { Grid } from 'antd';
 import type { Breakpoint } from 'antd';
 
@@ -35,9 +35,9 @@ export const ResponsiveProvider: React.FC<ResponsiveProviderProps> = ({ children
 
   // Derive device flags from screens
   const isMobile = !screens.md; // < 768px
-  const isTablet = screens.md && !screens.lg; // 768-991px
-  const isDesktop = screens.lg && !screens.xl; // 992-1199px
-  const isLargeDesktop = screens.xl; // >= 1200px
+  const isTablet = !!screens.md && !screens.lg; // 768-991px
+  const isDesktop = !!screens.lg && !screens.xl; // 992-1199px
+  const isLargeDesktop = !!screens.xl; // >= 1200px
 
   // Determine current breakpoint (largest active breakpoint)
   const currentBreakpoint: ResponsiveContextValue['currentBreakpoint'] =

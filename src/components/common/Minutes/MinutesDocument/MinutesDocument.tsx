@@ -61,7 +61,7 @@ export const MinutesDocument: React.FC<MinutesDocumentProps> = ({
   primaryColor = '#324721',
   contactInfo,
   showActions = true,
-  showSignatures = true,
+  showSignatures: _showSignatures = true,
   archivedDate,
   onDownloadPDF,
   onPrint,

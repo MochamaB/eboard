@@ -99,6 +99,7 @@ export const MinutesCommentSchema = z.object({
 
   // Author
   createdBy: z.number(),
+  createdByName: z.string().optional(),
   createdAt: z.string(),
   updatedAt: z.string().nullable().optional(),
 
@@ -201,6 +202,7 @@ export const PublishMinutesPayloadSchema = z.object({
   includeDigitalSignature: z.boolean().optional().default(false),
   distributionList: z.array(z.number()).optional(), // userIds
   emailNotification: z.boolean().optional().default(true),
+  pdfUrl: z.string().optional(),
 });
 
 export type PublishMinutesPayload = z.infer<typeof PublishMinutesPayloadSchema>;
@@ -232,9 +234,23 @@ export const AddSignaturePayloadSchema = z.object({
   signatureHash: z.string(),
   signatureMethod: z.enum(['digital', 'biometric', 'pin']).optional().default('digital'),
   signatureData: z.string().optional(),
+  signerRole: z.string().optional(),
+  signerName: z.string().optional(),
+  certificateId: z.string().optional(),
 });
 
 export type AddSignaturePayload = z.infer<typeof AddSignaturePayloadSchema>;
+
+// Backward-compatible aliases
+export type SubmitMinutesPayload = SubmitForReviewPayload;
+
+// Minutes filter type (used by API and hooks)
+export interface MinutesFilters {
+  status?: MinutesStatus;
+  meetingId?: string;
+  boardId?: string;
+  createdBy?: number;
+}
 
 // ============================================================================
 // CONSTANTS

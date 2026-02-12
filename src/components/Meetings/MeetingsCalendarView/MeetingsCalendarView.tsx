@@ -36,7 +36,7 @@ export const MeetingsCalendarView: React.FC<MeetingsCalendarViewProps> = ({
   onMeetingClick,
 }) => {
   const navigate = useNavigate();
-  const { currentBoard, theme } = useBoardContext();
+  const { currentBoard } = useBoardContext();
 
   // Get status color based on status + subStatus
   const getStatusColor = useCallback((status: MeetingStatus, subStatus?: string | null): string => {
@@ -77,17 +77,6 @@ export const MeetingsCalendarView: React.FC<MeetingsCalendarViewProps> = ({
       case 'hybrid': return <HomeOutlined style={{ fontSize: 11 }} />;
       default: return null;
     }
-  }, []);
-
-  // Get text color based on background brightness
-  const getTextColor = useCallback((bgColor: string): string => {
-    // Simple brightness check - if color is light, use dark text
-    const hex = bgColor.replace('#', '');
-    const r = parseInt(hex.substr(0, 2), 16);
-    const g = parseInt(hex.substr(2, 2), 16);
-    const b = parseInt(hex.substr(4, 2), 16);
-    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-    return brightness > 128 ? '#000000' : '#ffffff';
   }, []);
 
   // Debug: log meetings data

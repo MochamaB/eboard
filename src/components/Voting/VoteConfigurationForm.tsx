@@ -4,12 +4,11 @@
  */
 
 import React from 'react';
-import { Form, Input, InputNumber, Button, Checkbox, Select, Space, Typography, Divider, Card } from 'antd';
-import { PlusOutlined, MinusCircleOutlined } from '@ant-design/icons';
+import { Form, Input, InputNumber, Button, Checkbox, Select, Space, Card } from 'antd';
+import { PlusOutlined } from '@ant-design/icons';
 import { useBoardContext } from '../../contexts';
 import type { ConfigureVotePayload } from '../../types/voting.types';
 
-const { Text } = Typography;
 const { Option } = Select;
 
 interface VoteConfigurationFormProps {

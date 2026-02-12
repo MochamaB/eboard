@@ -8,9 +8,11 @@
 
 import { usersTable } from '../tables/users';
 import { meetingsTable } from '../tables/meetings';
+import { meetingParticipantsTable } from '../tables/meetingParticipants';
 import { getBoardApproverRoleId } from '../tables/boardSettings';
 import { userBoardRolesTable } from '../tables/userBoardRoles';
 import { REJECTION_REASON_LABELS } from '../../../types/meeting.types';
+import { idsMatch } from '../utils/idUtils';
 
 // ============================================================================
 // TYPES
@@ -78,12 +80,10 @@ const getApproversForBoard = (boardId: string): typeof usersTable => {
  * Get meeting participants (for notification recipients)
  */
 const getMeetingParticipantUsers = (meetingId: string): typeof usersTable => {
-  const meeting = getMeetingById(meetingId);
-  if (!meeting) return [];
-
-  const participantUserIds = meeting.participants
+  const participants = meetingParticipantsTable.filter(p => idsMatch(p.meetingId, meetingId));
+  const participantUserIds = participants
     .filter(p => p.userId)
-    .map(p => p.userId as number);
+    .map(p => p.userId);
 
   return usersTable.filter(u => participantUserIds.includes(u.id));
 };

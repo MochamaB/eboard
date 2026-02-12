@@ -16,7 +16,7 @@ import {
   DownloadOutlined, 
   EyeOutlined 
 } from '@ant-design/icons';
-import { useBoardContext } from '../../../../contexts';
+import { useMeetingRoomTheme } from '../MeetingRoomThemeContext';
 import { useResponsive } from '../../../../contexts/ResponsiveContext';
 import { useMeetingRoom } from '../../../../contexts/MeetingRoomContext';
 import { useMeetingRoomPermissions } from '../../../../hooks/meetings';
@@ -36,7 +36,7 @@ const getFileIcon = (fileExtension?: string, size = 24) => {
 
 const SidePanelDocuments: React.FC = () => {
   const { roomState, actions, capabilities } = useMeetingRoom();
-  const { theme } = useBoardContext();
+  const theme = useMeetingRoomTheme();
   const { isMobile } = useResponsive();
   const { castingDocument, meetingId, currentAgendaItem } = roomState;
   const permissions = useMeetingRoomPermissions();

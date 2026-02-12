@@ -11,7 +11,7 @@
 import React from 'react';
 import { Typography, Empty, Spin, Button } from 'antd';
 import { EditOutlined, FileTextOutlined } from '@ant-design/icons';
-import { useBoardContext } from '../../../../contexts';
+import { useMeetingRoomTheme } from '../MeetingRoomThemeContext';
 import { useResponsive } from '../../../../contexts/ResponsiveContext';
 import { useMeetingRoom } from '../../../../contexts/MeetingRoomContext';
 import { useMeetingRoomPermissions } from '../../../../hooks/meetings';
@@ -21,7 +21,7 @@ const { Text, Title } = Typography;
 
 const SidePanelMinutes: React.FC = () => {
   const { roomState } = useMeetingRoom();
-  const { theme } = useBoardContext();
+  const theme = useMeetingRoomTheme();
   const { isMobile } = useResponsive();
   const permissions = useMeetingRoomPermissions();
   const { meetingId, status } = roomState;

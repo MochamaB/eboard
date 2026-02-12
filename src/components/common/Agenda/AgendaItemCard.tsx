@@ -43,7 +43,7 @@ export const AgendaItemCard: React.FC<AgendaItemCardProps> = ({
   isChild = false,
   onClick,
   actions,
-  isDraggable = false,
+  isDraggable: _isDraggable = false,
 }) => {
   const { theme } = useBoardContext();
 

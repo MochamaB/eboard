@@ -552,8 +552,8 @@ export const minutesHandlers = [
       const signature = addSignature({
         minutesId: minutesId as string,
         signedBy: 1, // TODO: Get from auth context
-        signerRole: payload.signerRole,
-        signerName: payload.signerName,
+        signerRole: payload.signerRole || 'Unknown',
+        signerName: payload.signerName || 'Unknown',
         signatureHash: payload.signatureHash,
         signatureMethod: payload.signatureMethod,
         certificateId: payload.certificateId,

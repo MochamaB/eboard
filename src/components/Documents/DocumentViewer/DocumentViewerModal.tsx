@@ -97,7 +97,7 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
         await contentRef.current.requestFullscreen();
         setIsFullscreen(true);
       } else {
-        await document.exitFullscreen();
+        await globalThis.document.exitFullscreen();
         setIsFullscreen(false);
       }
     } catch (error) {

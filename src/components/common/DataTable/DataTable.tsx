@@ -91,7 +91,7 @@ export function DataTable<T extends { id: number | string }>({
 }: DataTableProps<T>) {
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [localSearchValue, setLocalSearchValue] = useState('');
-  const { isMobile, isTablet, currentBreakpoint } = useResponsive();
+  const { isMobile, currentBreakpoint } = useResponsive();
 
   const searchVal = searchValue !== undefined ? searchValue : localSearchValue;
 
@@ -305,7 +305,7 @@ export function DataTable<T extends { id: number | string }>({
                   ? undefined
                   : (total, range) => `${range[0]}-${range[1]} of ${total}`,
                 pageSizeOptions: ['10', '20', '50', '100'],
-                size: isMobile ? 'small' : 'default',
+                size: isMobile ? 'small' : 'middle',
                 ...pagination,
               }
         }

@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { Space, Typography, Button, Tag, Divider, Alert } from 'antd';
+import { Space, Typography, Button, Divider, Alert } from 'antd';
 import {
   DownloadOutlined,
   PrinterOutlined,
@@ -27,7 +27,7 @@ interface MinutesWorkflowPanelProps {
 
 export const MinutesWorkflowPanel: React.FC<MinutesWorkflowPanelProps> = ({
   minutes,
-  meetingTitle,
+  meetingTitle: _meetingTitle,
   archivedDate,
   primaryColor = '#324721',
   showActions = true,

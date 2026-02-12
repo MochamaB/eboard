@@ -14,7 +14,7 @@ import {
   UserAddOutlined, 
   UserDeleteOutlined 
 } from '@ant-design/icons';
-import { useBoardContext } from '../../../../contexts';
+import { useMeetingRoomTheme } from '../MeetingRoomThemeContext';
 import { useResponsive } from '../../../../contexts/ResponsiveContext';
 import { useMeetingRoom } from '../../../../contexts/MeetingRoomContext';
 import { useMeetingRoomPermissions } from '../../../../hooks/meetings';
@@ -23,7 +23,7 @@ const { Text } = Typography;
 
 const SidePanelParticipants: React.FC = () => {
   const { roomState, actions } = useMeetingRoom();
-  const { theme } = useBoardContext();
+  const theme = useMeetingRoomTheme();
   const { isMobile } = useResponsive();
   const { participants } = roomState;
   const permissions = useMeetingRoomPermissions();

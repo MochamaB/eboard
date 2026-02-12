@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { Badge } from 'antd';
+
 import { useBoardContext } from '../../../contexts';
 
 interface ItemNumberBadgeProps {

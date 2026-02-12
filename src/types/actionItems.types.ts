@@ -55,6 +55,7 @@ export const ActionItemSchema = z.object({
 
   // Assignment
   assignedTo: z.number(),                       // userId
+  assignedToName: z.string().optional(),         // Resolved display name
   assignedBy: z.number(),                       // userId
 
   // Timeline

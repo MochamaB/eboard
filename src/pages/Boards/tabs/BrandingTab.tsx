@@ -20,7 +20,7 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({ board }) => {
   useEffect(() => {
     if (board.branding) {
       form.setFieldsValue({
-        logoUrl: board.branding.logoUrl,
+        logoUrl: board.branding.logo?.main,
         primaryColor: board.branding.primaryColor,
         secondaryColor: board.branding.secondaryColor,
         accentColor: board.branding.accentColor,
@@ -198,7 +198,7 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({ board }) => {
                 onClick={() => {
                   if (board.branding) {
                     form.setFieldsValue({
-                      logoUrl: board.branding.logoUrl,
+                      logoUrl: board.branding.logo?.main,
                       primaryColor: board.branding.primaryColor,
                       secondaryColor: board.branding.secondaryColor,
                       accentColor: board.branding.accentColor,

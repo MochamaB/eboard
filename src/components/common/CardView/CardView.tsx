@@ -28,7 +28,7 @@ export interface CardViewProps<T> {
 }
 
 // Default responsive columns: 1 col on mobile, 2 on tablet, 3 on desktop, 4 on large screens
-const DEFAULT_COLUMNS: ColProps = {
+const DEFAULT_COLUMNS: CardViewProps<unknown>['columns'] = {
   xs: 24,  // 1 card on mobile
   sm: 24,  // 1 card on small tablet
   md: 12,  // 2 cards on tablet

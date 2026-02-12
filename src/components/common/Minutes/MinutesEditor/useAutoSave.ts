@@ -28,7 +28,7 @@ export const useAutoSave = ({
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Immediate save function
   const saveNow = useCallback(async (content: string) => {
@@ -55,19 +55,6 @@ export const useAutoSave = ({
     }, interval),
     [saveNow, interval]
   );
-
-  // Auto-save trigger function
-  const triggerAutoSave = useCallback((content: string) => {
-    if (!enabled || !content) return;
-    
-    // Clear existing timeout
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-
-    // Trigger debounced save
-    debouncedSave(content);
-  }, [enabled, debouncedSave]);
 
   // Reset error
   const resetError = useCallback(() => {

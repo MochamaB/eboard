@@ -41,15 +41,35 @@ const toBoardBranding = (row: BoardBrandingRow): BoardBranding => ({
   errorLight: 'rgba(255, 77, 79, 0.1)',
   infoColor: '#1890ff',
   infoLight: 'rgba(24, 144, 255, 0.1)',
-  // Neutral colors (same for all boards)
+  // Neutral colors - Backgrounds
   backgroundPrimary: '#f3f3f9',
   backgroundSecondary: '#ffffff',
   backgroundTertiary: '#fafafa',
-  borderColor: '#d9d9d9',
-  borderColorHover: '#40a9ff',
+  backgroundQuaternary: '#f5f5f5',
+  backgroundHover: '#f0f0f0',
+  backgroundActive: '#e8e8e8',
+  backgroundDisabled: '#fafafa',
+  // Neutral colors - Text
   textPrimary: 'rgba(0, 0, 0, 0.85)',
   textSecondary: 'rgba(0, 0, 0, 0.65)',
+  textTertiary: 'rgba(0, 0, 0, 0.45)',
   textDisabled: 'rgba(0, 0, 0, 0.25)',
+  textPlaceholder: 'rgba(0, 0, 0, 0.35)',
+  textInverse: '#ffffff',
+  // Neutral colors - Borders
+  borderColor: '#d9d9d9',
+  borderColorHover: '#40a9ff',
+  borderColorLight: '#f0f0f0',
+  borderColorStrong: '#bfbfbf',
+  borderColorFocus: '#1890ff',
+  // Depth-Specific Colors
+  depthLevel1Bg: '#fafafa',
+  depthLevel2Bg: '#f5f5f5',
+  depthLevel3Bg: '#f0f0f0',
+  // Surface Colors
+  surfaceElevated: '#ffffff',
+  surfaceSunken: '#f5f5f5',
+  surfaceOverlay: 'rgba(0, 0, 0, 0.45)',
   // Sidebar
   sidebarBg: row.sidebarBg,
   sidebarBgGradient: row.sidebarBgGradient || undefined,
@@ -159,7 +179,7 @@ export const toBoardObject = (row: BoardRow): Board => {
       meetingFrequency: settings.meetingFrequency,
       votingThreshold: settings.votingThreshold,
       confirmationRequired: settings.confirmationRequired,
-      designatedApproverRole: settings.designatedApproverRole || undefined,
+      designatedApproverRole: settings.approverRoleId ? String(settings.approverRoleId) : undefined,
       minMeetingsPerYear: settings.minMeetingsPerYear,
       allowVirtualMeetings: settings.allowVirtualMeetings,
       requireAttendanceTracking: settings.requireAttendanceTracking,
@@ -313,7 +333,7 @@ export const getBoardMembers = (boardId: string) => {
       startDate: membership.startDate,
       endDate: membership.endDate,
       isActive: membership.endDate === null,
-      isPrimary: membership.isPrimary,
+      isPrimary: membership.isDefault,
       hasCertificate: user.hasCertificate,
       certificateExpiry: user.certificateExpiry,
     };

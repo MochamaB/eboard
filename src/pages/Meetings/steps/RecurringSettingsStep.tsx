@@ -398,7 +398,7 @@ const RecurringSettingsStep: React.FC<RecurringSettingsStepProps> = ({
                     {
                       title: 'Date',
                       dataIndex: 'formattedDate',
-                      render: (text: string, record: { excluded: boolean; dayOfWeek: string }) => (
+                      render: (text: string, record: any) => (
                         <div>
                           <Text type={record.excluded ? 'secondary' : undefined} delete={record.excluded}>
                             {text}
@@ -413,7 +413,7 @@ const RecurringSettingsStep: React.FC<RecurringSettingsStepProps> = ({
                       title: 'Status',
                       dataIndex: 'excluded',
                       width: 120,
-                      render: (excluded: boolean, record: { conflict?: string }) => (
+                      render: (excluded: boolean, record: any) => (
                         <Space>
                           {excluded ? (
                             <Tag color="default">Excluded</Tag>

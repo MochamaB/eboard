@@ -658,7 +658,7 @@ export interface MeetingRoomContextType {
 /**
  * Side panel tab options
  */
-export type SidePanelTab = 'notice' | 'agenda' | 'participants' | 'documents' | 'voting' | 'minutes';
+export type SidePanelTab = 'notice' | 'agenda' | 'participants' | 'documents' | 'voting' | 'minutes' | 'chat' | 'notes';
 
 /**
  * Side panel state

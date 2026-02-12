@@ -16,7 +16,7 @@ import {
   PlayCircleOutlined,
   SoundOutlined,
 } from '@ant-design/icons';
-import { FILE_TYPES, getFileTypeConfig } from '../../../constants/documents';
+import { getFileTypeConfig } from '../../../constants/documents';
 
 /**
  * Get the appropriate icon component for a file type

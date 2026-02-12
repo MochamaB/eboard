@@ -148,7 +148,7 @@ export const CommitteesTab: React.FC<CommitteesTabProps> = ({ board }) => {
                     </Flex>
 
                     {/* Description */}
-                    <Text type="secondary" ellipsis={{ rows: 2 }} style={{ fontSize: 13 }}>
+                    <Text type="secondary" ellipsis style={{ fontSize: 13 }}>
                       {committee.description}
                     </Text>
 

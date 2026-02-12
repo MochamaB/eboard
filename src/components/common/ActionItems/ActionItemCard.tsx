@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { Card, Space, Typography, Avatar, Tooltip, Button, Dropdown } from 'antd';
+import { Card, Space, Typography, Avatar, Button, Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   UserOutlined,
@@ -37,7 +37,7 @@ export const ActionItemCard: React.FC<ActionItemCardProps> = ({
   actionItem,
   mode = 'detailed',
   showAssignee = true,
-  showMeeting = false,
+  showMeeting: _showMeeting = false,
   onStatusChange,
   onEdit,
   onDelete,

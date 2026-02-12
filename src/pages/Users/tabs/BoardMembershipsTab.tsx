@@ -180,7 +180,7 @@ export const BoardMembershipsTab: React.FC<BoardMembershipsTabProps> = ({ user, 
                       <Button
                         type="text"
                         icon={<EditOutlined />}
-                        onClick={() => handleEditRole(membership.id)}
+                        onClick={() => handleEditRole(Number(membership.id))}
                         size="small"
                       >
                         Edit
@@ -191,7 +191,7 @@ export const BoardMembershipsTab: React.FC<BoardMembershipsTabProps> = ({ user, 
                         type="text"
                         danger
                         icon={<DeleteOutlined />}
-                        onClick={() => handleRemoveFromBoard(membership.id)}
+                        onClick={() => handleRemoveFromBoard(Number(membership.id))}
                         size="small"
                       >
                         Remove

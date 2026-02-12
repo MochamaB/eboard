@@ -17,7 +17,7 @@ import {
   hasMultiBoardAccess as checkMultiBoardAccess,
   hasGlobalBoardAccess,
   getUserBoardPermissions,
-} from '../mocks/db';
+} from '../mocks/db/queries/userBoardQueries';
 import { toBoardObject } from '../mocks/db/queries/boardQueries';
 
 interface AuthContextValue {

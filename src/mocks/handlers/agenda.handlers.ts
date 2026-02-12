@@ -310,7 +310,7 @@ export const agendaHandlers = [
         );
       }
 
-      const itemId = addAgendaItem(agendaId as string, agenda.meetingId, {
+      addAgendaItem(agendaId as string, agenda.meetingId, {
         ...payload,
         attachedDocumentIds: JSON.stringify(payload.attachedDocumentIds || []),
       });

@@ -314,8 +314,8 @@ export function canTransitionTo(
   }
 
   // Special case: any non-terminal status can transition to cancelled
-  if (targetStatus === 'cancelled' && currentStatus !== 'cancelled' && 
-      !(currentStatus === 'completed' && currentSubStatus === 'archived')) {
+  // (currentStatus is already guaranteed non-cancelled and non-archived by early returns above)
+  if (targetStatus === 'cancelled') {
     return { allowed: true };
   }
 

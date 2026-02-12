@@ -70,7 +70,7 @@ export function getVoteById(voteId: string): VoteDetail | null {
  */
 export function getVotesByEntity(entityType: VoteEntityType, entityId: string): Vote[] {
   return votesTable
-    .filter((v) => v.entityType === entityType && idsMatch(v.entityId, entityId))
+    .filter((v) => v.entityType === entityType && v.entityId !== undefined && idsMatch(v.entityId, entityId))
     .map((v) => v as Vote);
 }
 

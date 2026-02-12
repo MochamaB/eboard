@@ -1,26 +1,22 @@
 import { useState, useEffect } from 'react';
 import { Layout } from 'antd';
-import { Outlet, useParams, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, useParams, useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header/Header';
 import { Sidebar } from '../components/Sidebar/Sidebar';
 import { NavigationBar } from '../components/NavigationBar';
 import { useBoardContext, MeetingPhaseProvider, useIsInMeetingDetail } from '../contexts';
 import { useResponsive } from '../hooks';
 import { responsiveHelpers } from '../utils';
-import { getBoardById } from '../mocks/db';
+import { getBoardById } from '../mocks/db/queries/boardQueries';
 
 const { Content } = Layout;
 
 const AppLayoutInner: React.FC = () => {
   const { isMobile, isTablet, currentBreakpoint } = useResponsive();
-  const location = useLocation();
   const { boardId } = useParams<{ boardId: string }>();
   const navigate = useNavigate();
   const { currentBoard, setCurrentBoard } = useBoardContext();
   const isInMeetingDetail = useIsInMeetingDetail();
-
-  // Check if we're in the Meeting Room (full-width mode)
-  const isInMeetingRoom = location.pathname.includes('/meetings/') && location.pathname.endsWith('/room');
 
   // Drawer mode for mobile and tablet (overlay)
   const useDrawerMode = isMobile || isTablet;
@@ -78,15 +74,10 @@ const AppLayoutInner: React.FC = () => {
         
         <Content
           style={{
-            // Only vertical margin (horizontal is handled by Layout marginLeft for sidebar)
-            margin: isInMeetingRoom
-              ? 0
-              : `${responsiveHelpers.getResponsiveSpacing({ xs: 16, md: 20, lg: 24 }, currentBreakpoint)}px ${responsiveHelpers.getResponsiveSpacing({ xs: 16, md: 20, lg: 24 }, currentBreakpoint)}px`,
-            padding: isInMeetingRoom
-              ? 0
-              : responsiveHelpers.getResponsiveSpacing({ xs: 16, md: 20, lg: 24 }, currentBreakpoint),
-            minHeight: isInMeetingRoom ? '100vh' : 280,
-            backgroundColor: isInMeetingRoom ? 'transparent' : '#fff',
+            margin: `${responsiveHelpers.getResponsiveSpacing({ xs: 16, md: 20, lg: 24 }, currentBreakpoint)}px ${responsiveHelpers.getResponsiveSpacing({ xs: 16, md: 20, lg: 24 }, currentBreakpoint)}px`,
+            padding: responsiveHelpers.getResponsiveSpacing({ xs: 16, md: 20, lg: 24 }, currentBreakpoint),
+            minHeight: 280,
+            backgroundColor: '#fff',
           }}
         >
           <Outlet />

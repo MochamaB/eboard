@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>eBoard Meeting Room - Redesigned Layout Wireframe</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  :root {
+    --primary: #2e5e2e;
+    --primary-light: #3a7a3a;
+    --bg: #f5f5f0;
+    --bg-card: #ffffff;
+    --bg-dark: #1e1e2e;
+    --border: #d9d9d0;
+    --text: #1a1a1a;
+    --text-secondary: #666;
+    --text-tertiary: #999;
+    --success: #52c41a;
+    --error: #dc2626;
+    --warning: #faad14;
+    --info: #1890ff;
+    --control-bar-bg: #1a1a2e;
+    --header-height: 48px;
+    --breadcrumb-height: 36px;
+    --meeting-header-height: 44px;
+    --control-bar-height: 56px;
+    --participant-strip-height: 80px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ================================================================ */
+  /* TOP HEADER BAR */
+  /* ================================================================ */
+  .header-bar {
+    height: var(--header-height);
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    flex-shrink: 0;
+    z-index: 10;
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .header-logo {
+    width: 32px; height: 32px; border-radius: 6px;
+    background: var(--primary); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+  }
+  .header-board { font-weight: 600; font-size: 14px; }
+  .header-search {
+    background: #f0f0ea; border: 1px solid var(--border); border-radius: 6px;
+    padding: 6px 14px; width: 280px; font-size: 12px; color: var(--text-secondary);
+  }
+  .header-right { display: flex; align-items: center; gap: 12px; font-size: 12px; }
+  .header-avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--primary); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+  }
+
+  /* ================================================================ */
+  /* BREADCRUMB + PHASE TABS */
+  /* ================================================================ */
+  .breadcrumb-bar {
+    height: var(--breadcrumb-height);
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .breadcrumb { color: var(--text-secondary); }
+  .breadcrumb a { color: var(--text-secondary); text-decoration: none; }
+  .breadcrumb .current { color: var(--text); font-weight: 500; }
+  .phase-tabs { display: flex; gap: 16px; }
+  .phase-tab { color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; gap: 4px; }
+  .phase-tab.active { color: var(--primary); font-weight: 600; }
+
+  /* ================================================================ */
+  /* MEETING INFO HEADER */
+  /* ================================================================ */
+  .meeting-header {
+    height: var(--meeting-header-height);
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    flex-shrink: 0;
+  }
+  .meeting-title-section { display: flex; align-items: center; gap: 12px; }
+  .meeting-title { font-size: 14px; font-weight: 600; }
+  .meeting-org { font-size: 11px; color: var(--text-secondary); }
+  .badge {
+    padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600;
+  }
+  .badge-progress { background: #e6f7e6; color: #2e5e2e; }
+  .badge-virtual { background: #e6f0ff; color: #1890ff; }
+  .badge-physical { background: #e6f7e6; color: #52c41a; }
+  .badge-hybrid { background: #fff7e6; color: #d48806; }
+  .meeting-meta { display: flex; align-items: center; gap: 16px; font-size: 12px; }
+  .timer { font-family: monospace; font-size: 13px; color: var(--text-secondary); }
+  .quorum-indicator { display: flex; align-items: center; gap: 6px; }
+  .quorum-bar { width: 60px; height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden; }
+  .quorum-fill { height: 100%; background: var(--success); border-radius: 3px; }
+
+  /* ================================================================ */
+  /* MAIN LAYOUT: Content + Side Panel */
+  /* ================================================================ */
+  .main-layout {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  /* LEFT: Main content area */
+  .content-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: 12px 16px;
+    gap: 10px;
+    overflow: hidden;
+  }
+
+  /* Current agenda item / document preview */
+  .main-content-card {
+    flex: 1;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: auto;
+  }
+  .item-number { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
+  .item-title { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+  .item-description { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+  .item-duration {
+    font-size: 12px; color: var(--text-tertiary);
+    position: absolute; top: 20px; right: 24px;
+  }
+
+  /* Participant strip */
+  .participant-strip {
+    height: var(--participant-strip-height);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 10px;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .strip-label {
+    font-size: 11px; font-weight: 600; color: var(--text-secondary);
+    writing-mode: horizontal-tb;
+    white-space: nowrap;
+    margin-right: 4px;
+  }
+  .strip-cards {
+    display: flex;
+    gap: 8px;
+    flex: 1;
+    overflow: hidden;
+  }
+  .p-card {
+    width: 56px;
+    height: 60px;
+    border-radius: 8px;
+    background: #f8f8f4;
+    border: 1.5px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    flex-shrink: 0;
+    position: relative;
+    transition: border-color 0.2s;
+  }
+  .p-card.speaking {
+    border-color: var(--success);
+    box-shadow: 0 0 6px rgba(82, 196, 26, 0.3);
+  }
+  .p-card .avatar {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--primary-light); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+  }
+  .p-card .name { font-size: 8px; color: var(--text-secondary); max-width: 48px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
+  .p-card .mode-badge {
+    font-size: 7px; padding: 1px 3px; border-radius: 2px; font-weight: 600;
+  }
+  .mode-badge.in-room { background: #e6f7e6; color: #389e0d; }
+  .mode-badge.remote { background: #e6f0ff; color: #1890ff; }
+  .p-card .hand-indicator {
+    position: absolute; top: 1px; left: 3px; font-size: 10px;
+  }
+  .p-card .mute-indicator {
+    position: absolute; bottom: 2px; right: 2px;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--error); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 6px;
+  }
+  .strip-overflow {
+    font-size: 11px; color: var(--text-secondary);
+    white-space: nowrap; font-weight: 500;
+  }
+  .scroll-arrow {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--bg); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 10px; color: var(--text-secondary);
+    flex-shrink: 0;
+  }
+
+  /* RIGHT: Side Panel */
+  .side-panel {
+    width: 280px;
+    background: var(--bg-card);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  .side-panel-header {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .side-panel-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 12px;
+  }
+  .agenda-item-row {
+    padding: 10px 12px;
+    border-radius: 8px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .agenda-item-row:hover { background: #f5f5f0; }
+  .agenda-item-row.current {
+    background: #e6f7e6;
+    border: 1px solid #b7e4b7;
+  }
+  .agenda-item-row.done { opacity: 0.6; }
+  .agenda-num {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #f0f0ea; display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 600; color: var(--text-secondary); flex-shrink: 0;
+  }
+  .agenda-num.done { background: var(--success); color: #fff; }
+  .agenda-num.current { background: var(--primary); color: #fff; }
+  .agenda-item-info { flex: 1; min-width: 0; }
+  .agenda-item-title { font-weight: 500; margin-bottom: 2px; }
+  .agenda-item-meta { font-size: 10px; color: var(--text-tertiary); }
+  .side-panel-actions {
+    padding: 10px 12px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+  }
+  .side-btn {
+    flex: 1; padding: 6px; border: 1px solid var(--border);
+    border-radius: 6px; background: var(--bg-card);
+    font-size: 11px; cursor: pointer; text-align: center;
+    transition: background 0.15s;
+  }
+  .side-btn:hover { background: #f0f0ea; }
+  .side-btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+  /* ================================================================ */
+  /* BOTTOM CONTROL BAR (Zoom-style) */
+  /* ================================================================ */
+  .control-bar {
+    height: var(--control-bar-height);
+    background: var(--bg-card);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    flex-shrink: 0;
+    z-index: 10;
+  }
+
+  .control-section {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .control-section.left { justify-content: flex-start; }
+  .control-section.center { justify-content: center; flex: 1; }
+  .control-section.right { justify-content: flex-end; }
+
+  /* Personal AV buttons (left) — circular, dark bg */
+  .av-btn {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: #2a2a3e; border: none; color: #ccc;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 16px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .av-btn:hover { background: #3a3a5a; color: #fff; }
+  .av-btn.active { background: var(--primary); color: #fff; }
+  .av-btn.muted { background: var(--error); color: #fff; }
+
+  /* Panel icon strip (center) — tab-style with active dot indicator */
+  .panel-strip {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: #f5f5f0;
+    border-radius: 8px;
+    padding: 2px 4px;
+    border: 1px solid var(--border);
+  }
+  .panel-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 10px;
+    font-weight: 500;
+    transition: background 0.15s, color 0.15s;
+    position: relative;
+  }
+  .panel-tab:hover { background: #e8e8e0; color: var(--text); }
+  .panel-tab.active {
+    background: var(--bg-card);
+    color: var(--primary);
+    font-weight: 700;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .panel-tab .tab-icon { font-size: 15px; line-height: 1; }
+  .panel-tab .tab-label { font-size: 9px; white-space: nowrap; letter-spacing: 0.3px; }
+  .panel-tab .active-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--primary);
+    position: absolute; bottom: 2px;
+    display: none;
+  }
+  .panel-tab.active .active-dot { display: block; }
+
+  /* Meeting action buttons (right) */
+  .action-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 500;
+    transition: background 0.15s;
+    white-space: nowrap;
+  }
+  .action-btn:hover { background: #f0f0ea; }
+  .action-btn .btn-icon { font-size: 14px; }
+  .action-btn.primary-action {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+  }
+  .action-btn.primary-action:hover { background: var(--primary-light); }
+  .action-btn.danger-action {
+    background: var(--error);
+    color: #fff;
+    border-color: var(--error);
+  }
+  .action-btn.danger-action:hover { background: #b91c1c; }
+  .action-btn.warning-action {
+    background: #fff7e6;
+    color: #d48806;
+    border-color: #ffe58f;
+  }
+  .action-btn.leave-action {
+    background: transparent;
+    color: var(--text-secondary);
+    border-color: var(--border);
+  }
+
+  .ctrl-divider {
+    width: 1px; height: 28px; background: var(--border); margin: 0 8px;
+  }
+
+  /* ================================================================ */
+  /* ANNOTATIONS & NOTES */
+  /* ================================================================ */
+  .wireframe-note {
+    position: fixed;
+    background: #fffbe6;
+    border: 1px solid #ffe58f;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 11px;
+    color: #614700;
+    max-width: 200px;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    line-height: 1.4;
+  }
+  .wireframe-note::before {
+    content: "📌 ";
+  }
+
+  .wireframe-banner {
+    background: #2e5e2e;
+    color: #fff;
+    text-align: center;
+    padding: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    flex-shrink: 0;
+  }
+
+  /* Legend */
+  .legend {
+    position: fixed;
+    bottom: 70px;
+    right: 16px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 10px;
+    z-index: 100;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    display: none;
+  }
+  .legend h4 { font-size: 11px; margin-bottom: 6px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+  .legend-color { width: 10px; height: 10px; border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- WIREFRAME BANNER -->
+<div class="wireframe-banner">
+  WIREFRAME — eBoard Meeting Room Redesigned Layout — No Scroll, Bottom Control Bar
+</div>
+
+<!-- ================================================================ -->
+<!-- HEADER BAR -->
+<!-- ================================================================ -->
+<div class="header-bar">
+  <div class="header-left">
+    <div class="header-logo">eB</div>
+    <span class="header-board">KTDA MS ▾</span>
+  </div>
+  <div class="header-search">🔍 Search meetings, documents, users...</div>
+  <div class="header-right">
+    <span>🔔</span>
+    <div class="header-avatar">BM</div>
+    <span style="font-size: 11px">Brian Mochama</span>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- BREADCRUMB + PHASE TABS -->
+<!-- ================================================================ -->
+<div class="breadcrumb-bar">
+  <div class="breadcrumb">
+    <a href="#">Home</a> › <a href="#">Meetings</a> › <a href="#">MTG 006</a> › <span class="current">Room</span>
+  </div>
+  <div class="phase-tabs">
+    <span class="phase-tab">📋 Pre-Meeting</span>
+    <span class="phase-tab active">▶ During Meeting</span>
+    <span class="phase-tab">✓ Post-Meeting</span>
+    <span class="phase-tab" style="margin-left: 8px; color: var(--text-secondary);">← Back</span>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- MEETING INFO HEADER -->
+<!-- ================================================================ -->
+<div class="meeting-header">
+  <div class="meeting-title-section">
+    <div>
+      <span class="meeting-title">Emergency Board Meeting - Market Response</span>
+      <div class="meeting-org">KTDA Management Services</div>
+    </div>
+    <span class="badge badge-progress">In Progress</span>
+    <span class="badge badge-virtual">Virtual</span>
+  </div>
+  <div class="meeting-meta">
+    <span class="timer">⏱ 168:29:23</span>
+    <div class="quorum-indicator">
+      <span>👥 15/15</span>
+      <div class="quorum-bar"><div class="quorum-fill" style="width: 100%"></div></div>
+      <span style="color: var(--success); font-weight: 600; font-size: 11px">✓ Quorum</span>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- MAIN LAYOUT -->
+<!-- ================================================================ -->
+<div class="main-layout">
+
+  <!-- LEFT: Main Content Area -->
+  <div class="content-area">
+
+    <!-- Main content card (agenda item / document / vote) -->
+    <div class="main-content-card" style="position: relative;">
+      <div class="item-number">Item 3</div>
+      <div class="item-title">Strategic Response Discussion</div>
+      <div style="position: absolute; top: 20px; right: 24px; font-size: 12px; color: var(--text-tertiary);">⏱ 40 min</div>
+      <div class="item-description">
+        Discussion of immediate response strategies to market conditions.<br><br>
+        <span style="color: var(--text-tertiary); font-size: 12px;">👤 Presenter ID: 1</span>
+      </div>
+
+      <!-- Placeholder: shows this is where document preview or vote would appear -->
+      <div style="flex: 1; display: flex; align-items: center; justify-content: center; margin-top: 16px; border: 2px dashed #e5e7eb; border-radius: 8px; min-height: 80px;">
+        <span style="color: var(--text-tertiary); font-size: 12px;">
+          Document Cast / Active Vote renders here (fills available space)
+        </span>
+      </div>
+    </div>
+
+    <!-- Participant strip (max 5 visible cards) -->
+    <div class="participant-strip">
+      <div class="strip-label">👥 15</div>
+      
+      <div class="strip-cards">
+        <!-- Card 1: speaking -->
+        <div class="p-card speaking">
+          <div class="avatar">DK</div>
+          <div class="name">David</div>
+          <div class="mode-badge remote">💻 Remote</div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="p-card">
+          <div class="avatar">JN</div>
+          <div class="name">John</div>
+          <div class="mode-badge in-room">🏢 In Room</div>
+        </div>
+
+        <!-- Card 3: raised hand + muted -->
+        <div class="p-card">
+          <div class="hand-indicator">✋</div>
+          <div class="avatar">EW</div>
+          <div class="name">Enos</div>
+          <div class="mode-badge remote">💻 Remote</div>
+          <div class="mute-indicator">🔇</div>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="p-card">
+          <div class="avatar">BM</div>
+          <div class="name">Baptista</div>
+          <div class="mode-badge in-room">🏢 In Room</div>
+        </div>
+
+        <!-- Card 5 -->
+        <div class="p-card">
+          <div class="avatar">PM</div>
+          <div class="name">Philip</div>
+          <div class="mode-badge remote">💻 Remote</div>
+        </div>
+      </div>
+
+      <div class="strip-overflow">+10 more</div>
+      <div class="scroll-arrow">›</div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT: Side Panel -->
+  <div class="side-panel">
+    <div class="side-panel-header">
+      Agenda
+      <span style="font-size: 11px; color: var(--text-tertiary);">5 items</span>
+    </div>
+    <div class="side-panel-content">
+      <div class="agenda-item-row done">
+        <div class="agenda-num done">✓</div>
+        <div class="agenda-item-info">
+          <div class="agenda-item-title">Emergency Declaration</div>
+          <div class="agenda-item-meta">⏱ 5m · Completed</div>
+        </div>
+      </div>
+      <div class="agenda-item-row done">
+        <div class="agenda-num done">✓</div>
+        <div class="agenda-item-info">
+          <div class="agenda-item-title">Market Crisis Briefing</div>
+          <div class="agenda-item-meta">⏱ 20m · Completed</div>
+        </div>
+      </div>
+      <div class="agenda-item-row current">
+        <div class="agenda-num current">3</div>
+        <div class="agenda-item-info">
+          <div class="agenda-item-title" style="font-weight: 600;">Strategic Response Discussion</div>
+          <div class="agenda-item-meta">⏱ 40m · ▶ Current Item</div>
+        </div>
+      </div>
+      <div class="agenda-item-row">
+        <div class="agenda-num">4</div>
+        <div class="agenda-item-info">
+          <div class="agenda-item-title">Approval of Emergency Actions</div>
+          <div class="agenda-item-meta">⏱ 35m</div>
+        </div>
+      </div>
+      <div class="agenda-item-row">
+        <div class="agenda-num">5</div>
+        <div class="agenda-item-info">
+          <div class="agenda-item-title">Adjournment</div>
+          <div class="agenda-item-meta">⏱ 5m</div>
+        </div>
+      </div>
+    </div>
+    <!-- Side panel navigation buttons -->
+    <div class="side-panel-actions">
+      <div class="side-btn">‹ Previous</div>
+      <div class="side-btn">Next ›</div>
+    </div>
+    <div class="side-panel-actions" style="border-top: none; padding-top: 0;">
+      <div class="side-btn primary">✓ Mark Discussed</div>
+      <div class="side-btn">Defer</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ================================================================ -->
+<!-- BOTTOM CONTROL BAR (3-section layout) -->
+<!-- ================================================================ -->
+<div class="control-bar">
+
+  <!-- LEFT SECTION: Personal AV controls + Gestures -->
+  <div class="control-section left">
+    <button class="av-btn" title="Toggle Mute">🎤</button>
+    <button class="av-btn" title="Toggle Video">📹</button>
+    <button class="av-btn" title="Share Screen">🖥️</button>
+    <div class="ctrl-divider"></div>
+    <button class="av-btn" title="Raise Hand">✋</button>
+  </div>
+
+  <!-- CENTER SECTION: Panel icon strip (toggles side panel content) -->
+  <div class="control-section center">
+    <div class="panel-strip">
+      <button class="panel-tab" title="Notice">
+        <span class="tab-icon">�</span>
+        <span class="tab-label">NOTICE</span>
+        <span class="active-dot"></span>
+      </button>
+      <button class="panel-tab active" title="Agenda">
+        <span class="tab-icon">☰</span>
+        <span class="tab-label">AGENDA</span>
+        <span class="active-dot"></span>
+      </button>
+      <button class="panel-tab" title="Participants">
+        <span class="tab-icon">�</span>
+        <span class="tab-label">PARTICIPANTS</span>
+        <span class="active-dot"></span>
+      </button>
+      <button class="panel-tab" title="Documents">
+        <span class="tab-icon">�</span>
+        <span class="tab-label">DOCUMENTS</span>
+        <span class="active-dot"></span>
+      </button>
+      <button class="panel-tab" title="Voting">
+        <span class="tab-icon">🗳️</span>
+        <span class="tab-label">VOTING</span>
+        <span class="active-dot"></span>
+      </button>
+      <button class="panel-tab" title="Minutes">
+        <span class="tab-icon">�</span>
+        <span class="tab-label">MINUTES</span>
+        <span class="active-dot"></span>
+      </button>
+      <button class="panel-tab" title="Chat">
+        <span class="tab-icon">�</span>
+        <span class="tab-label">CHAT</span>
+        <span class="active-dot"></span>
+      </button>
+      <button class="panel-tab" title="Notes">
+        <span class="tab-icon">�</span>
+        <span class="tab-label">NOTES</span>
+        <span class="active-dot"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- RIGHT SECTION: Meeting actions + lifecycle -->
+  <div class="control-section right">
+    <button class="action-btn primary-action" title="Start Voting">
+      <span class="btn-icon">🗳️</span> Start Voting
+    </button>
+    <button class="action-btn warning-action" title="Pause Meeting">
+      <span class="btn-icon">⏸</span> Pause
+    </button>
+    <button class="action-btn danger-action" title="End Meeting">
+      <span class="btn-icon">⏹</span> End Meeting
+    </button>
+    <button class="action-btn leave-action" title="Leave Room">
+      <span class="btn-icon">🚪</span>
+    </button>
+  </div>
+
+</div>
+
+<!-- ================================================================ -->
+<!-- ANNOTATION NOTES -->
+<!-- ================================================================ -->
+<div class="wireframe-note" style="top: 140px; left: 20px;">
+  Main content card fills all vertical space. Shows agenda item, document preview, or active vote — whatever is active.
+</div>
+
+<div class="wireframe-note" style="bottom: 140px; left: 20px;">
+  Max 5 participant cards visible. "+N more" overflow. Cards follow theme branding (light bg, green border for speaking).
+</div>
+
+<div class="wireframe-note" style="bottom: 70px; left: 16px;">
+  LEFT: Personal AV controls (Mute, Video, Share) + Raise Hand gesture. Circular buttons, dark background.
+</div>
+
+<div class="wireframe-note" style="bottom: 70px; left: 280px;">
+  CENTER: Panel icon strip toggles side panel content. Active tab has highlight + dot indicator. Replaces old sidebar icon strip.
+</div>
+
+<div class="wireframe-note" style="bottom: 70px; right: 16px;">
+  RIGHT: Meeting actions (Start Voting, Pause, End Meeting, Leave). Styled as distinct buttons with colors.
+</div>
+
+<div class="wireframe-note" style="top: 180px; right: 10px;">
+  Side panel content switches based on which center tab is active (Agenda, Participants, Documents, etc.).
+</div>
+
+</body>
+</html>

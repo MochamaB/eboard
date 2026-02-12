@@ -6,7 +6,8 @@
  */
 
 import React, { useMemo, useCallback } from 'react';
-import { Calendar, momentLocalizer, View, SlotInfo } from 'react-big-calendar';
+import { Calendar, momentLocalizer } from 'react-big-calendar';
+import type { View, SlotInfo } from 'react-big-calendar';
 import moment from 'moment';
 import { Spin } from 'antd';
 import 'react-big-calendar/lib/css/react-big-calendar.css';

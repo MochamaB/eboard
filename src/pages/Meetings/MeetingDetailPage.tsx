@@ -247,7 +247,7 @@ export const MeetingDetailPage: React.FC = () => {
           icon: <PlayCircleOutlined />,
           type: 'primary',
           onClick: () => {
-            navigate(`/${currentBoard?.id}/meetings/${meeting.id}/room`);
+            window.open(`/${currentBoard?.id}/meetings/${meeting.id}/room`, '_blank');
           },
         };
       } else {
@@ -283,7 +283,7 @@ export const MeetingDetailPage: React.FC = () => {
         icon: <VideoCameraOutlined />,
         type: 'primary',
         onClick: () => {
-          navigate(`/${currentBoard?.id}/meetings/${meeting.id}/room`);
+          window.open(`/${currentBoard?.id}/meetings/${meeting.id}/room`, '_blank');
         },
       };
     }
@@ -302,7 +302,7 @@ export const MeetingDetailPage: React.FC = () => {
     }
 
     return undefined;
-  }, [meeting, currentBoard?.id, permissions, navigate]);
+  }, [meeting, currentBoard?.id, permissions]);
 
   // Dropdown actions - Context-aware based on status
   const dropdownActions: MenuProps['items'] = useMemo(() => {
@@ -354,7 +354,7 @@ export const MeetingDetailPage: React.FC = () => {
         label: 'Start Meeting',
         icon: <PlayCircleOutlined />,
         onClick: () => {
-          navigate(`/${currentBoard?.id}/meetings/${meeting.id}/room`);
+          window.open(`/${currentBoard?.id}/meetings/${meeting.id}/room`, '_blank');
         },
       });
     }

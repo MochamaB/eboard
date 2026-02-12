@@ -9,10 +9,9 @@ import {
   CheckOutlined, 
   CaretRightFilled, 
   ClockCircleOutlined, 
-  LeftOutlined, 
-  RightOutlined 
 } from '@ant-design/icons';
-import { useBoardContext } from '../../../../contexts';
+import { ChevronLeft, ChevronRight, Check, SkipForward } from 'lucide-react';
+import { useMeetingRoomTheme } from '../MeetingRoomThemeContext';
 import { useResponsive } from '../../../../contexts/ResponsiveContext';
 import { useMeetingRoom } from '../../../../contexts/MeetingRoomContext';
 import { useMeetingRoomPermissions } from '../../../../hooks/meetings';
@@ -21,7 +20,7 @@ const { Text } = Typography;
 
 const SidePanelAgenda: React.FC = () => {
   const { roomState, actions, capabilities } = useMeetingRoom();
-  const { theme } = useBoardContext();
+  const theme = useMeetingRoomTheme();
   const { isMobile } = useResponsive();
   const { agendaItems, currentAgendaItemId } = roomState;
   const permissions = useMeetingRoomPermissions();
@@ -85,8 +84,10 @@ const SidePanelAgenda: React.FC = () => {
                   style={{
                     padding: itemPadding,
                     borderRadius: 8,
-                    border: isCurrent ? `1px solid ${theme.primaryColor}` : `1px solid ${theme.borderColorLight}`,
-                    background: isCurrent ? theme.primaryLight : theme.backgroundSecondary,
+                    border: isCurrent ? `1.5px solid ${theme.primaryColor}` : `1px solid ${theme.borderColorLight}`,
+                    background: isCurrent
+                      ? `rgba(${parseInt(theme.primaryColor.slice(1,3),16)}, ${parseInt(theme.primaryColor.slice(3,5),16)}, ${parseInt(theme.primaryColor.slice(5,7),16)}, 0.25)`
+                      : theme.backgroundSecondary,
                     cursor: canNavigate ? 'pointer' : 'default',
                     opacity: item.status === 'completed' ? 0.6 : 1,
                   }}
@@ -133,48 +134,53 @@ const SidePanelAgenda: React.FC = () => {
         )}
       </div>
       
-      {/* Navigation Controls */}
+      {/* Navigation Controls — icon-only bar */}
       {canNavigate && (
-        <div style={{ borderTop: `1px solid ${theme.borderColor}`, padding: isMobile ? 12 : 16 }}>
-          <Space style={{ width: '100%', marginBottom: 8 }}>
-            {isMobile ? (
-              <>
-                <Tooltip title="Previous">
-                  <Button icon={<LeftOutlined />} disabled={!canGoPrev} onClick={handlePrevItem} style={{ flex: 1 }} />
-                </Tooltip>
-                <Tooltip title="Next">
-                  <Button icon={<RightOutlined />} disabled={!canGoNext} onClick={handleNextItem} style={{ flex: 1 }} />
-                </Tooltip>
-              </>
-            ) : (
-              <>
-                <Button icon={<LeftOutlined />} disabled={!canGoPrev} onClick={handlePrevItem} style={{ flex: 1 }}>
-                  Previous
-                </Button>
-                <Button disabled={!canGoNext} onClick={handleNextItem} style={{ flex: 1 }}>
-                  Next <RightOutlined />
-                </Button>
-              </>
-            )}
-          </Space>
-          
-          <Space style={{ width: '100%' }}>
-            <Button 
-              icon={<CheckOutlined />}
+        <div style={{
+          borderTop: `1px solid ${theme.borderColor}`,
+          padding: '8px 12px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 4,
+        }}>
+          <Tooltip title="Previous Item">
+            <Button
+              type="text"
+              icon={<ChevronLeft size={18} />}
+              disabled={!canGoPrev}
+              onClick={handlePrevItem}
+              style={{ color: canGoPrev ? theme.textPrimary : theme.textDisabled }}
+            />
+          </Tooltip>
+          <Tooltip title="Next Item">
+            <Button
+              type="text"
+              icon={<ChevronRight size={18} />}
+              disabled={!canGoNext}
+              onClick={handleNextItem}
+              style={{ color: canGoNext ? theme.textPrimary : theme.textDisabled }}
+            />
+          </Tooltip>
+          <div style={{ width: 1, height: 20, background: theme.borderColor, margin: '0 4px' }} />
+          <Tooltip title="Mark Discussed">
+            <Button
+              type="text"
+              icon={<Check size={18} />}
               disabled={!currentAgendaItemId || !canMark}
               onClick={() => currentAgendaItemId && actions.markItemDiscussed(currentAgendaItemId)}
-              style={{ flex: 1 }}
-            >
-              {isMobile ? 'Done' : 'Mark Discussed'}
-            </Button>
-            <Button 
+              style={{ color: currentAgendaItemId && canMark ? theme.successColor : theme.textDisabled }}
+            />
+          </Tooltip>
+          <Tooltip title="Defer Item">
+            <Button
               type="text"
+              icon={<SkipForward size={18} />}
               disabled={!currentAgendaItemId || !canDefer}
               onClick={() => currentAgendaItemId && actions.deferItem(currentAgendaItemId)}
-            >
-              Defer
-            </Button>
-          </Space>
+              style={{ color: currentAgendaItemId && canDefer ? theme.warningColor : theme.textDisabled }}
+            />
+          </Tooltip>
         </div>
       )}
     </div>

@@ -1,33 +1,16 @@
 /**
- * ParticipantPanel — Unified participant display
+ * ParticipantPanel — Unified participant strip
  * 
- * Compact horizontal scrollable strip of participant cards.
- * Each card adapts based on participant state (physical/virtual).
- * 
- * Layout:
- * - Header: participant count + mode split (e.g., "3 in room · 2 remote")
- * - Strip: scrollable row of small cards with left/right arrows on overflow
- * - Footer: AV controls bar (only when showVirtualFeatures)
- * 
- * Per-card:
- * - Avatar + first name
- * - Mode badge: green "In Room" or blue "Remote"
- * - Speaking: green border highlight
- * - Muted: red mic-off indicator (virtual only)
- * - Raised hand: ✋ badge
- * - Connecting: yellow pulse dot
- * 
- * Replaces: ParticipantStrip, VirtualConferencePlaceholder, PhysicalAttendancePlaceholder
+ * Compact horizontal strip of participant cards (max 5 visible).
+ * Theme-branded (light background), scroll arrows on overflow.
+ * AV controls moved to BottomControlBar.
  */
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { Avatar, Button, Typography, Tooltip, Tag } from 'antd';
+import { Avatar, Typography, Tooltip, Tag } from 'antd';
 import {
   UserOutlined,
-  AudioOutlined,
   AudioMutedOutlined,
-  VideoCameraOutlined,
-  DesktopOutlined,
   LeftOutlined,
   RightOutlined,
   WifiOutlined,
@@ -88,10 +71,10 @@ const ParticipantCard: React.FC<ParticipantCardProps> = React.memo(({
           width: cardWidth,
           height: cardHeight,
           borderRadius: 8,
-          background: '#2a2a3e',
+          background: theme.backgroundQuaternary || '#f8f8f4',
           border: isSpeaking
             ? `2px solid ${theme.successColor}`
-            : '1px solid #3a3a5a',
+            : `1px solid ${theme.borderColor || '#e5e7eb'}`,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -122,7 +105,7 @@ const ParticipantCard: React.FC<ParticipantCardProps> = React.memo(({
           icon={<UserOutlined />}
           size={avatarSize}
           style={{
-            background: isSpeaking ? theme.primaryColor : '#555',
+            background: isSpeaking ? theme.primaryColor : (theme.textTertiary || '#999'),
             transition: 'background 0.2s',
           }}
         />
@@ -131,7 +114,7 @@ const ParticipantCard: React.FC<ParticipantCardProps> = React.memo(({
         <Text
           style={{
             fontSize: isMobile ? 9 : 10,
-            color: '#ccc',
+            color: theme.textSecondary,
             maxWidth: cardWidth - 12,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -198,8 +181,10 @@ ParticipantCard.displayName = 'ParticipantCard';
 // MAIN COMPONENT
 // ============================================================================
 
+const MAX_VISIBLE_CARDS = 5;
+
 const ParticipantPanel: React.FC = () => {
-  const { roomState, actions, modeFeatures } = useMeetingRoom();
+  const { roomState, modeFeatures } = useMeetingRoom();
   const { theme } = useBoardContext();
   const { isMobile } = useResponsive();
   const { participants } = roomState;
@@ -240,6 +225,8 @@ const ParticipantPanel: React.FC = () => {
     el.scrollBy({ left: dir === 'left' ? -amount : amount, behavior: 'smooth' });
   };
 
+  const overflowCount = Math.max(0, joinedParticipants.length - MAX_VISIBLE_CARDS);
+
   if (joinedParticipants.length === 0) return null;
 
   return (
@@ -248,7 +235,7 @@ const ParticipantPanel: React.FC = () => {
       borderRadius: isMobile ? 8 : 12,
       border: `1px solid ${theme.borderColor || '#e5e7eb'}`,
       overflow: 'hidden',
-      background: '#1e1e32',
+      background: theme.backgroundSecondary || '#fff',
     }}>
       {/* Header */}
       <div style={{
@@ -256,17 +243,17 @@ const ParticipantPanel: React.FC = () => {
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: isMobile ? '6px 10px' : '8px 14px',
-        borderBottom: '1px solid #2a2a4a',
+        borderBottom: `1px solid ${theme.borderColor || '#e5e7eb'}`,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Text style={{ color: '#ccc', fontSize: 12, fontWeight: 600 }}>
+          <Text style={{ color: theme.textPrimary, fontSize: 12, fontWeight: 600 }}>
             Participants ({joinedParticipants.length})
           </Text>
           {modeFeatures.isHybrid && (
-            <Text style={{ color: '#888', fontSize: 11 }}>
+            <Text type="secondary" style={{ fontSize: 11 }}>
               <HomeOutlined style={{ marginRight: 3 }} />
               {modeFeatures.physicalCount} in room
-              <span style={{ margin: '0 4px', color: '#555' }}>·</span>
+              <span style={{ margin: '0 4px' }}>·</span>
               <WifiOutlined style={{ marginRight: 3 }} />
               {modeFeatures.virtualCount} remote
             </Text>
@@ -299,10 +286,10 @@ const ParticipantPanel: React.FC = () => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: 'linear-gradient(to right, #1e1e32 60%, transparent)',
+              background: `linear-gradient(to right, ${theme.backgroundSecondary || '#fff'} 60%, transparent)`,
               zIndex: 2,
               cursor: 'pointer',
-              color: '#ccc',
+              color: theme.textSecondary,
               fontSize: 14,
             }}
           >
@@ -318,8 +305,8 @@ const ParticipantPanel: React.FC = () => {
             gap: isMobile ? 8 : 10,
             overflowX: 'auto',
             padding: isMobile ? '0 10px' : '0 14px',
-            scrollbarWidth: 'none', // Firefox
-            msOverflowStyle: 'none', // IE
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
           }}
         >
           {joinedParticipants.map(p => (
@@ -332,7 +319,7 @@ const ParticipantPanel: React.FC = () => {
           ))}
         </div>
 
-        {/* Right arrow */}
+        {/* Right arrow + overflow count */}
         {showRightArrow && (
           <div
             onClick={() => scrollBy('right')}
@@ -341,78 +328,25 @@ const ParticipantPanel: React.FC = () => {
               right: 0,
               top: 0,
               bottom: 0,
-              width: 28,
+              width: overflowCount > 0 ? 52 : 28,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: 'linear-gradient(to left, #1e1e32 60%, transparent)',
+              gap: 4,
+              background: `linear-gradient(to left, ${theme.backgroundSecondary || '#fff'} 60%, transparent)`,
               zIndex: 2,
               cursor: 'pointer',
-              color: '#ccc',
+              color: theme.textSecondary,
               fontSize: 14,
             }}
           >
+            {overflowCount > 0 && (
+              <Text style={{ fontSize: 11, fontWeight: 500, color: theme.textSecondary }}>+{overflowCount}</Text>
+            )}
             <RightOutlined />
           </div>
         )}
       </div>
-
-      {/* AV Controls toolbar (only when virtual features active) */}
-      {modeFeatures.showVirtualFeatures && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: isMobile ? '6px 8px' : '8px 14px',
-          borderTop: '1px solid #2a2a4a',
-          gap: isMobile ? 10 : 16,
-        }}>
-          <Tooltip title="Toggle Mute">
-            <Button
-              shape="circle"
-              size={isMobile ? 'small' : 'middle'}
-              icon={<AudioOutlined />}
-              onClick={actions.toggleMute}
-              style={{
-                background: '#2a2a4a',
-                borderColor: '#3a3a5a',
-                color: '#ccc',
-              }}
-            />
-          </Tooltip>
-          <Tooltip title="Toggle Video">
-            <Button
-              shape="circle"
-              size={isMobile ? 'small' : 'middle'}
-              icon={<VideoCameraOutlined />}
-              onClick={actions.toggleVideo}
-              style={{
-                background: '#2a2a4a',
-                borderColor: '#3a3a5a',
-                color: '#ccc',
-              }}
-            />
-          </Tooltip>
-          <Tooltip title="Share Screen">
-            <Button
-              shape="circle"
-              size={isMobile ? 'small' : 'middle'}
-              icon={<DesktopOutlined />}
-              onClick={() => actions.startScreenShare()}
-              style={{
-                background: '#2a2a4a',
-                borderColor: '#3a3a5a',
-                color: '#ccc',
-              }}
-            />
-          </Tooltip>
-        </div>
-      )}
-
-      {/* Hide scrollbar CSS */}
-      <style>{`
-        div::-webkit-scrollbar { display: none; }
-      `}</style>
     </div>
   );
 };

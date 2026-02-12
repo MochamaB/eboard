@@ -101,7 +101,7 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
   
   // Connection state
   const [isConnected, setIsConnected] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false); // eslint-disable-line @typescript-eslint/no-unused-vars
+  const [isSyncing, _setIsSyncing] = useState(false);
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
   
   // Recording state
@@ -118,7 +118,7 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
 
   // Mode transition tracking
   const [previousMode, setPreviousMode] = useState<MeetingMode | null>(null);
-  const [modeTransitions, setModeTransitions] = useState<ModeTransition[]>([]);
+  const [_modeTransitions, setModeTransitions] = useState<ModeTransition[]>([]);
 
   // ============================================================================
   // COMPUTED VALUES

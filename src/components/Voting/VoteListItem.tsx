@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { Tag, Button, Tooltip, Typography, Space } from 'antd';
+import { Tag, Button, Tooltip, Typography } from 'antd';
 import {
   EyeOutlined,
   TrophyOutlined,

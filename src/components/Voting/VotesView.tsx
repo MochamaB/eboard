@@ -42,8 +42,8 @@ export const VotesView: React.FC<VotesViewProps> = ({
   canCastVote = false,
   themeColor = '#1890ff',
   onVoteCreated,
-  onVoteOpened,
-  onVoteClosed,
+  onVoteOpened: _onVoteOpened,
+  onVoteClosed: _onVoteClosed,
 }) => {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editVoteId, setEditVoteId] = useState<string | null>(null);

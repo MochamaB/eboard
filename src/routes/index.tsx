@@ -156,6 +156,13 @@ export const router = createBrowserRouter([
         ],
       },
 
+      // Meeting Room — full-screen, no sidebar/header (Jitsi-style dark UI)
+      // Must be before /:boardId catch-all so it matches first
+      {
+        path: '/:boardId/meetings/:meetingId/room',
+        element: <ProtectedRoute><MeetingRoomPage /></ProtectedRoute>,
+      },
+
       // Main app routes (with sidebar) - all under /:boardId
       // Protected: requires authentication
       {
@@ -183,10 +190,6 @@ export const router = createBrowserRouter([
       {
         path: 'meetings/:meetingId',
         element: <MeetingDetailPage />,
-      },
-      {
-        path: 'meetings/:meetingId/room',
-        element: <MeetingRoomPage />,
       },
 
       // Approvals
