@@ -4,6 +4,7 @@
  */
 
 import apiClient from './client';
+import { safeParseResponse, safeParsePayload } from '../utils/safeParseResponse';
 import { z } from 'zod';
 import {
   UserSchema,
@@ -52,7 +53,7 @@ export const usersApi = {
    */
   getUsers: async (params?: UserFilterParams): Promise<PaginatedResponse<UserListItem>> => {
     const response = await apiClient.get('/users', { params });
-    return UsersListResponseSchema.parse(response.data);
+    return safeParseResponse(UsersListResponseSchema, response.data, 'getUsers');
   },
 
   /**
@@ -60,7 +61,7 @@ export const usersApi = {
    */
   getUser: async (id: number): Promise<User> => {
     const response = await apiClient.get(`/users/${id}`);
-    return UserSchema.parse(response.data);
+    return safeParseResponse(UserSchema, response.data, 'getUser');
   },
 
   /**
@@ -68,18 +69,18 @@ export const usersApi = {
    */
   createUser: async (payload: CreateUserPayload): Promise<User> => {
     // Validate payload before sending
-    const validatedPayload = CreateUserPayloadSchema.parse(payload);
+    const validatedPayload = safeParsePayload(CreateUserPayloadSchema, payload, 'createUser');
     const response = await apiClient.post('/users', validatedPayload);
-    return UserSchema.parse(response.data);
+    return safeParseResponse(UserSchema, response.data, 'createUser');
   },
 
   /**
    * Update existing user
    */
   updateUser: async (id: number, payload: UpdateUserPayload): Promise<User> => {
-    const validatedPayload = UpdateUserPayloadSchema.parse(payload);
+    const validatedPayload = safeParsePayload(UpdateUserPayloadSchema, payload, 'updateUser');
     const response = await apiClient.put(`/users/${id}`, validatedPayload);
-    return UserSchema.parse(response.data);
+    return safeParseResponse(UserSchema, response.data, 'updateUser');
   },
 
   /**
@@ -94,7 +95,7 @@ export const usersApi = {
    */
   checkEmail: async (email: string): Promise<EmailCheckResponse> => {
     const response = await apiClient.get('/users/check-email', { params: { email } });
-    return EmailCheckResponseSchema.parse(response.data);
+    return safeParseResponse(EmailCheckResponseSchema, response.data, 'checkEmail');
   },
 
   /**
@@ -130,7 +131,7 @@ export const usersApi = {
     params?: { page?: number; pageSize?: number }
   ): Promise<PaginatedResponse<UserActivity>> => {
     const response = await apiClient.get(`/users/${userId}/activities`, { params });
-    return UserActivitiesResponseSchema.parse(response.data);
+    return safeParseResponse(UserActivitiesResponseSchema, response.data, 'getUserActivities');
   },
 
   /**
@@ -180,7 +181,7 @@ export const usersApi = {
     const response = await apiClient.get(`/users/${userId}/sessions`, {
       params: { activeOnly },
     });
-    return UserSessionsResponseSchema.parse(response.data);
+    return safeParseResponse(UserSessionsResponseSchema, response.data, 'getUserSessions');
   },
 
   /**
@@ -188,7 +189,7 @@ export const usersApi = {
    */
   getSession: async (sessionId: string): Promise<UserSession> => {
     const response = await apiClient.get(`/sessions/${sessionId}`);
-    return UserSessionSchema.parse(response.data);
+    return safeParseResponse(UserSessionSchema, response.data, 'getSession');
   },
 
   /**

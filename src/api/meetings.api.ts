@@ -4,6 +4,7 @@
  */
 
 import apiClient from './client';
+import { safeParseResponse } from '../utils/safeParseResponse';
 import { z } from 'zod';
 import {
   MeetingSchema,
@@ -64,7 +65,7 @@ export const meetingsApi = {
    */
   getMeetings: async (params?: MeetingFilterParams): Promise<PaginatedResponse<MeetingListItem>> => {
     const response = await apiClient.get('/meetings', { params });
-    return MeetingListResponseSchema.parse(response.data);
+    return safeParseResponse(MeetingListResponseSchema, response.data, 'getMeetings');
   },
 
   /**
@@ -75,7 +76,7 @@ export const meetingsApi = {
     params?: { includeCommittees?: boolean; page?: number; pageSize?: number }
   ): Promise<PaginatedResponse<MeetingListItem>> => {
     const response = await apiClient.get(`/boards/${boardId}/meetings`, { params });
-    return MeetingListResponseSchema.parse(response.data);
+    return safeParseResponse(MeetingListResponseSchema, response.data, 'getBoardMeetings');
   },
 
   /**
@@ -83,7 +84,7 @@ export const meetingsApi = {
    */
   getMeeting: async (id: string): Promise<Meeting> => {
     const response = await apiClient.get(`/meetings/${id}`);
-    return MeetingSchema.parse(response.data);
+    return safeParseResponse(MeetingSchema, response.data, 'getMeeting');
   },
 
   /**
@@ -91,7 +92,7 @@ export const meetingsApi = {
    */
   createMeeting: async (payload: CreateMeetingPayload): Promise<Meeting> => {
     const response = await apiClient.post('/meetings', payload);
-    return MeetingSchema.parse(response.data);
+    return safeParseResponse(MeetingSchema, response.data, 'createMeeting');
   },
 
   /**
@@ -99,7 +100,7 @@ export const meetingsApi = {
    */
   updateMeeting: async (id: string, payload: UpdateMeetingPayload): Promise<Meeting> => {
     const response = await apiClient.put(`/meetings/${id}`, payload);
-    return MeetingSchema.parse(response.data);
+    return safeParseResponse(MeetingSchema, response.data, 'updateMeeting');
   },
 
   /**
@@ -118,7 +119,7 @@ export const meetingsApi = {
    */
   cancelMeeting: async (id: string, payload: CancelMeetingPayload): Promise<Meeting> => {
     const response = await apiClient.post(`/meetings/${id}/cancel`, payload);
-    return MeetingSchema.parse(response.data);
+    return safeParseResponse(MeetingSchema, response.data, 'cancelMeeting');
   },
 
   /**
@@ -126,7 +127,7 @@ export const meetingsApi = {
    */
   rescheduleMeeting: async (id: string, payload: RescheduleMeetingPayload): Promise<Meeting> => {
     const response = await apiClient.post(`/meetings/${id}/reschedule`, payload);
-    return MeetingSchema.parse(response.data);
+    return safeParseResponse(MeetingSchema, response.data, 'rescheduleMeeting');
   },
 
   // ==========================================================================
@@ -138,7 +139,7 @@ export const meetingsApi = {
    */
   updateRSVP: async (id: string, payload: UpdateRSVPPayload): Promise<Meeting> => {
     const response = await apiClient.put(`/meetings/${id}/rsvp`, payload);
-    return MeetingSchema.parse(response.data);
+    return safeParseResponse(MeetingSchema, response.data, 'updateRSVP');
   },
 
   /**
@@ -146,7 +147,7 @@ export const meetingsApi = {
    */
   addGuest: async (id: string, payload: AddGuestPayload): Promise<Meeting> => {
     const response = await apiClient.post(`/meetings/${id}/guests`, payload);
-    return MeetingSchema.parse(response.data);
+    return safeParseResponse(MeetingSchema, response.data, 'addGuest');
   },
 
   /**
@@ -165,7 +166,7 @@ export const meetingsApi = {
    */
   getUpcomingMeetings: async (limit: number = 5): Promise<{ data: MeetingListItem[]; total: number }> => {
     const response = await apiClient.get('/meetings/upcoming', { params: { limit } });
-    return UpcomingMeetingsResponseSchema.parse(response.data);
+    return safeParseResponse(UpcomingMeetingsResponseSchema, response.data, 'getUpcomingMeetings');
   },
 
   /**
@@ -180,7 +181,7 @@ export const meetingsApi = {
     if (includeCommittees) params.includeCommittees = 'true';
     
     const response = await apiClient.get('/meetings/pending-confirmation', { params });
-    return UpcomingMeetingsResponseSchema.parse(response.data);
+    return safeParseResponse(UpcomingMeetingsResponseSchema, response.data, 'getPendingConfirmations');
   },
 
   // ==========================================================================
@@ -192,7 +193,7 @@ export const meetingsApi = {
    */
   getMeetingEvents: async (meetingId: string): Promise<{ data: MeetingEvent[]; total: number }> => {
     const response = await apiClient.get(`/meetings/${meetingId}/events`);
-    return MeetingEventsResponseSchema.parse(response.data);
+    return safeParseResponse(MeetingEventsResponseSchema, response.data, 'getMeetingEvents');
   },
 
   /**
@@ -200,7 +201,7 @@ export const meetingsApi = {
    */
   getLatestApprovalEvent: async (meetingId: string): Promise<{ data: MeetingEvent | null; message?: string }> => {
     const response = await apiClient.get(`/meetings/${meetingId}/latest-approval-event`);
-    return LatestEventResponseSchema.parse(response.data);
+    return safeParseResponse(LatestEventResponseSchema, response.data, 'getLatestApprovalEvent');
   },
 
   /**
@@ -211,7 +212,7 @@ export const meetingsApi = {
     payload: { submittedBy: number; notes?: string }
   ): Promise<{ success: boolean; data?: MeetingEvent; message: string }> => {
     const response = await apiClient.post(`/meetings/${meetingId}/submit-for-approval`, payload);
-    return ApprovalActionResponseSchema.parse(response.data);
+    return safeParseResponse(ApprovalActionResponseSchema, response.data, 'submitForApproval');
   },
 
   /**
@@ -222,7 +223,7 @@ export const meetingsApi = {
     payload: { approvedBy: number; pin: string; signatureId?: string; signatureImage?: string }
   ): Promise<{ success: boolean; data?: MeetingEvent; message: string }> => {
     const response = await apiClient.post(`/meetings/${meetingId}/approve`, payload);
-    return ApprovalActionResponseSchema.parse(response.data);
+    return safeParseResponse(ApprovalActionResponseSchema, response.data, 'approveMeeting');
   },
 
   /**
@@ -233,7 +234,7 @@ export const meetingsApi = {
     payload: { rejectedBy: number; reason: RejectionReason; comments?: string }
   ): Promise<{ success: boolean; data?: MeetingEvent; message: string }> => {
     const response = await apiClient.post(`/meetings/${meetingId}/reject`, payload);
-    return ApprovalActionResponseSchema.parse(response.data);
+    return safeParseResponse(ApprovalActionResponseSchema, response.data, 'rejectMeeting');
   },
 
   /**
@@ -244,7 +245,7 @@ export const meetingsApi = {
     payload: { submittedBy: number; notes?: string }
   ): Promise<{ success: boolean; data?: MeetingEvent; message: string }> => {
     const response = await apiClient.post(`/meetings/${meetingId}/resubmit-for-approval`, payload);
-    return ApprovalActionResponseSchema.parse(response.data);
+    return safeParseResponse(ApprovalActionResponseSchema, response.data, 'resubmitForApproval');
   },
 
   /**
@@ -252,7 +253,7 @@ export const meetingsApi = {
    */
   archiveMeeting: async (meetingId: string): Promise<Meeting> => {
     const response = await apiClient.post(`/meetings/${meetingId}/archive`);
-    return MeetingSchema.parse(response.data);
+    return safeParseResponse(MeetingSchema, response.data, 'archiveMeeting');
   },
 
   /**
@@ -263,7 +264,7 @@ export const meetingsApi = {
     payload: { status: MeetingStatus; subStatus?: string; reason?: string }
   ): Promise<Meeting> => {
     const response = await apiClient.post(`/meetings/${meetingId}/transition`, payload);
-    return MeetingSchema.parse(response.data);
+    return safeParseResponse(MeetingSchema, response.data, 'transitionMeetingStatus');
   },
 
   /**

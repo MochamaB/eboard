@@ -4,6 +4,7 @@
  */
 
 import apiClient from './client';
+import { safeParseResponse } from '../utils/safeParseResponse';
 import { z } from 'zod';
 import {
   BoardSchema,
@@ -78,7 +79,7 @@ export const boardsApi = {
    */
   getBoards: async (params?: BoardFilterParams): Promise<PaginatedResponse<BoardListItem>> => {
     const response = await apiClient.get('/boards', { params });
-    return BoardsListResponseSchema.parse(response.data);
+    return safeParseResponse(BoardsListResponseSchema, response.data, 'getBoards');
   },
 
   /**
@@ -86,7 +87,7 @@ export const boardsApi = {
    */
   getBoard: async (id: string): Promise<Board> => {
     const response = await apiClient.get(`/boards/${id}`);
-    return BoardSchema.parse(response.data);
+    return safeParseResponse(BoardSchema, response.data, 'getBoard');
   },
 
   /**
@@ -94,7 +95,7 @@ export const boardsApi = {
    */
   createBoard: async (payload: CreateBoardPayload): Promise<Board> => {
     const response = await apiClient.post('/boards', payload);
-    return BoardSchema.parse(response.data);
+    return safeParseResponse(BoardSchema, response.data, 'createBoard');
   },
 
   /**
@@ -102,7 +103,7 @@ export const boardsApi = {
    */
   updateBoard: async (id: string, payload: UpdateBoardPayload): Promise<Board> => {
     const response = await apiClient.put(`/boards/${id}`, payload);
-    return BoardSchema.parse(response.data);
+    return safeParseResponse(BoardSchema, response.data, 'updateBoard');
   },
 
   /**
@@ -121,7 +122,7 @@ export const boardsApi = {
    */
   getBoardTree: async (): Promise<BoardTreeNode[]> => {
     const response = await apiClient.get('/boards/tree');
-    const parsed = BoardTreeResponseSchema.parse(response.data);
+    const parsed = safeParseResponse(BoardTreeResponseSchema, response.data, 'getBoardTree');
     return parsed.data;
   },
 
@@ -142,7 +143,7 @@ export const boardsApi = {
     }
   ): Promise<PaginatedResponse<BoardMember>> => {
     const response = await apiClient.get(`/boards/${boardId}/members`, { params });
-    return BoardMembersResponseSchema.parse(response.data);
+    return safeParseResponse(BoardMembersResponseSchema, response.data, 'getBoardMembers');
   },
 
   /**
@@ -150,7 +151,7 @@ export const boardsApi = {
    */
   addBoardMember: async (boardId: string, payload: AddBoardMemberPayload): Promise<BoardMember> => {
     const response = await apiClient.post(`/boards/${boardId}/members`, payload);
-    return BoardMemberSchema.parse(response.data);
+    return safeParseResponse(BoardMemberSchema, response.data, 'addBoardMember');
   },
 
   /**
@@ -169,7 +170,7 @@ export const boardsApi = {
    */
   getBoardCommittees: async (boardId: string): Promise<{ data: Committee[]; total: number }> => {
     const response = await apiClient.get(`/boards/${boardId}/committees`);
-    return CommitteesResponseSchema.parse(response.data);
+    return safeParseResponse(CommitteesResponseSchema, response.data, 'getBoardCommittees');
   },
 
   /**
@@ -180,7 +181,7 @@ export const boardsApi = {
     payload: { name: string; shortName?: string; description?: string }
   ): Promise<Committee> => {
     const response = await apiClient.post(`/boards/${boardId}/committees`, payload);
-    return CommitteeSchema.parse(response.data);
+    return safeParseResponse(CommitteeSchema, response.data, 'createCommittee');
   },
 
   // ==========================================================================
@@ -195,7 +196,7 @@ export const boardsApi = {
     return z.object({
       data: z.array(BoardSchema),
       total: z.number(),
-    }).parse(response.data);
+    }).safeParse(response.data).data ?? response.data;
   },
 
   // ==========================================================================
@@ -207,7 +208,7 @@ export const boardsApi = {
    */
   getBoardStats: async (boardId: string): Promise<BoardStats> => {
     const response = await apiClient.get(`/boards/${boardId}/stats`);
-    return BoardStatsSchema.parse(response.data);
+    return safeParseResponse(BoardStatsSchema, response.data, 'getBoardStats');
   },
 };
 

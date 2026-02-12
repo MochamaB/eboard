@@ -20,10 +20,10 @@ import type { Board, BoardListItem, BoardBranding } from '../../../types/board.t
  */
 const toBoardBranding = (row: BoardBrandingRow): BoardBranding => ({
   logo: {
-    main: `/src/assets/${row.logoMain}`,
-    small: row.logoSmall ? `/src/assets/${row.logoSmall}` : `/src/assets/${row.logoMain}`,
-    dark: row.logoDark ? `/src/assets/${row.logoDark}` : undefined,
-    light: row.logoLight ? `/src/assets/${row.logoLight}` : undefined,
+    main: `/assets/${row.logoMain}`,
+    small: row.logoSmall ? `/assets/${row.logoSmall}` : `/assets/${row.logoMain}`,
+    dark: row.logoDark ? `/assets/${row.logoDark}` : undefined,
+    light: row.logoLight ? `/assets/${row.logoLight}` : undefined,
   },
   primaryColor: row.primaryColor,
   primaryHover: row.primaryHover,

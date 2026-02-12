@@ -1,3 +1,4 @@
+import React, { useMemo } from 'react';
 import { Layout, Menu, Drawer } from 'antd';
 import type { MenuProps } from 'antd';
 import {
@@ -15,6 +16,8 @@ import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { useBoardContext } from '../../contexts';
 import { useResponsive } from '../../hooks';
 import { responsiveHelpers } from '../../utils';
+import { usePendingConfirmations } from '../../hooks/api/useMeetings';
+import { useMinutesPendingApproval } from '../../hooks/api/useMinutes';
 import './Sidebar.css';
 
 const { Sider } = Layout;
@@ -47,32 +50,6 @@ function getItemGroup(
   } as MenuItem;
 }
 
-const menuItems: MenuItem[] = [
-  getItemGroup(
-    <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: 0.5, opacity: 0.6 }}>MAIN MENU</span>,
-    [
-      getItem('Dashboard', '/', <DashboardOutlined />),
-      getItem('Meetings', '/meetings', <CalendarOutlined />),
-      getItem('Approvals', '/approvals', <SafetyCertificateOutlined />),
-      getItem('Documents', '/documents', <FileTextOutlined />),
-      getItem('Notifications', '/notifications', <BellOutlined />),
-      getItem('Reports', '/reports', <BarChartOutlined />),
-    ]
-  ),
-  
-  { type: 'divider', style: { margin: '16px 0', opacity: 0.2 } },
-  
-  getItemGroup(
-    <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: 0.5, opacity: 0.6 }}>ADMINISTRATION</span>,
-    [
-      getItem('Boards', '/boards', <ApartmentOutlined />),
-      getItem('Committees', '/committees', <ApartmentOutlined />),
-      getItem('Users', '/users', <TeamOutlined />),
-      getItem('Roles', '/roles', <SafetyCertificateOutlined />),
-      getItem('Permissions', '/permissions', <SettingOutlined />),
-    ]
-  ),
-];
 
 interface SidebarProps {
   collapsed: boolean;
@@ -85,6 +62,63 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
   const { boardId } = useParams<{ boardId: string }>();
   const { theme, currentBoard } = useBoardContext();
   const { isMobile, isTablet, currentBreakpoint } = useResponsive();
+
+  // Pending approvals badge count
+  const { data: pendingMeetings } = usePendingConfirmations(undefined, true);
+  const { data: pendingMinutes = [] } = useMinutesPendingApproval();
+  const pendingApprovalsCount = (pendingMeetings?.total ?? 0) + pendingMinutes.length;
+
+  // Dynamic menu items (depends on pendingApprovalsCount)
+  const menuItems = useMemo((): MenuItem[] => [
+    getItemGroup(
+      <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: 0.5, opacity: 0.6 }}>MAIN MENU</span>,
+      [
+        getItem('Dashboard', '/', <DashboardOutlined />),
+        getItem('Meetings', '/meetings', <CalendarOutlined />),
+        getItem(
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            Approvals
+            {pendingApprovalsCount > 0 && (
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minWidth: 18,
+                height: 18,
+                borderRadius: 9,
+                backgroundColor: 'currentColor',
+                fontSize: 11,
+                fontWeight: 700,
+                padding: '0 5px',
+                lineHeight: '18px',
+              }}>
+                <span style={{ color: theme.sidebarBg }}>
+                  {pendingApprovalsCount}
+                </span>
+              </span>
+            )}
+          </span>,
+          '/approvals',
+          <SafetyCertificateOutlined />,
+        ),
+        getItem('Documents', '/documents', <FileTextOutlined />),
+        getItem('Notifications', '/notifications', <BellOutlined />),
+        getItem('Reports', '/reports', <BarChartOutlined />),
+      ]
+    ),
+
+    { type: 'divider', style: { margin: '16px 0', opacity: 0.2 } },
+
+    getItemGroup(
+      <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: 0.5, opacity: 0.6 }}>ADMINISTRATION</span>,
+      [
+        getItem('Boards', '/boards', <ApartmentOutlined />),
+        getItem('Users', '/users', <TeamOutlined />),
+        getItem('Roles', '/roles', <SafetyCertificateOutlined />),
+        getItem('Permissions', '/permissions', <SettingOutlined />),
+      ]
+    ),
+  ], [pendingApprovalsCount]);
 
   // Use drawer for mobile AND tablet (better UX on smaller screens)
   const useDrawerMode = isMobile || isTablet;
@@ -122,8 +156,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
     if (segments[1] === 'dashboard') return ['/'];
     
     // Check for exact match
-    const exactMatch = menuItems.find(item => item && 'key' in item && item.key === menuPath);
-    if (exactMatch) return [menuPath];
+    if (menuPath) return [menuPath];
     
     // Check for parent match (e.g., /users/123 should highlight /users)
     if (segments.length > 2) {
@@ -176,7 +209,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
             }}
           >
             <img
-              src={currentBoard.branding?.logo?.main || currentBoard.branding?.logo?.small || ''}
+              src={theme.logo?.main || theme.logo?.small || ''}
               alt={currentBoard.shortName}
               style={{ width: 36, height: 36, objectFit: 'contain' }}
             />
@@ -198,7 +231,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
             }}
           >
             <img
-              src={currentBoard.branding?.logo?.main || currentBoard.branding?.logo?.small || ''}
+              src={theme.logo?.main || theme.logo?.small || ''}
               alt={currentBoard.shortName}
               style={{ width: 80, height: 80, objectFit: 'contain' }}
             />

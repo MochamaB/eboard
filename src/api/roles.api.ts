@@ -4,6 +4,7 @@
  */
 
 import apiClient from './client';
+import { safeParseResponse, safeParsePayload } from '../utils/safeParseResponse';
 import { z } from 'zod';
 import {
   RoleSchema,
@@ -40,7 +41,7 @@ export const rolesApi = {
     includeSystem?: boolean;
   }): Promise<PaginatedResponse<Role>> => {
     const response = await apiClient.get('/roles', { params });
-    return RolesListResponseSchema.parse(response.data);
+    return safeParseResponse(RolesListResponseSchema, response.data, 'getRoles');
   },
 
   /**
@@ -48,25 +49,25 @@ export const rolesApi = {
    */
   getRole: async (id: number): Promise<Role> => {
     const response = await apiClient.get(`/roles/${id}`);
-    return RoleSchema.parse(response.data);
+    return safeParseResponse(RoleSchema, response.data, 'getRole');
   },
 
   /**
    * Create new custom role
    */
   createRole: async (payload: CreateRolePayload): Promise<Role> => {
-    const validatedPayload = CreateRolePayloadSchema.parse(payload);
+    const validatedPayload = safeParsePayload(CreateRolePayloadSchema, payload, 'createRole');
     const response = await apiClient.post('/roles', validatedPayload);
-    return RoleSchema.parse(response.data);
+    return safeParseResponse(RoleSchema, response.data, 'createRole');
   },
 
   /**
    * Update existing role
    */
   updateRole: async (id: number, payload: UpdateRolePayload): Promise<Role> => {
-    const validatedPayload = UpdateRolePayloadSchema.parse(payload);
+    const validatedPayload = safeParsePayload(UpdateRolePayloadSchema, payload, 'updateRole');
     const response = await apiClient.put(`/roles/${id}`, validatedPayload);
-    return RoleSchema.parse(response.data);
+    return safeParseResponse(RoleSchema, response.data, 'updateRole');
   },
 
   /**
@@ -81,7 +82,7 @@ export const rolesApi = {
    */
   getPermissions: async (): Promise<Permission[]> => {
     const response = await apiClient.get('/permissions');
-    const parsed = PermissionsListResponseSchema.parse(response.data);
+    const parsed = safeParseResponse(PermissionsListResponseSchema, response.data, 'getPermissions');
     return parsed.data;
   },
 

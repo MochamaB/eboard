@@ -187,9 +187,11 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
   }, [location.pathname, location.search, navigate]);
 
   // Get theme from current board's branding or use default
+  // In 'all' mode, always use default (KTDA MS) branding
   const theme: BoardBranding = useMemo(() => {
+    if (viewMode === 'all') return defaultBranding;
     return currentBoard.branding || defaultBranding;
-  }, [currentBoard]);
+  }, [currentBoard, viewMode]);
 
   // Get committees for current board (boards with type='committee' and parentId=currentBoard.id)
   const committees = useMemo(() => {

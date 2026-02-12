@@ -4,6 +4,7 @@
  */
 
 import apiClient, { tokenManager } from './client';
+import { safeParseResponse, safeParsePayload } from '../utils/safeParseResponse';
 import {
   LoginPayloadSchema,
   LoginResponseSchema,
@@ -26,9 +27,9 @@ export const authApi = {
    * Login with email and password
    */
   login: async (payload: LoginPayload): Promise<LoginResponse> => {
-    const validatedPayload = LoginPayloadSchema.parse(payload);
+    const validatedPayload = safeParsePayload(LoginPayloadSchema, payload, 'login');
     const response = await apiClient.post('/auth/login', validatedPayload);
-    const data = LoginResponseSchema.parse(response.data);
+    const data = safeParseResponse(LoginResponseSchema, response.data, 'login');
     
     // Store tokens
     tokenManager.setTokens(data.accessToken, data.refreshToken);
@@ -68,9 +69,9 @@ export const authApi = {
    * Verify MFA code
    */
   verifyMfa: async (payload: MfaVerifyPayload): Promise<LoginResponse> => {
-    const validatedPayload = MfaVerifyPayloadSchema.parse(payload);
+    const validatedPayload = safeParsePayload(MfaVerifyPayloadSchema, payload, 'verifyMfa');
     const response = await apiClient.post('/auth/mfa/verify', validatedPayload);
-    const data = LoginResponseSchema.parse(response.data);
+    const data = safeParseResponse(LoginResponseSchema, response.data, 'verifyMfa');
     
     // Store tokens after successful MFA
     tokenManager.setTokens(data.accessToken, data.refreshToken);
@@ -83,7 +84,7 @@ export const authApi = {
    */
   setupMfa: async (): Promise<MfaSetupResponse> => {
     const response = await apiClient.post('/auth/mfa/setup');
-    return MfaSetupResponseSchema.parse(response.data);
+    return safeParseResponse(MfaSetupResponseSchema, response.data, 'setupMfa');
   },
 
   /**
@@ -105,7 +106,7 @@ export const authApi = {
    * Change password (for logged-in users)
    */
   changePassword: async (payload: ChangePasswordPayload): Promise<void> => {
-    const validatedPayload = ChangePasswordPayloadSchema.parse(payload);
+    const validatedPayload = safeParsePayload(ChangePasswordPayloadSchema, payload, 'changePassword');
     await apiClient.post('/auth/change-password', validatedPayload);
   },
 
@@ -113,7 +114,7 @@ export const authApi = {
    * Request password reset email
    */
   forgotPassword: async (payload: ForgotPasswordPayload): Promise<void> => {
-    const validatedPayload = ForgotPasswordPayloadSchema.parse(payload);
+    const validatedPayload = safeParsePayload(ForgotPasswordPayloadSchema, payload, 'forgotPassword');
     await apiClient.post('/auth/forgot-password', validatedPayload);
   },
 
@@ -121,7 +122,7 @@ export const authApi = {
    * Reset password with token
    */
   resetPassword: async (payload: ResetPasswordPayload): Promise<void> => {
-    const validatedPayload = ResetPasswordPayloadSchema.parse(payload);
+    const validatedPayload = safeParsePayload(ResetPasswordPayloadSchema, payload, 'resetPassword');
     await apiClient.post('/auth/reset-password', validatedPayload);
   },
 
@@ -132,7 +133,7 @@ export const authApi = {
     const response = await apiClient.get('/auth/me');
     // Mock API returns { data: user }, real API might return user directly
     const userData = response.data.data || response.data;
-    return LoginResponseSchema.shape.user.parse(userData);
+    return safeParseResponse(LoginResponseSchema.shape.user, userData, 'getCurrentUser');
   },
 
   /**
