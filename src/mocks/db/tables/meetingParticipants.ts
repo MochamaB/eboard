@@ -266,7 +266,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
   {
     id: 'part-mtg002-007',
     meetingId: 'MTG-002',
-    userId: 7, // John Mthamo Wasusana
+    userId: 7, // John Mithamo Wasusana
     roleId: 7,
     roleTitle: 'Board Member',
     rsvpStatus: 'tentative',
@@ -676,7 +676,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
   {
     id: 'part-mtg004-002',
     meetingId: 'MTG-004',
-    userId: 7, // John Mthamo Wasusana
+    userId: 7, // John Mithamo Wasusana
     roleId: 7,
     roleTitle: 'Board Member',
     rsvpStatus: 'accepted',
@@ -881,7 +881,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
   {
     id: 'part-mtg005-002',
     meetingId: 'MTG-005',
-    userId: 7, // John Mthamo Wasusana
+    userId: 7, // John Mithamo Wasusana
     roleId: 7,
     roleTitle: 'Committee Member',
     rsvpStatus: 'accepted',
@@ -1211,7 +1211,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
   {
     id: 'part-mtg006-007',
     meetingId: 'MTG-006',
-    userId: 7, // John Mthamo Wasusana
+    userId: 7, // John Mithamo Wasusana
     roleId: 7,
     roleTitle: 'Board Member',
     rsvpStatus: 'accepted',
@@ -1851,7 +1851,7 @@ export const meetingParticipantsTable: MeetingParticipantRow[] = [
   {
     id: 'part-mtg009-003',
     meetingId: 'MTG-009',
-    userId: 7, // John Mthamo Wasusana
+    userId: 7, // John Mithamo Wasusana
     roleId: 7,
     roleTitle: 'Committee Member',
     rsvpStatus: 'declined',
