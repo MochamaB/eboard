@@ -1136,7 +1136,7 @@ export const agendaItemsTable: AgendaItemRow[] = [
     itemType: 'information',
     estimatedDuration: 25,
     presenterId: 3,
-    presenterName: 'Mathews Odiero',
+    presenterName: 'Mathews Odero',
     status: 'completed',
     actualStartTime: '2025-10-15T10:45:00Z',
     actualEndTime: '2025-10-15T11:12:00Z',

@@ -67,10 +67,24 @@ export const userBoardRolesTable: UserBoardRoleRow[] = [
   // GROUP COMPANY SECRETARY (Global Access) - ID 3
   // -------------------------------------------------------------------------
 
-  // Mathews Odiero (userId: 3) - Group Company Secretary
+  // Mathews Odero (userId: 3) - Group Company Secretary
   {
     id: 3,
     userId: 3,
+    scope: 'global',
+    boardId: null,
+    roleId: 3, // group_company_secretary
+    isDefault: false,
+    startDate: '2019-01-01',
+    endDate: null,
+    assignedBy: 1,
+    createdAt: '2019-01-01T00:00:00Z',
+    updatedAt: '2019-01-01T00:00:00Z',
+  },
+   // Esther Osoro (userId: 24) - Group Company Secretary
+  {
+    id: 24,
+    userId: 24,
     scope: 'global',
     boardId: null,
     roleId: 3, // group_company_secretary
@@ -545,7 +559,7 @@ export const userBoardRolesTable: UserBoardRoleRow[] = [
     updatedAt: '2021-01-01T00:00:00Z',
   },
 
-  // Mathews Odiero (userId: 3) - Member (Group Secretary)
+  // Mathews Odero (userId: 3) - Member (Group Secretary)
   {
     id: 32,
     userId: 3,
@@ -628,7 +642,7 @@ export const userBoardRolesTable: UserBoardRoleRow[] = [
   // KETEPA BOARD (Subsidiary) - IDs 37-39
   // -------------------------------------------------------------------------
 
-  // Mathews Odiero (userId: 3) - Chairman
+  // Mathews Odero (userId: 3) - Chairman
   {
     id: 37,
     userId: 3,

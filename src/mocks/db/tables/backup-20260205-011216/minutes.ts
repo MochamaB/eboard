@@ -73,14 +73,14 @@ export const minutesTable: MinutesRow[] = [
 <h2>1. Attendance</h2>
 <p><strong>Present:</strong></p>
 <ul>
-<li>Mathews Odiero - Chairman</li>
+<li>Mathews Odero - Chairman</li>
 <li>Isaac Chege - Board Secretary</li>
 <li>Hon. James Githinji - Board Member</li>
 </ul>
 <p><strong>Quorum:</strong> Met (3 of 4 voting members present)</p>
 
 <h2>2. Call to Order</h2>
-<p>The meeting was called to order at 10:00 AM by the Chairman, Mathews Odiero.</p>
+<p>The meeting was called to order at 10:00 AM by the Chairman, Mathews Odero.</p>
 
 <h2>3. Approval of Previous Minutes</h2>
 <p>The minutes of the December 2024 board meeting were reviewed and discussed.</p>
@@ -109,7 +109,7 @@ export const minutesTable: MinutesRow[] = [
 <p><strong>Minutes prepared by:</strong> Isaac Chege, Board Secretary</p>
 <p><strong>Date:</strong> January 20, 2025</p>
 </div>`,
-    contentPlainText: 'KETEPA Limited - Board Meeting Minutes. Date: January 20, 2025. Time: 10:00 AM - 12:00 PM. Location: KETEPA Office, Nairobi. Attendance: Present: Mathews Odiero - Chairman, Isaac Chege - Board Secretary, Hon. James Githinji - Board Member. Quorum: Met (3 of 4 voting members present). Call to Order: The meeting was called to order at 10:00 AM by the Chairman. Approval of Previous Minutes: The minutes of the December 2024 board meeting were reviewed and approved unanimously. Sales Performance Review: Q4 2024 sales showed 15% increase in domestic sales. Export Market Strategy: Proposed East African expansion strategy with KES 12M budget approved unanimously. Action Items assigned. Meeting adjourned at 12:00 PM.',
+    contentPlainText: 'KETEPA Limited - Board Meeting Minutes. Date: January 20, 2025. Time: 10:00 AM - 12:00 PM. Location: KETEPA Office, Nairobi. Attendance: Present: Mathews Odero - Chairman, Isaac Chege - Board Secretary, Hon. James Githinji - Board Member. Quorum: Met (3 of 4 voting members present). Call to Order: The meeting was called to order at 10:00 AM by the Chairman. Approval of Previous Minutes: The minutes of the December 2024 board meeting were reviewed and approved unanimously. Sales Performance Review: Q4 2024 sales showed 15% increase in domestic sales. Export Market Strategy: Proposed East African expansion strategy with KES 12M budget approved unanimously. Action Items assigned. Meeting adjourned at 12:00 PM.',
     templateId: 'template-standard',
     status: 'published',
     createdBy: 18,

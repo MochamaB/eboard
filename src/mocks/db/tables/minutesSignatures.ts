@@ -40,7 +40,7 @@ export const minutesSignaturesTable: MinutesSignatureRow[] = [
     minutesId: 'minutes-mtg008-001',
     signedBy: 3,
     signerRole: 'Chairman',
-    signerName: 'Mathews Odiero',
+    signerName: 'Mathews Odero',
     signatureHash: 'sha256:a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6',
     signatureMethod: 'digital',
     certificateId: 'CERT-KTDA-2025-003',

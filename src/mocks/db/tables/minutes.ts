@@ -70,14 +70,14 @@ export const minutesTable: MinutesRow[] = [
 <h2>1. Attendance</h2>
 <p><strong>Present:</strong></p>
 <ul>
-<li>Mathews Odiero - Chairman</li>
+<li>Mathews Odero - Chairman</li>
 <li>Isaac Chege - Board Secretary</li>
 <li>Hon. James Githinji - Board Member</li>
 </ul>
 <p><strong>Quorum:</strong> Met (3 of 4 voting members present)</p>
 
 <h2>2. Call to Order</h2>
-<p>The meeting was called to order at 10:00 AM by the Chairman, Mathews Odiero.</p>
+<p>The meeting was called to order at 10:00 AM by the Chairman, Mathews Odero.</p>
 
 <h2>3. Approval of Previous Minutes</h2>
 <p>The minutes of the Q3 2025 board meeting were reviewed and discussed.</p>
@@ -106,7 +106,7 @@ export const minutesTable: MinutesRow[] = [
 <p><strong>Minutes prepared by:</strong> Isaac Chege, Board Secretary</p>
 <p><strong>Date:</strong> October 15, 2025</p>
 </div>`,
-    contentPlainText: 'Chai Trading Board - Q4 2025 Review. Attendance: Present: Mathews Odiero - Chairman, Isaac Chege - Board Secretary, Hon. James Githinji - Board Member. Quorum: Met (3 of 4 voting members present). Call to Order: The meeting was called to order at 10:00 AM by the Chairman. Approval of Previous Minutes: The minutes of the Q3 2025 board meeting were reviewed and approved unanimously. Sales Performance Review: Q4 2025 sales showed 15% increase in domestic sales. Export Market Strategy: Proposed East African expansion strategy with KES 12M budget approved unanimously. Action Items assigned. Meeting adjourned at 12:00 PM.',
+    contentPlainText: 'Chai Trading Board - Q4 2025 Review. Attendance: Present: Mathews Odero - Chairman, Isaac Chege - Board Secretary, Hon. James Githinji - Board Member. Quorum: Met (3 of 4 voting members present). Call to Order: The meeting was called to order at 10:00 AM by the Chairman. Approval of Previous Minutes: The minutes of the Q3 2025 board meeting were reviewed and approved unanimously. Sales Performance Review: Q4 2025 sales showed 15% increase in domestic sales. Export Market Strategy: Proposed East African expansion strategy with KES 12M budget approved unanimously. Action Items assigned. Meeting adjourned at 12:00 PM.',
     templateId: 'template-standard-minutes',
     status: 'published',
     createdBy: 18,
