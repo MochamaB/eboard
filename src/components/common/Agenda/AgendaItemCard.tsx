@@ -51,7 +51,7 @@ export const AgendaItemCard: React.FC<AgendaItemCardProps> = ({
     switch (status) {
       case 'completed':
         return theme.successColor;
-      case 'in_progress':
+      case 'inprogress':
         return theme.primaryColor;
       case 'skipped':
         return theme.textDisabled;

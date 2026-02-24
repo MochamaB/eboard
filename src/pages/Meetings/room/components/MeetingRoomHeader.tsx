@@ -36,7 +36,7 @@ function formatDuration(seconds: number): string {
 
 function getStatusLabel(status: string): string {
   switch (status) {
-    case 'in_progress':
+    case 'inprogress':
       return 'In Progress';
     case 'paused':
       return 'Paused';
@@ -60,7 +60,7 @@ function getStatusBadgeStyle(status: string, t: MeetingRoomTheme): React.CSSProp
     lineHeight: '18px', whiteSpace: 'nowrap',
   };
   switch (status) {
-    case 'in_progress':
+    case 'inprogress':
       return { ...base, background: t.successLight, color: t.successColor };
     case 'paused':
       return { ...base, background: t.warningLight, color: t.warningColor };

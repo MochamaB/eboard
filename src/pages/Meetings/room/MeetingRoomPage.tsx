@@ -17,7 +17,6 @@ import { MeetingPhaseProvider, useMeetingPhase, useBoardContext } from '../../..
 import { MeetingRoomProvider, useMeetingRoom } from '../../../contexts/MeetingRoomContext';
 import { useMeeting } from '../../../hooks/api/useMeetings';
 import { MeetingRoomThemeProvider, useMeetingRoomTheme } from './MeetingRoomThemeContext';
-import { getBoardById } from '../../../mocks/db/queries/boardQueries';
 import { getTypographyCSS } from '../../../styles/responsive';
 import MeetingRoomLayout from './MeetingRoomLayout';
 
@@ -90,18 +89,18 @@ const MeetingRoomLoader: React.FC = () => {
   const { setMeeting } = useMeetingPhase();
   const { setCurrentBoard, currentBoard } = useBoardContext();
   
-  // Sync board context from URL
+  // Sync board context from URL (boardId is slug)
   useEffect(() => {
-    if (boardId && currentBoard.id !== boardId) {
-      const board = getBoardById(boardId);
-      if (board) {
-        setCurrentBoard(boardId);
-      }
+    if (boardId && currentBoard.slug !== boardId) {
+      setCurrentBoard(boardId);
     }
-  }, [boardId, currentBoard.id, setCurrentBoard]);
+  }, [boardId, currentBoard.slug, setCurrentBoard]);
   
+  // Parse meeting ID from URL params (string to number)
+  const numericMeetingId = meetingId ? Number(meetingId) : 0;
+
   // Fetch meeting data
-  const { data: meeting, isLoading, error } = useMeeting(meetingId || '');
+  const { data: meeting, isLoading, error } = useMeeting(numericMeetingId);
   
   // Set meeting in phase context + document title
   useEffect(() => {
@@ -171,8 +170,8 @@ const MeetingRoomLoader: React.FC = () => {
   }
   
   // Access guard
-  const canEnterRoom = 
-    meeting.status === 'in_progress' || 
+  const canEnterRoom =
+    meeting.status === 'inprogress' ||
     (meeting.status === 'scheduled' && meeting.subStatus === 'approved');
   
   if (!canEnterRoom) {

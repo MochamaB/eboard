@@ -8,15 +8,11 @@ import { safeParseResponse, safeParsePayload } from '../utils/safeParseResponse'
 import {
   LoginPayloadSchema,
   LoginResponseSchema,
-  MfaVerifyPayloadSchema,
-  MfaSetupResponseSchema,
   ChangePasswordPayloadSchema,
   ForgotPasswordPayloadSchema,
   ResetPasswordPayloadSchema,
   type LoginPayload,
   type LoginResponse,
-  type MfaVerifyPayload,
-  type MfaSetupResponse,
   type ChangePasswordPayload,
   type ForgotPasswordPayload,
   type ResetPasswordPayload,
@@ -66,40 +62,13 @@ export const authApi = {
   },
 
   /**
-   * Verify MFA code
+   * Verify MFA code (placeholder - not yet implemented in backend)
    */
-  verifyMfa: async (payload: MfaVerifyPayload): Promise<LoginResponse> => {
-    const validatedPayload = safeParsePayload(MfaVerifyPayloadSchema, payload, 'verifyMfa');
-    const response = await apiClient.post('/auth/mfa/verify', validatedPayload);
+  verifyMfa: async (payload: { code: string }): Promise<LoginResponse> => {
+    const response = await apiClient.post('/auth/mfa/verify', payload);
     const data = safeParseResponse(LoginResponseSchema, response.data, 'verifyMfa');
-    
-    // Store tokens after successful MFA
     tokenManager.setTokens(data.accessToken, data.refreshToken);
-    
     return data;
-  },
-
-  /**
-   * Setup MFA - get QR code and backup codes
-   */
-  setupMfa: async (): Promise<MfaSetupResponse> => {
-    const response = await apiClient.post('/auth/mfa/setup');
-    return safeParseResponse(MfaSetupResponseSchema, response.data, 'setupMfa');
-  },
-
-  /**
-   * Confirm MFA setup with verification code
-   */
-  confirmMfaSetup: async (code: string): Promise<{ backupCodes: string[] }> => {
-    const response = await apiClient.post('/auth/mfa/confirm', { code });
-    return response.data;
-  },
-
-  /**
-   * Disable MFA (requires password confirmation)
-   */
-  disableMfa: async (password: string): Promise<void> => {
-    await apiClient.post('/auth/mfa/disable', { password });
   },
 
   /**
@@ -130,10 +99,8 @@ export const authApi = {
    * Get current user info
    */
   getCurrentUser: async (): Promise<LoginResponse['user']> => {
-    const response = await apiClient.get('/auth/me');
-    // Mock API returns { data: user }, real API might return user directly
-    const userData = response.data.data || response.data;
-    return safeParseResponse(LoginResponseSchema.shape.user, userData, 'getCurrentUser');
+    const response = await apiClient.get('/users/me');
+    return safeParseResponse(LoginResponseSchema.shape.user, response.data, 'getCurrentUser');
   },
 
   /**

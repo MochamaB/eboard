@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Layout } from 'antd';
-import { Outlet, useParams, useNavigate } from 'react-router-dom';
+import { Outlet, useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Header } from '../components/Header/Header';
 import { Sidebar } from '../components/Sidebar/Sidebar';
 import { NavigationBar } from '../components/NavigationBar';
 import { useBoardContext, MeetingPhaseProvider, useIsInMeetingDetail } from '../contexts';
 import { useResponsive } from '../hooks';
 import { responsiveHelpers } from '../utils';
-import { getBoardById } from '../mocks/db/queries/boardQueries';
 
 const { Content } = Layout;
 
@@ -15,7 +14,8 @@ const AppLayoutInner: React.FC = () => {
   const { isMobile, isTablet, currentBreakpoint } = useResponsive();
   const { boardId } = useParams<{ boardId: string }>();
   const navigate = useNavigate();
-  const { currentBoard, setCurrentBoard } = useBoardContext();
+  const location = useLocation();
+  const { currentBoard, setCurrentBoard, allBoards } = useBoardContext();
   const isInMeetingDetail = useIsInMeetingDetail();
 
   // Drawer mode for mobile and tablet (overlay)
@@ -42,13 +42,15 @@ const AppLayoutInner: React.FC = () => {
     }
   }, [useDrawerMode, isInMeetingDetail, userCollapsed]);
 
-  // Sync URL boardId with context on mount and URL change
+  // Sync URL boardId (slug) with context on mount and URL change
   useEffect(() => {
-    if (boardId) {
-      const board = getBoardById(boardId);
-      if (board) {
-        // Only update context if different from current
-        if (currentBoard.id !== boardId) {
+    // Skip board validation for global routes (/all/*)
+    const isGlobalRoute = location.pathname.startsWith('/all/');
+    
+    if (!isGlobalRoute && boardId && allBoards.length > 0) {
+      const boardExists = allBoards.some(b => b.slug === boardId);
+      if (boardExists) {
+        if (currentBoard.slug !== boardId) {
           setCurrentBoard(boardId);
         }
       } else {
@@ -56,7 +58,7 @@ const AppLayoutInner: React.FC = () => {
         navigate('/ktda-ms/dashboard', { replace: true });
       }
     }
-  }, [boardId, currentBoard.id, setCurrentBoard, navigate]);
+  }, [boardId, currentBoard.slug, setCurrentBoard, navigate, allBoards, location.pathname]);
 
   return (
     <Layout style={{ minHeight: '100vh' }}>

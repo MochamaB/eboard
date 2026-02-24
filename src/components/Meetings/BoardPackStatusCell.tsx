@@ -17,11 +17,11 @@ import {
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import type { BoardPackStatus, MeetingStatus } from '../../types/meeting.types';
+import { useBoardContext } from '../../contexts';
 
 interface BoardPackStatusCellProps {
-  meetingId: string;
-  boardId: string;
-  boardPackStatus?: BoardPackStatus;
+  meetingId: number;
+  boardPackStatus?: BoardPackStatus | null;
   meetingStatus: MeetingStatus;
 }
 
@@ -65,11 +65,11 @@ const getStatusLabel = (status: PackItemStatus): string => {
 
 export const BoardPackStatusCell: React.FC<BoardPackStatusCellProps> = ({
   meetingId,
-  boardId,
   boardPackStatus,
   meetingStatus,
 }) => {
   const navigate = useNavigate();
+  const { routePrefix } = useBoardContext();
 
   const agendaStatus = boardPackStatus?.agenda?.status || 'none';
   const agendaItemCount = boardPackStatus?.agenda?.itemCount || 0;
@@ -77,12 +77,12 @@ export const BoardPackStatusCell: React.FC<BoardPackStatusCellProps> = ({
   const minutesStatus = boardPackStatus?.minutes?.status || 'none';
   const votesCount = boardPackStatus?.votes?.count || 0;
 
-  // Only show minutes for completed or in_progress meetings
-  const showMinutes = meetingStatus === 'completed' || meetingStatus === 'in_progress';
+  // Only show minutes for completed or inprogress meetings
+  const showMinutes = meetingStatus === 'completed' || meetingStatus === 'inprogress';
 
   const handleClick = (tab: string) => (e: React.MouseEvent) => {
     e.stopPropagation();
-    navigate(`/${boardId}/meetings/${meetingId}?tab=${tab}`);
+    navigate(`/${routePrefix}/meetings/${meetingId}?tab=${tab}`);
   };
 
   return (

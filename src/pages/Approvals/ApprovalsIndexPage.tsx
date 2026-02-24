@@ -67,7 +67,7 @@ const getLocationIconStatic = (type: LocationType) => {
 // Mobile approval card component
 interface ApprovalCardProps {
   meeting: MeetingListItem;
-  onReview: (id: string) => void;
+  onReview: (id: number) => void;
 }
 
 const ApprovalCard: React.FC<ApprovalCardProps> = ({ meeting, onReview }) => {
@@ -139,7 +139,7 @@ export const ApprovalsIndexPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const screens = useBreakpoint();
-  const { currentBoard, activeCommittee, viewMode: boardViewMode, theme } = useBoardContext();
+  const { currentBoard, activeCommittee, viewMode: boardViewMode, theme, routePrefix } = useBoardContext();
 
   // View mode state
   const [viewMode, setViewMode] = useState<ViewMode>('table');
@@ -186,13 +186,14 @@ export const ApprovalsIndexPage: React.FC = () => {
   
   const pendingMeetings = data?.data || [];
 
-  const handleReview = (meetingId: string) => {
-    // Navigate using currentBoard or 'all' for View All mode
-    const navBoardId = isAllBoardsView ? 'all' : currentBoard?.id;
-    navigate(`/${navBoardId}/approvals/${meetingId}`);
+  const handleReview = (meetingId: number) => {
+    // Navigate using routePrefix (handles 'all' vs board slug)
+    navigate(`/${routePrefix}/approvals/${meetingId}`);
   };
 
-  const handleViewMeeting = (meetingId: string, meetingBoardId: string) => {
+  const handleViewMeeting = (meetingId: number, meetingBoardId: number) => {
+    // TODO: Ideally use board slug here, but for now use numeric ID
+    // BoardContext will handle the lookup
     navigate(`/${meetingBoardId}/meetings/${meetingId}`);
   };
 
@@ -424,7 +425,7 @@ export const ApprovalsIndexPage: React.FC = () => {
             </Space>
           }
         >
-          <Button type="primary" onClick={() => navigate(`/${isAllBoardsView ? 'all' : currentBoard?.id}/meetings`)}>
+          <Button type="primary" onClick={() => navigate(`/${routePrefix}/meetings`)}>
             View All Meetings
           </Button>
         </Empty>

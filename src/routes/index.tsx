@@ -4,11 +4,12 @@ import { RootLayout } from '../layouts/RootLayout';
 import { AppLayout } from '../layouts/AppLayout';
 import { AuthLayout } from '../layouts/AuthLayout';
 import { Dashboard } from '../pages/Dashboard';
-import { UsersIndexPage, CreateUserPage as CreateUserPageComponent, UserDetailsPage } from '../pages/Users';
-import { BoardsIndexPage, BoardDetailsPage, BoardCreatePage as BoardCreatePageComponent } from '../pages/Boards';
+import { UsersIndexPage, CreateUserPage as CreateUserPageComponent, EditUserPage, UserDetailsPage } from '../pages/Users';
+import { BoardsIndexPage, BoardDetailsPage, BoardCreatePage as BoardCreatePageComponent, BoardEditPage as BoardEditPageComponent } from '../pages/Boards';
 import { MeetingsIndexPage, MeetingCreatePage, MeetingDetailPage, MeetingRoomPage } from '../pages/Meetings';
 import { ApprovalsIndexPage, ApprovalReviewPage } from '../pages/Approvals';
 import { DocumentsIndexPage } from '../pages/Documents';
+import { RolesIndexPage, CreateRolePage, EditRolePage } from '../pages/Roles';
 import { LoginPage } from '../pages/Auth';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import { useAuth } from '../contexts/AuthContext';
@@ -37,11 +38,9 @@ const MeetingReportsPage = () => <PlaceholderPage title="Meeting Reports" />;
 const AttendanceReportsPage = () => <PlaceholderPage title="Attendance Reports" />;
 const ComplianceReportsPage = () => <PlaceholderPage title="Compliance Reports" />;
 
-const RolesPage = () => <PlaceholderPage title="Roles & Permissions" />;
 const UserDetailPage = () => <PlaceholderPage title="User Details" />;
 
 const BoardDetailPage = () => <PlaceholderPage title="Board Details" />;
-const BoardEditPage = () => <PlaceholderPage title="Edit Board" />;
 const BoardMembersPage = () => <PlaceholderPage title="Board Members" />;
 const CommitteesPage = () => <PlaceholderPage title="Committees" />;
 
@@ -51,7 +50,7 @@ const AdminPage = () => <PlaceholderPage title="Admin" />;
 // Dynamic redirect component - redirects to user's primary board
 const DynamicBoardRedirect: React.FC = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, isLoading, getPrimaryBoard } = useAuth();
+  const { isAuthenticated, isLoading, getDefaultBoard } = useAuth();
   
   React.useEffect(() => {
     if (isLoading) return;
@@ -61,14 +60,14 @@ const DynamicBoardRedirect: React.FC = () => {
       return;
     }
     
-    const primaryBoard = getPrimaryBoard();
-    if (primaryBoard) {
-      navigate(`/${primaryBoard.id}/dashboard`, { replace: true });
+    const defaultBoardSlug = getDefaultBoard();
+    if (defaultBoardSlug) {
+      navigate(`/${defaultBoardSlug}/dashboard`, { replace: true });
     } else {
-      // Fallback to ktda-ms if no primary board
+      // Fallback to ktda-ms if no default board
       navigate('/ktda-ms/dashboard', { replace: true });
     }
-  }, [isAuthenticated, isLoading, getPrimaryBoard, navigate]);
+  }, [isAuthenticated, isLoading, getDefaultBoard, navigate]);
   
   // Show loading while determining redirect
   return <div style={{ padding: 24, textAlign: 'center' }}>Loading...</div>;
@@ -129,6 +128,18 @@ export const router = createBrowserRouter([
           {
             path: 'boards',
             element: <GlobalBoardsPage />,
+          },
+          {
+            path: 'roles',
+            element: <RolesIndexPage />,
+          },
+          {
+            path: 'roles/create',
+            element: <CreateRolePage />,
+          },
+          {
+            path: 'roles/:roleId/edit',
+            element: <EditRolePage />,
           },
           {
             path: 'reports',
@@ -254,12 +265,8 @@ export const router = createBrowserRouter([
         element: <UserDetailsPage />,
       },
       {
-        path: 'users/:id/edit',
-        element: <UserDetailPage />,
-      },
-      {
-        path: 'users/roles',
-        element: <RolesPage />,
+        path: 'users/:userId/edit',
+        element: <EditUserPage />,
       },
 
       // Boards
@@ -276,8 +283,8 @@ export const router = createBrowserRouter([
         element: <BoardDetailsPage />,
       },
       {
-        path: 'boards/:id/edit',
-        element: <BoardEditPage />,
+        path: 'boards/:targetBoardId/edit',
+        element: <BoardEditPageComponent />,
       },
       {
         path: 'boards/:id/members',

@@ -146,7 +146,7 @@ export interface PermissionContext {
  * Will be provided by MeetingRoomContext
  */
 export interface RoomState {
-  status: 'waiting' | 'starting' | 'in_progress' | 'paused' | 'ending' | 'ended';
+  status: 'waiting' | 'starting' | 'inprogress' | 'paused' | 'ending' | 'ended';
   mode: 'physical' | 'virtual' | 'hybrid';
   
   // Quorum

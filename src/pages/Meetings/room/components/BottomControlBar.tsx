@@ -326,7 +326,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
       });
     }
 
-    if (status === 'in_progress' && permissions.canPauseMeeting) {
+    if (status === 'inprogress' && permissions.canPauseMeeting) {
       items.push({
         key: 'pause',
         icon: <Pause size={MENU_ICON} />,
@@ -345,7 +345,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
     }
 
     // Create Vote
-    if (status === 'in_progress' && capabilities.canCreateVote && permissions.canCreateVote) {
+    if (status === 'inprogress' && capabilities.canCreateVote && permissions.canCreateVote) {
       items.push({
         key: 'create-vote',
         icon: <Trophy size={MENU_ICON} />,
@@ -435,7 +435,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
         alignItems: 'center',
         gap: isMobile ? 2 : 4,
         background: mrTheme.toolbar,
-        borderRadius: '14px 14px 0 0',
+        borderRadius: '0px 0px 0 0',
         padding: isMobile ? '6px 8px' : '6px 12px',
         zIndex: 100,
         backdropFilter: 'blur(8px)',
@@ -532,7 +532,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
       </Dropdown>
 
       {/* ── End / Hangup — red pill ── */}
-      {(status === 'in_progress' || status === 'paused') && permissions.canEndMeeting && (
+      {(status === 'inprogress' || status === 'paused') && permissions.canEndMeeting && (
         <HangupBtn label="End Meeting" onClick={confirmEnd} theme={mrTheme} />
       )}
     </div>

@@ -11,7 +11,7 @@ import { z } from 'zod';
 
 export const ActionItemStatusSchema = z.enum([
   'open',         // Not started
-  'in_progress',  // Work in progress
+  'inprogress',   // Work in progress
   'completed',    // Task completed
   'cancelled',    // Task cancelled
 ]);
@@ -159,7 +159,7 @@ export type ActionItemFilters = z.infer<typeof ActionItemFiltersSchema>;
 export interface ActionItemsStats {
   total: number;
   open: number;
-  in_progress: number;
+  inprogress: number;
   completed: number;
   overdue: number;
   dueSoon: number;
@@ -171,21 +171,21 @@ export interface ActionItemsStats {
 
 export const ACTION_ITEM_STATUS_LABELS: Record<ActionItemStatus, string> = {
   open: 'Open',
-  in_progress: 'In Progress',
+  inprogress: 'In Progress',
   completed: 'Completed',
   cancelled: 'Cancelled',
 };
 
 export const ACTION_ITEM_STATUS_COLORS: Record<ActionItemStatus, string> = {
   open: 'default',
-  in_progress: 'processing',
+  inprogress: 'processing',
   completed: 'success',
   cancelled: 'error',
 };
 
 export const ACTION_ITEM_STATUS_ICONS: Record<ActionItemStatus, string> = {
   open: 'FileTextOutlined',
-  in_progress: 'SyncOutlined',
+  inprogress: 'SyncOutlined',
   completed: 'CheckCircleOutlined',
   cancelled: 'CloseCircleOutlined',
 };

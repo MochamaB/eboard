@@ -24,7 +24,7 @@ const getStatusLabel = (status: MeetingStatus, subStatus?: string | null, showSu
     const labels: Record<MeetingStatus, string> = {
       draft: 'Draft',
       scheduled: 'Scheduled',
-      in_progress: 'In Progress',
+      inprogress: 'In Progress',
       completed: 'Completed',
       cancelled: 'Cancelled',
     };
@@ -39,7 +39,7 @@ const getStatusLabel = (status: MeetingStatus, subStatus?: string | null, showSu
     'scheduled.pending_approval': 'Pending Approval',
     'scheduled.approved': 'Approved',
     'scheduled.rejected': 'Rejected',
-    'in_progress.active': 'In Progress',
+    'inprogress.active': 'In Progress',
     'completed.recent': 'Completed',
     'completed.archived': 'Archived',
   };
@@ -61,7 +61,7 @@ const getStatusColor = (status: MeetingStatus, subStatus?: string | null): strin
       'scheduled.pending_approval': 'orange', // orange
       'scheduled.approved': 'green',        // green
       'scheduled.rejected': 'red',          // red
-      'in_progress.active': 'processing',   // blue/active
+      'inprogress.active': 'processing',   // blue/active
       'completed.recent': 'success',        // green
       'completed.archived': 'default',      // grey
     };
@@ -75,7 +75,7 @@ const getStatusColor = (status: MeetingStatus, subStatus?: string | null): strin
   const statusColors: Record<MeetingStatus, string> = {
     draft: 'default',
     scheduled: 'cyan',
-    in_progress: 'processing',
+    inprogress: 'processing',
     completed: 'success',
     cancelled: 'error',
   };
@@ -93,7 +93,7 @@ export const MeetingStatusBadge: React.FC<MeetingStatusBadgeProps> = ({
   const color = getStatusColor(status, subStatus);
 
   // Add pulse animation for in-progress meetings
-  const isInProgress = status === 'in_progress';
+  const isInProgress = status === 'inprogress';
 
   return (
     <Tag

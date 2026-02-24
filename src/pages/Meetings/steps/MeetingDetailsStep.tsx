@@ -1,10 +1,18 @@
 import React, { useEffect } from 'react';
 import { Form, Typography, Divider, Select, Space, Input, DatePicker, TimePicker, InputNumber, Row, Col, AutoComplete } from 'antd';
 import { VideoCameraOutlined, EnvironmentOutlined, HomeOutlined } from '@ant-design/icons';
-import dayjs from 'dayjs';
+import dayjs, { Dayjs } from 'dayjs';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
+
+// ============================================================================
+// TIME VALIDATION CONSTANTS
+// ============================================================================
+
+const MIN_DURATION_MINUTES = 15;
+const MAX_DURATION_MINUTES = 480; // 8 hours
+const MIN_LEAD_TIME_MINUTES = 30; // Must schedule at least 30 min ahead
 
 interface MeetingDetailsStepProps {
   form: any;
@@ -14,6 +22,52 @@ interface MeetingDetailsStepProps {
   onStartTimeOrDurationChange: () => void;
   onEndTimeChange: () => void;
 }
+
+// ============================================================================
+// TIME VALIDATION HELPERS
+// ============================================================================
+
+/**
+ * Combines a date and time into a single dayjs object
+ */
+const combineDateAndTime = (date: Dayjs | null, time: Dayjs | null): Dayjs | null => {
+  if (!date || !time) return null;
+  return date.hour(time.hour()).minute(time.minute()).second(0);
+};
+
+/**
+ * Checks if the meeting start time is in the past
+ */
+const isStartTimeInPast = (date: Dayjs | null, time: Dayjs | null): boolean => {
+  const combined = combineDateAndTime(date, time);
+  if (!combined) return false;
+  return combined.isBefore(dayjs());
+};
+
+/**
+ * Checks if start time has minimum lead time from now
+ */
+const hasMinimumLeadTime = (date: Dayjs | null, time: Dayjs | null): boolean => {
+  const combined = combineDateAndTime(date, time);
+  if (!combined) return true;
+  return combined.diff(dayjs(), 'minute') >= MIN_LEAD_TIME_MINUTES;
+};
+
+/**
+ * Checks if end time is after start time
+ */
+const isEndTimeAfterStart = (startTime: Dayjs | null, endTime: Dayjs | null): boolean => {
+  if (!startTime || !endTime) return true;
+  return endTime.isAfter(startTime);
+};
+
+/**
+ * Calculates duration in minutes between start and end time
+ */
+const calculateDuration = (startTime: Dayjs | null, endTime: Dayjs | null): number => {
+  if (!startTime || !endTime) return 0;
+  return endTime.diff(startTime, 'minute');
+};
 
 const MeetingDetailsStep: React.FC<MeetingDetailsStepProps> = ({
   form,
@@ -169,11 +223,34 @@ const MeetingDetailsStep: React.FC<MeetingDetailsStepProps> = ({
             <Form.Item
               name="startTime"
               label="Start Time"
-              rules={[{ required: true, message: 'Please select start time' }]}
+              dependencies={['scheduledDate']}
+              rules={[
+                { required: true, message: 'Please select start time' },
+                ({ getFieldValue }) => ({
+                  validator(_, value) {
+                    if (!value) return Promise.resolve();
+
+                    const scheduledDate = getFieldValue('scheduledDate');
+                    if (!scheduledDate) return Promise.resolve();
+
+                    // Check if start time is in the past
+                    if (isStartTimeInPast(scheduledDate, value)) {
+                      return Promise.reject(new Error('Start time cannot be in the past'));
+                    }
+
+                    // Check minimum lead time (30 minutes from now)
+                    if (!hasMinimumLeadTime(scheduledDate, value)) {
+                      return Promise.reject(new Error(`Meeting must be at least ${MIN_LEAD_TIME_MINUTES} minutes from now`));
+                    }
+
+                    return Promise.resolve();
+                  },
+                }),
+              ]}
             >
-              <TimePicker 
-                style={{ width: '100%' }} 
-                format="h:mm A" 
+              <TimePicker
+                style={{ width: '100%' }}
+                format="h:mm A"
                 use12Hours
                 minuteStep={15}
                 showNow={false}
@@ -186,11 +263,38 @@ const MeetingDetailsStep: React.FC<MeetingDetailsStepProps> = ({
             <Form.Item
               name="endTime"
               label="End Time"
-              rules={[{ required: true, message: 'End time required' }]}
+              dependencies={['startTime']}
+              rules={[
+                { required: true, message: 'End time required' },
+                ({ getFieldValue }) => ({
+                  validator(_, value) {
+                    if (!value) return Promise.resolve();
+
+                    const startTime = getFieldValue('startTime');
+                    if (!startTime) return Promise.resolve();
+
+                    // Check end time is after start time
+                    if (!isEndTimeAfterStart(startTime, value)) {
+                      return Promise.reject(new Error('End time must be after start time'));
+                    }
+
+                    // Check duration limits
+                    const duration = calculateDuration(startTime, value);
+                    if (duration < MIN_DURATION_MINUTES) {
+                      return Promise.reject(new Error(`Meeting must be at least ${MIN_DURATION_MINUTES} minutes`));
+                    }
+                    if (duration > MAX_DURATION_MINUTES) {
+                      return Promise.reject(new Error(`Meeting cannot exceed ${MAX_DURATION_MINUTES / 60} hours`));
+                    }
+
+                    return Promise.resolve();
+                  },
+                }),
+              ]}
             >
-              <TimePicker 
-                style={{ width: '100%' }} 
-                format="h:mm A" 
+              <TimePicker
+                style={{ width: '100%' }}
+                format="h:mm A"
                 use12Hours
                 minuteStep={15}
                 showNow={false}
@@ -203,12 +307,24 @@ const MeetingDetailsStep: React.FC<MeetingDetailsStepProps> = ({
             <Form.Item
               name="duration"
               label="Duration (minutes)"
-              rules={[{ required: true, message: 'Please enter duration' }]}
+              rules={[
+                { required: true, message: 'Please enter duration' },
+                {
+                  type: 'number',
+                  min: MIN_DURATION_MINUTES,
+                  message: `Minimum ${MIN_DURATION_MINUTES} minutes`,
+                },
+                {
+                  type: 'number',
+                  max: MAX_DURATION_MINUTES,
+                  message: `Maximum ${MAX_DURATION_MINUTES / 60} hours`,
+                },
+              ]}
             >
-              <InputNumber 
-                min={15} 
-                max={480} 
-                step={15} 
+              <InputNumber
+                min={MIN_DURATION_MINUTES}
+                max={MAX_DURATION_MINUTES}
+                step={15}
                 style={{ width: '100%' }}
                 onChange={onStartTimeOrDurationChange}
               />

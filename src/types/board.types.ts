@@ -5,72 +5,46 @@
  */
 
 import { z } from 'zod';
-import { isValidRoleCode, VALID_ROLE_CODES, type BoardRole } from '../mocks/db/tables/roles';
 
 // ============================================================================
 // ENUMS & CONSTANTS
 // ============================================================================
 
-// Board types (from docs/02_REQUIREMENTS_DOCUMENT.md)
-export const BoardTypeSchema = z.enum([
-  'main',        // Main Board (1)
-  'subsidiary',  // Subsidiary Boards (8)
-  'factory',     // Factory Boards (69)
-  'committee',   // Committees (variable)
-]);
+// Board types - Dynamic lookup from backend (use useLookups context)
+// Values: 'main', 'subsidiary', 'factory', 'committee'
+export const BoardTypeSchema = z.string();
 
-// Board status
+// Board status - System state enum (not a lookup)
 export const BoardStatusSchema = z.enum(['active', 'inactive']);
 
-// Meeting frequency options
-export const MeetingFrequencySchema = z.enum([
-  'monthly',     // 12/year - Subsidiaries, Factories
-  'quarterly',   // 4/year - Main Board
-  'bi_monthly',  // 6/year
-  'as_needed',   // Configurable - Committees
-]);
+// Meeting frequency - Dynamic lookup from backend (use useLookups context)
+// Values: 'monthly', 'bi_monthly', 'quarterly', 'semi_annual', 'annual', 'as_needed'
+export const MeetingFrequencySchema = z.string();
 
-// Voting threshold options
-export const VotingThresholdSchema = z.enum([
-  'simple_majority',  // >50%
-  'two_thirds',       // ≥66.67%
-  'three_quarters',   // ≥75%
-  'unanimous',        // 100%
-]);
+// Voting threshold - Dynamic lookup from backend (use useLookups context)
+// Values: 'simple_majority', 'two_thirds', 'three_quarters', 'unanimous'
+export const VotingThresholdSchema = z.string();
 
-// Board roles (per-board assignment)
-// Generated from roles.ts mock data - single source of truth
-export const BoardRoleSchema = z.string().refine(
-  (code) => isValidRoleCode(code),
-  {
-    message: `Invalid role code. Must be one of: ${VALID_ROLE_CODES.join(', ')}`
-  }
-);
+// Board roles (per-board assignment) - validated as strings from backend
+export const BoardRoleSchema = z.string();
 
-// Factory zones
-export const ZoneSchema = z.enum([
-  'zone_1',
-  'zone_2',
-  'zone_3',
-  'zone_4',
-  'zone_5',
-  'zone_6',
-  'zone_7',
-]);
+// Board zones - Dynamic lookup from backend (use useLookups context)
+// Values: 'zone_1' through 'zone_12'
+export const ZoneSchema = z.string().nullable().optional();
 
 // ============================================================================
 // BOARD CONTACT INFO
 // ============================================================================
 
 export const BoardContactInfoSchema = z.object({
-  address: z.string(),
-  poBox: z.string(),
-  city: z.string(),
-  country: z.string(),
-  phone: z.string(),
-  phoneAlt: z.string().optional(),
-  email: z.string().email(),
-  website: z.string(),
+  address: z.string().nullable().optional(),
+  poBox: z.string().nullable().optional(),
+  city: z.string().nullable().optional(),
+  country: z.string().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  phoneAlt: z.string().nullable().optional(),
+  email: z.string().email().nullable().optional(),
+  website: z.string().nullable().optional(),
 });
 
 // ============================================================================
@@ -84,9 +58,16 @@ export const BoardSettingsSchema = z.object({
   confirmationRequired: z.boolean().default(true),
   designatedApprover: z.string().optional(), // User ID of approver
   designatedApproverRole: z.string().optional(), // e.g., 'company_secretary', 'chairman'
+  // Backend returns these fields
+  approverRoleId: z.number().nullable().optional(),
+  approverRoleCode: z.string().nullable().optional(),
+  approverRoleName: z.string().nullable().optional(),
   minMeetingsPerYear: z.number().default(4),
   allowVirtualMeetings: z.boolean().default(true),
   requireAttendanceTracking: z.boolean().default(true),
+  allowSecretarySkipAgenda: z.boolean().default(false),
+  allowSecretarySkipDocuments: z.boolean().default(false),
+  requireApprovalForOverrides: z.boolean().default(true),
 });
 
 // ============================================================================
@@ -182,11 +163,11 @@ export const BoardBrandingSchema = z.object({
 // ============================================================================
 
 export const CommitteeSchema = z.object({
-  id: z.string(),
+  id: z.number(),
   name: z.string(),
   shortName: z.string(),
   description: z.string().optional(),
-  parentBoardId: z.string(),
+  parentBoardId: z.number(),
   parentBoardName: z.string().optional(),
   status: BoardStatusSchema.default('active'),
   memberCount: z.number().default(0),
@@ -200,15 +181,16 @@ export const CommitteeSchema = z.object({
 // ============================================================================
 
 export const BoardSchema = z.object({
-  id: z.string(),
+  id: z.number(),
+  slug: z.string(),
   name: z.string(),
   shortName: z.string(),
-  description: z.string().optional(),
+  description: z.string().nullable().optional(),
   type: BoardTypeSchema,
-  parentId: z.string().optional(), // For subsidiaries → main, factories → subsidiary
-  parentName: z.string().optional(),
+  parentId: z.number().nullable().optional(), // For subsidiaries → main, factories → subsidiary
+  parentName: z.string().nullable().optional(),
   status: BoardStatusSchema.default('active'),
-  zone: ZoneSchema.optional(), // For factory boards
+  zone: ZoneSchema, // For factory boards
   
   // Counts
   memberCount: z.number().default(0),
@@ -229,24 +211,31 @@ export const BoardSchema = z.object({
   nextMeetingDate: z.string().nullable().optional(),
   
   // Timestamps
-  createdAt: z.string(),
-  updatedAt: z.string(),
+  createdAt: z.string().nullable().optional(),
+  updatedAt: z.string().nullable().optional(),
 });
 
 // Board list item (for index page - lighter version)
 export const BoardListItemSchema = z.object({
-  id: z.string(),
+  id: z.number(),
+  slug: z.string().optional(),
   name: z.string(),
   shortName: z.string(),
   type: BoardTypeSchema,
-  parentId: z.string().optional(),
-  parentName: z.string().optional(),
+  parentId: z.number().nullable().optional(),
+  parentName: z.string().nullable().optional(),
   status: BoardStatusSchema,
-  zone: ZoneSchema.optional(),
+  zone: ZoneSchema,
   memberCount: z.number(),
   committeeCount: z.number(),
   compliance: z.number(),
   lastMeetingDate: z.string().nullable().optional(),
+  nextMeetingDate: z.string().nullable().optional(),
+  meetingsThisYear: z.number().optional(),
+  createdAt: z.string().nullable().optional(),
+  updatedAt: z.string().nullable().optional(),
+  logoMain: z.string().nullable().optional(),
+  logoSmall: z.string().nullable().optional(),
 });
 
 // ============================================================================
@@ -255,27 +244,27 @@ export const BoardListItemSchema = z.object({
 
 export const BoardTreeNodeSchema: z.ZodType<BoardTreeNode> = z.lazy(() =>
   z.object({
-    id: z.string(),
+    id: z.number(),
     name: z.string(),
     shortName: z.string(),
     type: BoardTypeSchema,
-    status: BoardStatusSchema,
+    status: z.string().transform(val => val.toLowerCase() as 'active' | 'inactive'),
     memberCount: z.number(),
     compliance: z.number(),
-    zone: ZoneSchema.optional(),
+    zone: z.string().nullable().optional(),
     children: z.array(BoardTreeNodeSchema).optional(),
   })
 );
 
 export interface BoardTreeNode {
-  id: string;
+  id: number;
   name: string;
   shortName: string;
-  type: 'main' | 'subsidiary' | 'factory' | 'committee';
+  type: string; // Board type lookup code
   status: 'active' | 'inactive';
   memberCount: number;
   compliance: number;
-  zone?: string;
+  zone?: string | null;
   children?: BoardTreeNode[];
 }
 
@@ -284,12 +273,12 @@ export interface BoardTreeNode {
 // ============================================================================
 
 export const BoardMembershipSchema = z.object({
-  id: z.union([z.string(), z.number()]),
-  userId: z.union([z.string(), z.number()]).optional(),
+  id: z.number(),
+  userId: z.number().optional(),
   userName: z.string().optional(),
   userEmail: z.string().optional(),
   userAvatar: z.string().optional(),
-  boardId: z.string(),
+  boardId: z.number(),
   boardName: z.string(),
   boardType: BoardTypeSchema,
   role: BoardRoleSchema,
@@ -305,41 +294,81 @@ export const BoardMembershipSchema = z.object({
 
 // Board member (for board detail page - user with their role on that board)
 export const BoardMemberSchema = z.object({
-  id: z.string(),
-  membershipId: z.string(),
-  userId: z.string(),
+  id: z.number(),
+  membershipId: z.number().optional(),
+  userId: z.number(),
   fullName: z.string(),
   email: z.string(),
-  avatar: z.string().optional(),
-  role: BoardRoleSchema,
-  startDate: z.string(),
-  endDate: z.string().nullable(),
-  isActive: z.boolean(),
+  avatar: z.string().nullable().optional(),
+  // Backend returns roleCode, map it to role
+  roleCode: z.string().optional(),
+  role: z.string().optional(),
+  roleName: z.string().optional(),
+  roleId: z.number().optional(),
+  startDate: z.union([z.string(), z.date()]).transform(val => typeof val === 'string' ? val : val.toISOString()).optional(),
+  endDate: z.union([z.string(), z.date()]).transform(val => val === null ? null : typeof val === 'string' ? val : val.toISOString()).nullable().optional(),
+  isActive: z.boolean().optional(),
+  isDefault: z.boolean().optional(),
+  userStatus: z.string().optional(),
   // Additional user info
-  phone: z.string().optional(),
-  title: z.string().optional(), // Job title
+  phone: z.string().nullable().optional(),
+  title: z.string().nullable().optional(), // Job title
   otherBoardsCount: z.number().optional(), // How many other boards they're on
-});
+}).transform(data => ({
+  ...data,
+  // Map roleCode to role if role is missing
+  role: data.role || data.roleCode || 'board_member',
+}));
 
 // ============================================================================
 // API PAYLOADS
 // ============================================================================
 
-// Create board payload
+// Create board payload (matches backend CreateBoardRequest)
 export const CreateBoardPayloadSchema = z.object({
   name: z.string().min(1, 'Board name is required'),
   shortName: z.string().min(1, 'Short name is required'),
   description: z.string().optional(),
-  type: BoardTypeSchema,
-  parentId: z.string().optional(),
-  zone: ZoneSchema.optional(),
-  settings: BoardSettingsSchema.optional(),
-  branding: BoardBrandingSchema.optional(),
+  boardTypeId: z.number(),
+  parentId: z.number().optional(),
+  zoneId: z.number().optional(),
+  // Contact fields (flat structure)
+  contactAddress: z.string().optional(),
+  contactPoBox: z.string().optional(),
+  contactCity: z.string().optional(),
+  contactCountry: z.string().optional(),
+  contactPhone: z.string().optional(),
+  contactPhoneAlt: z.string().optional(),
+  contactEmail: z.string().optional(),
+  contactWebsite: z.string().optional(),
+  // Settings fields (flat structure)
+  quorumPercentage: z.number().optional(),
+  meetingFrequencyId: z.number().optional(),
+  votingThresholdId: z.number().optional(),
+  confirmationRequired: z.boolean().optional(),
+  approverRoleId: z.number().optional(),
+  minMeetingsPerYear: z.number().optional(),
+  allowVirtualMeetings: z.boolean().optional(),
+  requireAttendanceTracking: z.boolean().optional(),
 });
 
-// Update board payload
-export const UpdateBoardPayloadSchema = CreateBoardPayloadSchema.partial().extend({
-  status: BoardStatusSchema.optional(),
+// Update board payload (matches backend UpdateBoardRequest - NO settings, NO status)
+export const UpdateBoardPayloadSchema = z.object({
+  name: z.string().optional(),
+  shortName: z.string().optional(),
+  description: z.string().optional(),
+  boardTypeId: z.number().optional(),
+  parentId: z.number().optional(),
+  zoneId: z.number().optional(),
+  // Contact fields only
+  contactAddress: z.string().optional(),
+  contactPoBox: z.string().optional(),
+  contactCity: z.string().optional(),
+  contactCountry: z.string().optional(),
+  contactPhone: z.string().optional(),
+  contactPhoneAlt: z.string().optional(),
+  contactEmail: z.string().optional(),
+  contactWebsite: z.string().optional(),
 });
 
 // Create committee payload
@@ -347,17 +376,17 @@ export const CreateCommitteePayloadSchema = z.object({
   name: z.string().min(1, 'Committee name is required'),
   shortName: z.string().min(1, 'Short name is required'),
   description: z.string().optional(),
-  parentBoardId: z.string().min(1, 'Parent board is required'),
+  parentBoardId: z.number(),
   settings: BoardSettingsSchema.optional(),
 });
 
-// Add member to board payload
+// Add member to board payload (matches backend AddBoardMemberRequest)
 export const AddBoardMemberPayloadSchema = z.object({
-  userId: z.string().min(1, 'User is required'),
-  boardId: z.string().min(1, 'Board is required'),
-  role: BoardRoleSchema,
-  startDate: z.string(),
+  userId: z.number(),
+  roleId: z.number(),
+  startDate: z.string().optional(),
   endDate: z.string().optional(),
+  isDefault: z.boolean().optional(),
 });
 
 // Update membership payload
@@ -378,8 +407,8 @@ export const BoardFilterParamsSchema = z.object({
   types: z.array(BoardTypeSchema).optional(), // Multiple types
   status: BoardStatusSchema.optional(),
   zone: ZoneSchema.optional(),
-  boardId: z.string().optional(), // Filter by specific board ID
-  parentId: z.string().optional(),
+  boardId: z.number().optional(), // Filter by specific board ID
+  parentId: z.number().optional(),
   hasCommittees: z.boolean().optional(),
   complianceMin: z.number().optional(),
   complianceMax: z.number().optional(),
@@ -390,7 +419,7 @@ export const BoardFilterParamsSchema = z.object({
 });
 
 export const BoardMemberFilterParamsSchema = z.object({
-  boardId: z.string(),
+  boardId: z.number(),
   search: z.string().optional(),
   role: BoardRoleSchema.optional(),
   isActive: z.boolean().optional(),
@@ -426,8 +455,7 @@ export type BoardType = z.infer<typeof BoardTypeSchema>;
 export type BoardStatus = z.infer<typeof BoardStatusSchema>;
 export type MeetingFrequency = z.infer<typeof MeetingFrequencySchema>;
 export type VotingThreshold = z.infer<typeof VotingThresholdSchema>;
-// BoardRole now imported from roles.ts as single source of truth
-export type { BoardRole } from '../mocks/db/tables/roles';
+export type BoardRole = string;
 export type Zone = z.infer<typeof ZoneSchema>;
 
 export type BoardContactInfo = z.infer<typeof BoardContactInfoSchema>;
@@ -455,14 +483,22 @@ export type BoardMemberListResponse = z.infer<typeof BoardMemberListResponseSche
 // CONSTANTS
 // ============================================================================
 
-export const BOARD_TYPE_LABELS: Record<BoardType, string> = {
+/**
+ * @deprecated Use useLookups().boardTypeOptions instead for dynamic lookup data
+ * This constant is kept for backward compatibility during migration
+ */
+export const BOARD_TYPE_LABELS: Record<string, string> = {
   main: 'Main Board',
   subsidiary: 'Subsidiary',
   factory: 'Factory',
   committee: 'Committee',
 };
 
-export const BOARD_TYPE_COLORS: Record<BoardType, string> = {
+/**
+ * @deprecated Use theme colors or lookup metadata instead
+ * This constant is kept for backward compatibility during migration
+ */
+export const BOARD_TYPE_COLORS: Record<string, string> = {
   main: '#1B5E20',      // Dark green
   subsidiary: '#2196F3', // Blue
   factory: '#FF9800',    // Orange
@@ -484,7 +520,11 @@ export const BOARD_ROLE_LABELS: Record<BoardRole, string> = {
   observer: 'Observer',
 };
 
-export const ZONE_LABELS: Record<Zone, string> = {
+/**
+ * @deprecated Use useLookups().boardZoneOptions instead for dynamic lookup data
+ * This constant is kept for backward compatibility during migration
+ */
+export const ZONE_LABELS: Record<string, string> = {
   zone_1: 'Zone 1',
   zone_2: 'Zone 2',
   zone_3: 'Zone 3',
@@ -492,10 +532,22 @@ export const ZONE_LABELS: Record<Zone, string> = {
   zone_5: 'Zone 5',
   zone_6: 'Zone 6',
   zone_7: 'Zone 7',
+  'Zone 1': 'Zone 1',
+  'Zone 2': 'Zone 2',
+  'Zone 3': 'Zone 3',
+  'Zone 4': 'Zone 4',
+  'Zone 5': 'Zone 5',
+  'Zone 6': 'Zone 6',
+  'Zone 7': 'Zone 7',
+  'Zone 8': 'Zone 8',
+  'Zone 9': 'Zone 9',
+  'Zone 10': 'Zone 10',
+  'Zone 11': 'Zone 11',
+  'Zone 12': 'Zone 12',
 };
 
 // Default settings by board type
-export const DEFAULT_BOARD_SETTINGS: Record<BoardType, Partial<BoardSettings>> = {
+export const DEFAULT_BOARD_SETTINGS: Record<string, Partial<BoardSettings>> = {
   main: {
     quorumPercentage: 50,
     meetingFrequency: 'quarterly',

@@ -228,7 +228,7 @@ export function getStatusCapabilities(status: RoomStatus): RoomCapabilities {
         showActiveVote: false,
         isReadOnly: false,
       };
-    case 'in_progress':
+    case 'inprogress':
       return {
         canNavigateAgenda: true,
         canMarkItemDiscussed: true,
@@ -345,7 +345,7 @@ export function getStatusCapabilities(status: RoomStatus): RoomCapabilities {
 export type RoomStatus = 
   | 'waiting'      // Meeting not yet started, waiting for host
   | 'starting'     // Meeting is being initialized
-  | 'in_progress'  // Meeting actively running
+  | 'inprogress'  // Meeting actively running
   | 'paused'       // Meeting temporarily paused
   | 'ending'       // Meeting being wrapped up
   | 'ended';       // Meeting has concluded

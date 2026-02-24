@@ -5,7 +5,7 @@
  */
 
 import React, { useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { message } from 'antd';
 import {
   UserOutlined,
@@ -40,12 +40,20 @@ dayjs.extend(relativeTime);
 export const UserDetailsPage: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
-  const { currentBoard, theme } = useBoardContext();
+  const location = useLocation();
+  
+  // Check if we're in global view (/all/users/123)
+  const isGlobalView = location.pathname.startsWith('/all/');
+  
+  // Use board context only for board-specific routes
+  const boardContext = useBoardContext();
+  const theme = isGlobalView ? boardContext.theme : boardContext.theme; // Use theme from board context, but don't trigger validation for global routes
 
   const [activeTab, setActiveTab] = useTabNavigation('details');
 
-  // Fetch user data from API
-  const { data: user, isLoading, error } = useUser(parseInt(userId || '0'));
+  // Fetch user data from API - parse URL param to number
+  const numericUserId = userId ? parseInt(userId, 10) : 0;
+  const { data: user, isLoading, error } = useUser(isNaN(numericUserId) ? 0 : numericUserId);
 
   // Tab items
   const tabItems: HorizontalTabItem[] = useMemo(() => {
@@ -61,7 +69,7 @@ export const UserDetailsPage: React.FC = () => {
         key: 'boards',
         label: 'Board Memberships',
         icon: <ApartmentOutlined />,
-        badge: user.boardMemberships?.length || 0,
+        badge: user.boardRoles?.length || 0,
       },
       {
         key: 'activity',
@@ -119,7 +127,7 @@ export const UserDetailsPage: React.FC = () => {
       },
       {
         label: 'Boards',
-        value: user.boardMemberships?.length || 0,
+        value: user.boardRoles?.length || 0,
         type: 'badge',
         color: theme.primaryColor,
       },
@@ -146,12 +154,9 @@ export const UserDetailsPage: React.FC = () => {
       label: 'Edit Profile',
       icon: <EditOutlined />,
       type: 'primary',
-      onClick: () => {
-        message.info('Edit user - Coming soon');
-        // navigate(`/${currentBoard?.id}/users/${user.id}/edit`);
-      },
+      onClick: () => navigate(`/${isGlobalView ? 'all' : boardContext.routePrefix}/users/${user.id}/edit`),
     };
-  }, [user]);
+  }, [user, isGlobalView, boardContext.routePrefix, navigate]);
 
   // Dropdown actions
   const dropdownActions: MenuProps['items'] = useMemo(() => {
@@ -196,7 +201,7 @@ export const UserDetailsPage: React.FC = () => {
 
   // Handle back navigation
   const handleBack = () => {
-    navigate(`/${currentBoard?.id}/users`);
+    navigate(`/${isGlobalView ? 'all' : boardContext.routePrefix}/users`);
   };
 
   // Render tab content using separate tab components

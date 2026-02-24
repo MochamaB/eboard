@@ -40,13 +40,24 @@ const BoardTreeResponseSchema = z.object({
   data: z.array(BoardTreeNodeSchema),
 });
 
-const BoardMembersResponseSchema = z.object({
-  data: z.array(BoardMemberSchema),
-  total: z.number(),
-  page: z.number(),
-  pageSize: z.number(),
-  totalPages: z.number(),
-});
+const BoardMembersResponseSchema = z.union([
+  // Backend returns paginated object
+  z.object({
+    data: z.array(BoardMemberSchema),
+    total: z.number(),
+    page: z.number(),
+    pageSize: z.number(),
+    totalPages: z.number(),
+  }),
+  // Backend returns raw array - transform to paginated format
+  z.array(BoardMemberSchema).transform(data => ({
+    data,
+    total: data.length,
+    page: 1,
+    pageSize: data.length,
+    totalPages: 1,
+  }))
+]);
 
 const CommitteesResponseSchema = z.object({
   data: z.array(CommitteeSchema),
@@ -83,9 +94,9 @@ export const boardsApi = {
   },
 
   /**
-   * Get single board by ID
+   * Get single board by numeric ID
    */
-  getBoard: async (id: string): Promise<Board> => {
+  getBoard: async (id: number): Promise<Board> => {
     const response = await apiClient.get(`/boards/${id}`);
     return safeParseResponse(BoardSchema, response.data, 'getBoard');
   },
@@ -99,17 +110,37 @@ export const boardsApi = {
   },
 
   /**
-   * Update existing board
+   * Update existing board (basic info and contact only)
    */
-  updateBoard: async (id: string, payload: UpdateBoardPayload): Promise<Board> => {
+  updateBoard: async (id: number, payload: UpdateBoardPayload): Promise<Board> => {
     const response = await apiClient.put(`/boards/${id}`, payload);
     return safeParseResponse(BoardSchema, response.data, 'updateBoard');
   },
 
   /**
+   * Update board settings separately
+   */
+  updateBoardSettings: async (id: number, payload: {
+    quorumPercentage?: number;
+    meetingFrequencyId?: number;
+    votingThresholdId?: number;
+    approverRoleId?: number;
+    confirmationRequired?: boolean;
+    minMeetingsPerYear?: number;
+    allowVirtualMeetings?: boolean;
+    requireAttendanceTracking?: boolean;
+    allowSecretarySkipAgenda?: boolean;
+    allowSecretarySkipDocuments?: boolean;
+    requireApprovalForOverrides?: boolean;
+  }): Promise<Board> => {
+    const response = await apiClient.put(`/boards/${id}/settings`, payload);
+    return safeParseResponse(BoardSchema, response.data, 'updateBoardSettings');
+  },
+
+  /**
    * Deactivate board (soft delete)
    */
-  deleteBoard: async (id: string): Promise<void> => {
+  deleteBoard: async (id: number): Promise<void> => {
     await apiClient.delete(`/boards/${id}`);
   },
 
@@ -134,7 +165,7 @@ export const boardsApi = {
    * Get members of a board
    */
   getBoardMembers: async (
-    boardId: string,
+    boardId: number,
     params?: {
       page?: number;
       pageSize?: number;
@@ -149,7 +180,7 @@ export const boardsApi = {
   /**
    * Add member to board
    */
-  addBoardMember: async (boardId: string, payload: AddBoardMemberPayload): Promise<BoardMember> => {
+  addBoardMember: async (boardId: number, payload: AddBoardMemberPayload): Promise<BoardMember> => {
     const response = await apiClient.post(`/boards/${boardId}/members`, payload);
     return safeParseResponse(BoardMemberSchema, response.data, 'addBoardMember');
   },
@@ -157,7 +188,7 @@ export const boardsApi = {
   /**
    * Remove member from board
    */
-  removeBoardMember: async (boardId: string, memberId: string): Promise<void> => {
+  removeBoardMember: async (boardId: number, memberId: number): Promise<void> => {
     await apiClient.delete(`/boards/${boardId}/members/${memberId}`);
   },
 
@@ -166,22 +197,52 @@ export const boardsApi = {
   // ==========================================================================
 
   /**
-   * Get committees of a board
+   * Get committees of a board (uses /children endpoint and filters by type)
    */
-  getBoardCommittees: async (boardId: string): Promise<{ data: Committee[]; total: number }> => {
-    const response = await apiClient.get(`/boards/${boardId}/committees`);
-    return safeParseResponse(CommitteesResponseSchema, response.data, 'getBoardCommittees');
+  getBoardCommittees: async (boardId: number): Promise<{ data: Committee[]; total: number }> => {
+    const response = await apiClient.get(`/boards/${boardId}/children`);
+    // Backend returns array directly from /children, filter for committees only
+    const allChildren = Array.isArray(response.data) ? response.data : (response.data?.data ?? []);
+    const committees = allChildren.filter((child: any) => child.type === 'committee');
+    return {
+      data: committees,
+      total: committees.length,
+    };
   },
 
   /**
    * Create committee under a board
    */
   createCommittee: async (
-    boardId: string,
+    boardId: number,
     payload: { name: string; shortName?: string; description?: string }
   ): Promise<Committee> => {
     const response = await apiClient.post(`/boards/${boardId}/committees`, payload);
     return safeParseResponse(CommitteeSchema, response.data, 'createCommittee');
+  },
+
+  // ==========================================================================
+  // BOARD BRANDING
+  // ==========================================================================
+
+  /**
+   * Get board branding/theme
+   */
+  getBoardBranding: async (boardId: number): Promise<any> => {
+    const response = await apiClient.get(`/boards/${boardId}/branding`);
+    return response.data;
+  },
+
+  // ==========================================================================
+  // BOARD CHILDREN
+  // ==========================================================================
+
+  /**
+   * Get child boards (committees, subsidiaries) for a parent board
+   */
+  getBoardChildren: async (boardId: number): Promise<any[]> => {
+    const response = await apiClient.get(`/boards/${boardId}/children`);
+    return Array.isArray(response.data) ? response.data : [];
   },
 
   // ==========================================================================
@@ -206,7 +267,7 @@ export const boardsApi = {
   /**
    * Get board statistics
    */
-  getBoardStats: async (boardId: string): Promise<BoardStats> => {
+  getBoardStats: async (boardId: number): Promise<BoardStats> => {
     const response = await apiClient.get(`/boards/${boardId}/stats`);
     return safeParseResponse(BoardStatsSchema, response.data, 'getBoardStats');
   },

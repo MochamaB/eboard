@@ -17,7 +17,14 @@ export const MinutesStatusSchema = z.enum([
   'published',          // Distributed to participants
 ]);
 
+export const CommentTypeSchema = z.enum([
+  'general',    // General comment on the minutes
+  'section',    // Comment on a specific section
+  'highlight',  // Highlighted text/important note
+]);
+
 export type MinutesStatus = z.infer<typeof MinutesStatusSchema>;
+export type CommentType = z.infer<typeof CommentTypeSchema>;
 
 // ============================================================================
 // MINUTES SCHEMA

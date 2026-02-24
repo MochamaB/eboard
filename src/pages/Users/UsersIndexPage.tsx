@@ -17,6 +17,8 @@ import {
   Input,
   Select,
   Badge,
+  Modal,
+  Segmented,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table/interface';
 import {
@@ -26,17 +28,22 @@ import {
   EditOutlined,
   ReloadOutlined,
   DownloadOutlined,
+  TableOutlined,
+  AppstoreOutlined,
+  DeleteOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 
 import { useBoardContext } from '../../contexts';
-import { useUsers, useBulkDeactivateUsers } from '../../hooks/api';
-import { DataTable, IndexPageLayout, type TabItem } from '../../components/common';
+import { useUsers, useDeleteUser, useBulkDeactivateUsers } from '../../hooks/api';
+import { DataTable, IndexPageLayout, CardView, type TabItem } from '../../components/common';
+import { UserCard } from '../../components/users/UserCard';
 import type { BulkAction } from '../../components/common/DataTable';
 import type { QuickFilter } from '../../components/common/FilterBar';
 import type { UserListItem, UserStatus } from '../../types';
-import { SYSTEM_ROLE_INFO } from '../../types/role.types';
+import { useLookups } from '../../contexts/LookupsContext';
+import { useResponsive } from '../../hooks';
 
 dayjs.extend(relativeTime);
 
@@ -55,7 +62,15 @@ const getInitials = (name: string): string => {
 export const UsersIndexPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { currentBoard, activeCommittee, theme, viewMode: boardViewMode, allBoards } = useBoardContext();
+  const { currentBoard, activeCommittee, allBoards, theme, routePrefix } = useBoardContext();
+  const { roles, getRoleByCode } = useLookups();
+  const { isMobile } = useResponsive();
+
+  // View mode state
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+  
+  // Force cards on mobile
+  const actualViewMode = isMobile ? 'cards' : viewMode;
 
   // Check if we're in "View All" mode (route is /all/users)
   const isAllBoardsView = location.pathname.startsWith('/all/');
@@ -80,21 +95,29 @@ export const UsersIndexPage: React.FC = () => {
   }, [currentBoard?.id, isAllBoardsView]);
 
   // Determine board filter based on view mode and org context
+  // Returns numeric ID for API calls, not slug
   const effectiveBoardId = useMemo(() => {
     // In "View All" mode, use selectedBoardId if set, otherwise undefined (all boards)
-    if (isAllBoardsView || boardViewMode === 'all') {
-      return selectedBoardId; // undefined = all boards, or specific board if selected
+    if (isAllBoardsView || routePrefix === 'all') {
+      // selectedBoardId is a slug, need to find the numeric ID
+      if (selectedBoardId) {
+        const selectedBoard = allBoards.find(b => b.slug === selectedBoardId);
+        return selectedBoard?.id;
+      }
+      return undefined; // all boards
     }
     
-    // If viewing a specific committee (not 'all' or 'board'), filter by that committee
+    // If viewing a committee, filter by that committee's numeric ID
     if (activeCommittee && activeCommittee !== 'all' && activeCommittee !== 'board') {
-      return activeCommittee;
+      // activeCommittee is a slug, find the numeric ID from committees or allBoards
+      const committeeBoard = allBoards.find(b => b.slug === activeCommittee);
+      return committeeBoard?.id;
     }
-    // If viewing a specific board, filter by that board
+    // If viewing a specific board, filter by that board's numeric ID
     if (currentBoard) return currentBoard.id;
     // Otherwise, show all users (KTDA Group view or 'all' tab)
     return undefined;
-  }, [activeCommittee, currentBoard, isAllBoardsView, boardViewMode, selectedBoardId]);
+  }, [activeCommittee, currentBoard, isAllBoardsView, routePrefix, selectedBoardId, allBoards]);
 
   // Build filter params
   const filterParams = useMemo(() => ({
@@ -108,7 +131,33 @@ export const UsersIndexPage: React.FC = () => {
 
   // Fetch users
   const { data, isLoading, refetch } = useUsers(filterParams);
+  const deleteUserMutation = useDeleteUser();
   const bulkDeactivateMutation = useBulkDeactivateUsers();
+
+  // Handle individual user deactivation
+  const handleDeactivate = useCallback((user: UserListItem) => {
+    if (user.status === 'inactive') {
+      message.info('User is already inactive. Use Edit to reactivate.');
+      return;
+    }
+
+    Modal.confirm({
+      title: 'Deactivate User',
+      content: `Are you sure you want to deactivate ${user.fullName}? This will end all board memberships and log them out of all devices.`,
+      okText: 'Deactivate',
+      okType: 'danger',
+      cancelText: 'Cancel',
+      onOk: async () => {
+        try {
+          await deleteUserMutation.mutateAsync(user.id);
+          message.success(`User "${user.fullName}" deactivated successfully`);
+          refetch();
+        } catch (error: any) {
+          message.error(error?.response?.data?.message || 'Failed to deactivate user');
+        }
+      },
+    });
+  }, [deleteUserMutation, refetch]);
 
   // Table columns
   const columns: ColumnsType<UserListItem> = useMemo(() => [
@@ -138,10 +187,10 @@ export const UsersIndexPage: React.FC = () => {
       key: 'role',
       width: 160,
       render: (role: string) => {
-        const roleInfo = SYSTEM_ROLE_INFO[role as keyof typeof SYSTEM_ROLE_INFO];
+        const roleInfo = getRoleByCode(role);
         return (
-          <Tag color={roleInfo?.color || theme.primaryColor}>
-            {roleInfo?.label || role}
+          <Tag color={theme.primaryColor}>
+            {roleInfo?.name || role}
           </Tag>
         );
       },
@@ -201,48 +250,41 @@ export const UsersIndexPage: React.FC = () => {
     {
       title: 'Actions',
       key: 'actions',
-      width: 120,
+      width: 100,
       align: 'center',
       render: (_, record) => (
         <Space size="small">
-          <Tooltip title="View">
-            <Button
-              type="text"
-              size="small"
-              icon={<EyeOutlined />}
+          <Tooltip title="View Details">
+            <EyeOutlined 
               onClick={(e) => {
                 e.stopPropagation();
-                navigate(`/${currentBoard?.id}/users/${record.id}`);
+                navigate(`/${routePrefix}/users/${record.id}`);
               }}
+              style={{ fontSize: 16, color: theme.primaryColor }}
             />
           </Tooltip>
           <Tooltip title="Edit">
-            <Button
-              type="text"
-              size="small"
-              icon={<EditOutlined />}
+            <EditOutlined 
               onClick={(e) => {
                 e.stopPropagation();
-                navigate(`/${currentBoard?.id}/users/${record.id}/edit`);
+                navigate(`/${routePrefix}/users/${record.id}/edit`);
               }}
+              style={{ fontSize: 16, color: theme.secondaryColor }}
             />
           </Tooltip>
-          <Tooltip title={record.status === 'active' ? 'Deactivate' : 'Activate'}>
-            <Button
-              type="text"
-              size="small"
-              danger={record.status === 'active'}
-              icon={<StopOutlined />}
+          <Tooltip title={record.status === 'active' ? 'Deactivate' : 'Reactivate'}>
+            <StopOutlined 
               onClick={(e) => {
                 e.stopPropagation();
-                message.info(record.status === 'active' ? 'User deactivated' : 'User activated');
+                handleDeactivate(record);
               }}
+              style={{ fontSize: 16, color: record.status === 'active' ? '#ff4d4f' : theme.warningColor }}
             />
           </Tooltip>
         </Space>
       ),
     },
-  ], [navigate, currentBoard?.id, theme]);
+  ], [navigate, routePrefix, theme, handleDeactivate]);
 
   // Quick filters (status tabs)
   const quickFilters: QuickFilter[] = useMemo(() => {
@@ -294,9 +336,6 @@ export const UsersIndexPage: React.FC = () => {
     setStatusFilter(key);
     setPage(1);
   }, []);
-
-  // Determine route prefix for navigation
-  const routePrefix = isAllBoardsView ? 'all' : currentBoard?.id;
 
   const handleRowClick = useCallback((record: UserListItem) => {
     navigate(`/${routePrefix}/users/${record.id}`);
@@ -374,55 +413,109 @@ export const UsersIndexPage: React.FC = () => {
             style={{ width: 180 }}
             options={[
               { label: 'All Roles', value: undefined },
-              ...Object.entries(SYSTEM_ROLE_INFO).map(([key, info]) => ({
-                label: info.label,
-                value: key,
+              ...roles.map(role => ({
+                label: role.name,
+                value: role.code,
               })),
             ]}
           />
 
           <div style={{ flex: 1 }} />
 
-          {/* Action Buttons */}
+          {/* Action Buttons and View Switcher */}
           <Space>
-            <Button icon={<ReloadOutlined />} onClick={() => refetch()}>
-              Refresh
-            </Button>
-            <Button icon={<DownloadOutlined />} onClick={() => message.info('Exporting...')}>
-              Export
-            </Button>
+            {/* View Switcher - Hide text on mobile */}
+            <Segmented
+              value={viewMode}
+              onChange={(value) => setViewMode(value as 'table' | 'cards')}
+              options={
+                isMobile
+                  ? [
+                      { value: 'table', icon: <TableOutlined /> },
+                      { value: 'cards', icon: <AppstoreOutlined /> },
+                    ]
+                  : [
+                      { label: 'Table', value: 'table', icon: <TableOutlined /> },
+                      { label: 'Cards', value: 'cards', icon: <AppstoreOutlined /> },
+                    ]
+              }
+            />
+            
+            {/* Refresh and Export - Hide text on mobile */}
+            {isMobile ? (
+              <>
+                <Tooltip title="Refresh">
+                  <Button icon={<ReloadOutlined />} onClick={() => refetch()} />
+                </Tooltip>
+                <Tooltip title="Export">
+                  <Button icon={<DownloadOutlined />} onClick={() => message.info('Exporting...')} />
+                </Tooltip>
+              </>
+            ) : (
+              <>
+                <Button icon={<ReloadOutlined />} onClick={() => refetch()}>
+                  Refresh
+                </Button>
+                <Button icon={<DownloadOutlined />} onClick={() => message.info('Exporting...')}>
+                  Export
+                </Button>
+              </>
+            )}
           </Space>
         </div>
 
-        {/* Data Table */}
-        <div className="users-table-wrapper">
-          <style>{`
-            .users-table-wrapper .ant-table-thead > tr > th:last-child {
-              padding-right: 16px !important;
-            }
-            .users-table-wrapper .ant-table-tbody > tr > td:last-child {
-              padding-right: 16px !important;
-            }
-          `}</style>
-          <DataTable<UserListItem>
-            columns={columns}
-            dataSource={data?.data || []}
+        {/* Table or Card View */}
+        {actualViewMode === 'table' ? (
+          <div className="users-table-wrapper">
+            <style>{`
+              .users-table-wrapper .ant-table-thead > tr > th:last-child {
+                padding-right: 16px !important;
+              }
+              .users-table-wrapper .ant-table-tbody > tr > td:last-child {
+                padding-right: 16px !important;
+              }
+            `}</style>
+            <DataTable<UserListItem>
+              columns={columns}
+              dataSource={data?.data || []}
+              loading={isLoading}
+              rowSelection
+              bulkActions={bulkActions}
+              onRowClick={handleRowClick}
+              onChange={handleTableChange}
+              showSearch={false}
+              pagination={{
+                current: page,
+                pageSize,
+                total: data?.total || 0,
+                showSizeChanger: true,
+                showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} users`,
+              }}
+              scroll={{ x: 'max-content' }}
+            />
+          </div>
+        ) : (
+          <CardView
+            data={data?.data || []}
             loading={isLoading}
-            rowSelection
-            bulkActions={bulkActions}
-            onRowClick={handleRowClick}
-            onChange={handleTableChange}
-            showSearch={false}
-            pagination={{
-              current: page,
-              pageSize,
-              total: data?.total || 0,
-              showSizeChanger: true,
-              showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} users`,
+            renderCard={(user, index) => (
+              <UserCard
+                key={user.id}
+                user={user}
+                onClick={() => handleRowClick(user)}
+                showActions
+              />
+            )}
+            emptyText="No users found"
+            columns={{
+              xs: 24,  // 1 card on mobile
+              sm: 24,  // 1 card on small tablet
+              md: 12,  // 2 cards on tablet
+              lg: 8,   // 3 cards on desktop
+              xl: 6,   // 4 cards on large desktop
             }}
-            scroll={{ x: 'max-content' }}
           />
-        </div>
+        )}
     </IndexPageLayout>
   );
 };

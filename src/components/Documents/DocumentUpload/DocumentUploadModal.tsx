@@ -57,7 +57,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
   boardId,
   defaultCategory = 'attachment',
 }) => {
-  const { theme, currentBoard } = useBoardContext();
+  const { theme, currentBoard, routePrefix } = useBoardContext();
   const [form] = Form.useForm<FormValues>();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [tagInput, setTagInput] = useState('');

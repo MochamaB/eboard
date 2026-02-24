@@ -2,6 +2,8 @@ import { ConfigProvider } from 'antd';
 import { Outlet } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BoardProvider, useBoardContext, AuthProvider, ResponsiveProvider } from '../contexts';
+import { LookupsProvider } from '../contexts/LookupsContext';
+import { BoardChangeProgressBar } from '../components/BoardChangeProgressBar';
 
 // Create React Query client
 const queryClient = new QueryClient({
@@ -22,19 +24,23 @@ const ThemedApp: React.FC = () => {
   
   return (
     <ConfigProvider theme={antdTheme}>
+      <BoardChangeProgressBar />
       <Outlet />
     </ConfigProvider>
   );
 };
 
 // Board provider wrapper - must be inside AuthProvider since it uses useAuth
+// LookupsProvider wraps BoardProvider to make lookups available globally
 const BoardWrapper: React.FC = () => {
   return (
-    <BoardProvider>
-      <ResponsiveProvider>
-        <ThemedApp />
-      </ResponsiveProvider>
-    </BoardProvider>
+    <LookupsProvider>
+      <BoardProvider>
+        <ResponsiveProvider>
+          <ThemedApp />
+        </ResponsiveProvider>
+      </BoardProvider>
+    </LookupsProvider>
   );
 };
 

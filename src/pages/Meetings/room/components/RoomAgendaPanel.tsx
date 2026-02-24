@@ -134,7 +134,7 @@ const RoomAgendaPanel: React.FC = () => {
           color: t.textPrimary,
           ...getTypographyCSS('h4'),
         }}>
-          Agenda
+          
         </span>
 
         {hierarchicalItems.length === 0 ? (

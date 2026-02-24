@@ -66,14 +66,29 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor - handle errors globally
+// Response interceptor - unwrap ApiResponse<T> envelope and handle errors
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Backend wraps all responses in ApiResponse<T>: { success, data, message, errors }
+    // Unwrap so downstream code gets the actual payload directly
+    if (response.data && typeof response.data === 'object' && 'success' in response.data) {
+      if (response.data.success && response.data.data !== undefined) {
+        response.data = response.data.data;
+      }
+    }
+    return response;
+  },
   async (error: AxiosError) => {
     const originalRequest = error.config;
     
     // Handle 401 Unauthorized
     if (error.response?.status === 401) {
+      // Don't intercept 401 on auth endpoints — let the caller handle it
+      const url = originalRequest?.url || '';
+      if (url.includes('/auth/login') || url.includes('/auth/refresh') || url.includes('/auth/dev-users')) {
+        return Promise.reject(error);
+      }
+
       // Clear tokens and redirect to login
       tokenManager.clearTokens();
       

@@ -90,7 +90,7 @@ export const MeetingParticipantsTab: React.FC<MeetingParticipantsTabProps> = ({
     accepted: participants.filter(p => p.rsvpStatus === 'accepted').length,
     declined: participants.filter(p => p.rsvpStatus === 'declined').length,
     tentative: participants.filter(p => p.rsvpStatus === 'tentative').length,
-    pending: participants.filter(p => p.rsvpStatus === 'no_response').length,
+    pending: participants.filter(p => p.rsvpStatus === 'noresponse').length,
   };
 
   const acceptanceRate = participants.length > 0 
@@ -103,7 +103,7 @@ export const MeetingParticipantsTab: React.FC<MeetingParticipantsTabProps> = ({
     declined: { color: 'error', icon: <CloseCircleOutlined />, label: 'Declined' },
     tentative: { color: 'warning', icon: <QuestionCircleOutlined />, label: 'Tentative' },
     pending: { color: 'default', icon: <ClockCircleOutlined />, label: 'Pending' },
-    no_response: { color: 'default', icon: <ClockCircleOutlined />, label: 'No Response' },
+    noresponse: { color: 'default', icon: <ClockCircleOutlined />, label: 'No Response' },
   };
 
   // Role display config

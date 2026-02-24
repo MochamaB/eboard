@@ -4,7 +4,6 @@
  */
 
 import { z } from 'zod';
-import { BoardRoleSchema } from './board.types';
 
 // Login payload
 export const LoginPayloadSchema = z.object({
@@ -13,32 +12,37 @@ export const LoginPayloadSchema = z.object({
   rememberMe: z.boolean().optional(),
 });
 
-// Login response
+// Board role info returned per user-board assignment
+export const UserBoardRoleInfoSchema = z.object({
+  id: z.number(),
+  scope: z.string(), // 'global' | 'board' | 'board_leadership'
+  boardId: z.number().nullable(),
+  boardSlug: z.string().nullable().optional(),
+  boardName: z.string().nullable().optional(),
+  roleId: z.number(),
+  roleCode: z.string(),
+  roleName: z.string(),
+  isDefault: z.boolean(),
+  permissions: z.array(z.string()),
+});
+
+// Login response — matches backend ApiResponse<LoginResponse> (unwrapped by client)
 export const LoginResponseSchema = z.object({
   accessToken: z.string(),
-  refreshToken: z.string().optional(),
-  expiresIn: z.number(), // seconds
+  refreshToken: z.string(),
+  expiresAt: z.string(), // ISO date string from backend
   user: z.object({
     id: z.number(),
     email: z.string(),
     firstName: z.string(),
     lastName: z.string(),
     fullName: z.string(),
-    jobTitle: z.string(),
-    avatar: z.string().nullable(),
-    // Global role (if user has one) - from userBoardRoles with scope='global'
-    globalRole: z.object({
-      code: BoardRoleSchema,
-      name: z.string(),
-      scope: z.literal('global'),
-    }).optional(),
-    // Default board for initial navigation
-    defaultBoardId: z.string().optional(),
-    // Aggregated permissions from all roles
-    permissions: z.array(z.string()),
+    phone: z.string().nullable().optional(),
+    avatar: z.string().nullable().optional(),
+    timezone: z.string(),
+    status: z.string(),
     mfaEnabled: z.boolean(),
-    mfaRequired: z.boolean(), // True if MFA verification needed
-    mustChangePassword: z.boolean(), // True for first-time login
+    boardRoles: z.array(UserBoardRoleInfoSchema),
   }),
 });
 
@@ -107,6 +111,7 @@ export type ForgotPasswordPayload = z.infer<typeof ForgotPasswordPayloadSchema>;
 export type ResetPasswordPayload = z.infer<typeof ResetPasswordPayloadSchema>;
 export type AuthState = z.infer<typeof AuthStateSchema>;
 export type AuthUser = LoginResponse['user'];
+export type UserBoardRoleInfo = z.infer<typeof UserBoardRoleInfoSchema>;
 
 // Session info (from docs: 30 min inactivity timeout)
 export const SESSION_CONFIG = {

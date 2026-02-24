@@ -44,7 +44,7 @@ import { MeetingStatusBadge } from '../../../components/Meetings';
 const { Text } = Typography;
 
 interface MeetingsTabProps {
-  boardId: string;
+  boardId: number;
 }
 
 // Status badge colors mapping - DEPRECATED: Now using MeetingStatusBadge component
@@ -52,7 +52,7 @@ interface MeetingsTabProps {
 
 export const MeetingsTab: React.FC<MeetingsTabProps> = ({ boardId }) => {
   const navigate = useNavigate();
-  const { currentBoard, theme } = useBoardContext();
+  const { currentBoard, theme, routePrefix } = useBoardContext();
 
   // Filter state
   const [statusFilter, setStatusFilter] = useState<MeetingStatus | 'all'>('all');
@@ -142,14 +142,14 @@ export const MeetingsTab: React.FC<MeetingsTabProps> = ({ boardId }) => {
         return (
           <Flex gap={8} align="flex-start">
             <div style={{ fontSize: 20, lineHeight: '1', marginTop: 4 }}>
-              {getLocationIcon(record.locationType)}
+              {getLocationIcon(record.locationType as LocationType)}
             </div>
             <Space direction="vertical" size={2} style={{ flex: 1 }}>
               <Text strong style={{ fontSize: 13 }}>
-                {LOCATION_TYPE_LABELS[record.locationType]}
+                {LOCATION_TYPE_LABELS[record.locationType as LocationType]}
               </Text>
               <MeetingStatusBadge
-                status={record.status}
+                status={record.status as MeetingStatus}
                 subStatus={record.subStatus}
                 style={{ fontSize: 11 }}
               />
@@ -192,10 +192,7 @@ export const MeetingsTab: React.FC<MeetingsTabProps> = ({ boardId }) => {
               type="text"
               size="small"
               icon={<EyeOutlined style={{ color: theme.primaryColor }} />}
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate(`/${currentBoard?.id}/meetings/${record.id}`);
-              }}
+              onClick={() => navigate(`/${routePrefix}/meetings/${record.id}`)}
             />
           </Tooltip>
           {record.status === 'draft' && (
@@ -204,22 +201,19 @@ export const MeetingsTab: React.FC<MeetingsTabProps> = ({ boardId }) => {
                 type="text"
                 size="small"
                 icon={<EditOutlined style={{ color: '#1890ff' }} />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(`/${currentBoard?.id}/meetings/${record.id}/edit`);
-                }}
+                onClick={() => navigate(`/${routePrefix}/meetings/${record.id}/edit`)}
               />
             </Tooltip>
           )}
         </Space>
       ),
     },
-  ], [navigate, currentBoard?.id, theme, getLocationIcon]);
+  ], [navigate, routePrefix, theme, getLocationIcon]);
 
   // Handle row click
   const handleRowClick = useCallback((record: MeetingListItem) => {
-    navigate(`/${currentBoard?.id}/meetings/${record.id}`);
-  }, [navigate, currentBoard?.id]);
+    navigate(`/${routePrefix}/meetings/${record.id}`);
+  }, [navigate, routePrefix]);
 
   // Handle table change (pagination)
   const handleTableChange = useCallback((pagination: any) => {
@@ -229,8 +223,8 @@ export const MeetingsTab: React.FC<MeetingsTabProps> = ({ boardId }) => {
 
   // Handle create meeting
   const handleCreateMeeting = useCallback(() => {
-    navigate(`/${currentBoard?.id}/meetings/create?boardId=${boardId}`);
-  }, [navigate, currentBoard?.id, boardId]);
+    navigate(`/${routePrefix}/meetings/create`);
+  }, [navigate, routePrefix]);
 
   return (
     <div style={{ padding: 24 }}>
@@ -275,10 +269,8 @@ export const MeetingsTab: React.FC<MeetingsTabProps> = ({ boardId }) => {
             options={[
               { label: 'All Statuses', value: 'all' },
               { label: 'Draft', value: 'draft' },
-              { label: 'Pending', value: 'pending_confirmation' },
-              { label: 'Confirmed', value: 'confirmed' },
               { label: 'Scheduled', value: 'scheduled' },
-              { label: 'In Progress', value: 'in_progress' },
+              { label: 'In Progress', value: 'inprogress' },
               { label: 'Completed', value: 'completed' },
               { label: 'Cancelled', value: 'cancelled' },
             ]}

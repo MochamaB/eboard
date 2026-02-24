@@ -27,8 +27,8 @@ export const generateBreadcrumbs = (
   
   // Add each route segment
   routeSegments.forEach((segment, index) => {
-    // Check if it's a UUID/ID (skip in breadcrumb display)
-    const isId = /^[a-f0-9-]{36}$/i.test(segment) || segment.length > 20;
+    // Check if it's a UUID/ID or numeric ID (skip in breadcrumb display)
+    const isId = /^[a-f0-9-]{36}$/i.test(segment) || /^\d+$/.test(segment) || segment.length > 20;
     
     if (!isId) {
       breadcrumbs.push({

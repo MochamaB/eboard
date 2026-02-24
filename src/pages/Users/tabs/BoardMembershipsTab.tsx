@@ -3,7 +3,7 @@
  * Displays user's board and committee assignments with management actions
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Card, Row, Col, Space, Typography, Tag, Button, Empty, Tooltip } from 'antd';
 import {
   ApartmentOutlined,
@@ -13,7 +13,11 @@ import {
   DeleteOutlined,
   PlusOutlined,
 } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import type { User } from '../../../types/user.types';
+import { useBoardContext } from '../../../contexts';
+import { BoardSelector } from '../../../components/users/BoardSelector/BoardSelector';
+import type { BoardAssignment } from '../../../pages/Users/CreateUserSteps/types';
 import dayjs from 'dayjs';
 
 const { Text } = Typography;
@@ -24,8 +28,19 @@ interface BoardMembershipsTabProps {
 }
 
 export const BoardMembershipsTab: React.FC<BoardMembershipsTabProps> = ({ user, themeColor }) => {
+  const { allBoards, currentBoard } = useBoardContext();
+  const navigate = useNavigate();
+
+  // Get board type from board data using boardId
+  const getBoardType = (boardId: number | null): string => {
+    if (!boardId) return 'unknown';
+    const board = allBoards.find(b => b.id === boardId);
+    return board?.type || 'unknown';
+  };
+
   // Get board type icon
-  const getBoardTypeIcon = (boardType: string) => {
+  const getBoardTypeIcon = (boardId: number | null) => {
+    const boardType = getBoardType(boardId);
     switch (boardType) {
       case 'main':
         return <ApartmentOutlined style={{ color: '#722ed1', fontSize: 32 }} />;
@@ -41,7 +56,8 @@ export const BoardMembershipsTab: React.FC<BoardMembershipsTabProps> = ({ user, 
   };
 
   // Get board type color
-  const getBoardTypeColor = (boardType: string) => {
+  const getBoardTypeColor = (boardId: number | null) => {
+    const boardType = getBoardType(boardId);
     switch (boardType) {
       case 'main':
         return 'purple';
@@ -56,10 +72,30 @@ export const BoardMembershipsTab: React.FC<BoardMembershipsTabProps> = ({ user, 
     }
   };
 
+  // Check if membership is active (has no end date or end date is in the future)
+  const isMembershipActive = (endDate: string | null): boolean => {
+    if (!endDate) return true; // No end date means active
+    return dayjs(endDate).isAfter(dayjs());
+  };
+
+  // Transform user.boardRoles to BoardAssignment format
+  const boardAssignments: BoardAssignment[] = useMemo(() => {
+    return (user.boardRoles || []).map(role => ({
+      boardId: role.boardId || 0,
+      boardName: role.boardName || '',
+      role: role.roleCode,
+      roleId: role.roleId,
+      roleName: role.roleName,
+      startDate: role.startDate,
+      endDate: role.endDate,
+      isDefault: role.isDefault,
+    }));
+  }, [user.boardRoles]);
+
   // Handle add to board
   const handleAddToBoard = () => {
-    // TODO: Open modal to add user to board
-    console.log('Add to board clicked');
+    // Navigate to EditUserPage with board-assignments tab using current board slug
+    navigate(`/${currentBoard.slug}/users/${user.id}/edit?tab=board-assignments`);
   };
 
   // Handle edit role
@@ -76,6 +112,7 @@ export const BoardMembershipsTab: React.FC<BoardMembershipsTabProps> = ({ user, 
 
   return (
     <div style={{ padding: 24 }}>
+      {/* Header */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -87,7 +124,7 @@ export const BoardMembershipsTab: React.FC<BoardMembershipsTabProps> = ({ user, 
         <Space>
           <ApartmentOutlined style={{ fontSize: 20 }} />
           <Text strong style={{ fontSize: 16 }}>Board & Committee Memberships</Text>
-          <Tag color={themeColor}>{user.boardMemberships?.length || 0}</Tag>
+          <Tag color={themeColor}>{user.boardRoles?.length || 0}</Tag>
         </Space>
         <Button
           type="primary"
@@ -98,157 +135,48 @@ export const BoardMembershipsTab: React.FC<BoardMembershipsTabProps> = ({ user, 
         </Button>
       </div>
 
-      {user.boardMemberships && user.boardMemberships.length > 0 ? (
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
-          {/* Board Memberships Grid */}
-          <Row gutter={[16, 16]}>
-            {user.boardMemberships.map((membership) => (
-              <Col xs={24} sm={24} md={12} lg={8} key={membership.id}>
-                <Card
-                  hoverable
-                  style={{
-                    height: '100%',
-                    minHeight: 240,
-                    display: 'flex',
-                    flexDirection: 'column',
-                  }}
-                  bodyStyle={{
-                    padding: 20,
-                    flex: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                  }}
-                >
-                  {/* Icon and Title */}
-                  <div style={{ marginBottom: 16, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                    <div>{getBoardTypeIcon(membership.boardType)}</div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                        <Text strong style={{ fontSize: 16 }}>
-                          {membership.boardName}
-                        </Text>
-                        {membership.isDefault && (
-                          <Tooltip title="Default Board">
-                            <StarFilled style={{ color: '#faad14', fontSize: 16 }} />
-                          </Tooltip>
-                        )}
-                      </div>
-                      <Tag color={getBoardTypeColor(membership.boardType)} style={{ marginBottom: 8 }}>
-                        {membership.boardType.toUpperCase()}
-                      </Tag>
-                    </div>
-                  </div>
-
-                  {/* Role and Status */}
-                  <div style={{ marginBottom: 16 }}>
-                    <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>
-                      Role
-                    </Text>
-                    <Tag color="blue" style={{ marginBottom: 8 }}>
-                      {membership.roleName || membership.role}
-                    </Tag>
-                    <div>
-                      {membership.isActive ? (
-                        <Tag color="green">Active</Tag>
-                      ) : (
-                        <Tag color="default">Inactive</Tag>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Date Info */}
-                  <div style={{ marginTop: 'auto', paddingTop: 12, borderTop: '1px solid #f0f0f0' }}>
-                    <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>
-                      Since: {dayjs(membership.startDate).format('MMM D, YYYY')}
-                    </Text>
-                    {membership.endDate && (
-                      <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>
-                        Until: {dayjs(membership.endDate).format('MMM D, YYYY')}
-                      </Text>
-                    )}
-                  </div>
-
-                  {/* Actions */}
-                  <div style={{
-                    marginTop: 16,
-                    paddingTop: 12,
-                    borderTop: '1px solid #f0f0f0',
-                    display: 'flex',
-                    justifyContent: 'space-between'
-                  }}>
-                    <Tooltip title="Edit Role">
-                      <Button
-                        type="text"
-                        icon={<EditOutlined />}
-                        onClick={() => handleEditRole(Number(membership.id))}
-                        size="small"
-                      >
-                        Edit
-                      </Button>
-                    </Tooltip>
-                    <Tooltip title="Remove from Board">
-                      <Button
-                        type="text"
-                        danger
-                        icon={<DeleteOutlined />}
-                        onClick={() => handleRemoveFromBoard(Number(membership.id))}
-                        size="small"
-                      >
-                        Remove
-                      </Button>
-                    </Tooltip>
-                  </div>
-                </Card>
-              </Col>
-            ))}
-          </Row>
-
-          {/* Summary Cards */}
-          <Row gutter={[16, 16]}>
-            <Col xs={24} sm={8}>
-              <Card bordered={false} style={{ textAlign: 'center', background: '#fafafa' }}>
-                <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>Total Boards</Text>
-                <Text strong style={{ fontSize: 24, display: 'block', marginTop: 8 }}>
-                  {user.boardMemberships?.length || 0}
-                </Text>
-              </Card>
-            </Col>
-            <Col xs={24} sm={8}>
-              <Card bordered={false} style={{ textAlign: 'center', background: '#fafafa' }}>
-                <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>Active Memberships</Text>
-                <Text strong style={{ fontSize: 24, display: 'block', marginTop: 8 }}>
-                  {user.boardMemberships?.filter(m => m.isActive).length || 0}
-                </Text>
-              </Card>
-            </Col>
-            <Col xs={24} sm={8}>
-              <Card bordered={false} style={{ textAlign: 'center', background: '#fafafa' }}>
-                <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>Default Board</Text>
-                <Text strong style={{ fontSize: 14, display: 'block', marginTop: 8, wordBreak: 'break-word' }}>
-                  {user.boardMemberships?.find(m => m.isDefault)?.boardName || 'None set'}
-                </Text>
-              </Card>
-            </Col>
-          </Row>
-
-          {/* Info Note */}
-          <Card bordered={false} size="small" style={{ background: '#f0f5ff', borderLeft: '4px solid #1890ff' }}>
-            <Text type="secondary" style={{ fontSize: 13 }}>
-              <strong>Note:</strong> Board memberships determine which boards and committees this user can access.
+      {/* Summary Cards - Moved to Top */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        <Col xs={24} sm={8}>
+          <Card bordered={false} style={{ textAlign: 'center', background: '#fafafa' }}>
+            <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>Total Boards</Text>
+            <Text strong style={{ fontSize: 24, display: 'block', marginTop: 8 }}>
+              {user.boardRoles?.length || 0}
             </Text>
           </Card>
-        </Space>
-      ) : (
-        <Empty
-          description="No board memberships"
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          style={{ padding: '60px 0' }}
-        >
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleAddToBoard}>
-            Add to Board
-          </Button>
-        </Empty>
-      )}
+        </Col>
+        <Col xs={24} sm={8}>
+          <Card bordered={false} style={{ textAlign: 'center', background: '#fafafa' }}>
+            <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>Active Memberships</Text>
+            <Text strong style={{ fontSize: 24, display: 'block', marginTop: 8 }}>
+              {user.boardRoles?.filter(m => isMembershipActive(m.endDate)).length || 0}
+            </Text>
+          </Card>
+        </Col>
+        <Col xs={24} sm={8}>
+          <Card bordered={false} style={{ textAlign: 'center', background: '#fafafa' }}>
+            <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>Default Board</Text>
+            <Text strong style={{ fontSize: 14, display: 'block', marginTop: 8, wordBreak: 'break-word' }}>
+              {user.boardRoles?.find(m => m.isDefault)?.boardName || 'None set'}
+            </Text>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Board Selector Component */}
+      <BoardSelector
+        value={boardAssignments}
+        mode="view"
+        readOnly={true}
+        allowRoleChange={false}
+      />
+
+      {/* Info Note */}
+      <Card bordered={false} size="small" style={{ marginTop: 24, background: '#f0f5ff', borderLeft: '4px solid #1890ff' }}>
+        <Text type="secondary" style={{ fontSize: 13 }}>
+          <strong>Note:</strong> Board memberships determine which boards and committees this user can access.
+        </Text>
+      </Card>
     </div>
   );
 };

@@ -27,12 +27,12 @@ export const boardKeys = {
   lists: () => [...boardKeys.all, 'list'] as const,
   list: (params?: BoardFilterParams) => [...boardKeys.lists(), params] as const,
   details: () => [...boardKeys.all, 'detail'] as const,
-  detail: (id: string) => [...boardKeys.details(), id] as const,
+  detail: (id: number | string) => [...boardKeys.details(), id] as const,
   tree: () => [...boardKeys.all, 'tree'] as const,
-  members: (boardId: string) => [...boardKeys.all, boardId, 'members'] as const,
-  membersList: (boardId: string, params?: Record<string, unknown>) => [...boardKeys.members(boardId), params] as const,
-  committees: (boardId: string) => [...boardKeys.all, boardId, 'committees'] as const,
-  stats: (boardId: string) => [...boardKeys.all, boardId, 'stats'] as const,
+  members: (boardId: number) => [...boardKeys.all, boardId, 'members'] as const,
+  membersList: (boardId: number, params?: Record<string, unknown>) => [...boardKeys.members(boardId), params] as const,
+  committees: (boardId: number) => [...boardKeys.all, boardId, 'committees'] as const,
+  stats: (boardId: number) => [...boardKeys.all, boardId, 'stats'] as const,
   userBoards: (userId: number | string) => [...boardKeys.all, 'user', userId] as const,
 };
 
@@ -51,11 +51,11 @@ export const useBoards = (params?: BoardFilterParams) => {
 };
 
 /**
- * Hook to fetch single board by ID
+ * Hook to fetch single board by numeric ID
  */
-export const useBoard = (id: string) => {
+export const useBoard = (id: number) => {
   return useQuery<Board>({
-    queryKey: boardKeys.detail(id),
+    queryKey: boardKeys.detail(String(id)),
     queryFn: () => boardsApi.getBoard(id),
     enabled: !!id,
   });
@@ -75,7 +75,7 @@ export const useBoardTree = () => {
 /**
  * Hook to fetch board statistics
  */
-export const useBoardStats = (boardId: string) => {
+export const useBoardStats = (boardId: number) => {
   return useQuery<BoardStats>({
     queryKey: boardKeys.stats(boardId),
     queryFn: () => boardsApi.getBoardStats(boardId),
@@ -109,7 +109,7 @@ export const useUpdateBoard = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: UpdateBoardPayload }) => 
+    mutationFn: ({ id, payload }: { id: number; payload: UpdateBoardPayload }) => 
       boardsApi.updateBoard(id, payload),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: boardKeys.detail(id) });
@@ -126,7 +126,7 @@ export const useDeleteBoard = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (id: string) => boardsApi.deleteBoard(id),
+    mutationFn: (id: number) => boardsApi.deleteBoard(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: boardKeys.lists() });
       queryClient.invalidateQueries({ queryKey: boardKeys.tree() });
@@ -142,7 +142,7 @@ export const useDeleteBoard = () => {
  * Hook to fetch board members
  */
 export const useBoardMembers = (
-  boardId: string,
+  boardId: number,
   params?: { page?: number; pageSize?: number; search?: string; role?: string }
 ) => {
   return useQuery<PaginatedResponse<BoardMember>>({
@@ -159,7 +159,7 @@ export const useAddBoardMember = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ boardId, payload }: { boardId: string; payload: AddBoardMemberPayload }) =>
+    mutationFn: ({ boardId, payload }: { boardId: number; payload: AddBoardMemberPayload }) =>
       boardsApi.addBoardMember(boardId, payload),
     onSuccess: (_, { boardId }) => {
       queryClient.invalidateQueries({ queryKey: boardKeys.members(boardId) });
@@ -176,7 +176,7 @@ export const useRemoveBoardMember = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ boardId, memberId }: { boardId: string; memberId: string }) =>
+    mutationFn: ({ boardId, memberId }: { boardId: number; memberId: number }) =>
       boardsApi.removeBoardMember(boardId, memberId),
     onSuccess: (_, { boardId }) => {
       queryClient.invalidateQueries({ queryKey: boardKeys.members(boardId) });
@@ -193,7 +193,7 @@ export const useRemoveBoardMember = () => {
 /**
  * Hook to fetch board committees
  */
-export const useBoardCommittees = (boardId: string) => {
+export const useBoardCommittees = (boardId: number) => {
   return useQuery<{ data: Committee[]; total: number }>({
     queryKey: boardKeys.committees(boardId),
     queryFn: () => boardsApi.getBoardCommittees(boardId),
@@ -212,7 +212,7 @@ export const useCreateCommittee = () => {
       boardId, 
       payload 
     }: { 
-      boardId: string; 
+      boardId: number; 
       payload: { name: string; shortName?: string; description?: string } 
     }) => boardsApi.createCommittee(boardId, payload),
     onSuccess: (_, { boardId }) => {

@@ -37,7 +37,7 @@ import {
 
 const MeetingCreatePage: React.FC = () => {
   const navigate = useNavigate();
-  const { currentBoard, allBoards, committees } = useBoardContext();
+  const { currentBoard, allBoards, committees, routePrefix } = useBoardContext();
   const [form] = Form.useForm();
   const createMeetingMutation = useCreateMeeting();
 
@@ -556,7 +556,7 @@ const MeetingCreatePage: React.FC = () => {
       }
 
       // Redirect to meeting details page
-      navigate(`/${currentBoard?.id}/meetings/${createdMeeting.id}`);
+      navigate(`/${routePrefix}/meetings/${createdMeeting.id}`);
       
     } catch (error: any) {
       console.error('Failed to create meeting:', error);
@@ -568,7 +568,7 @@ const MeetingCreatePage: React.FC = () => {
   };
 
   const handleCancel = () => {
-    navigate(`/${currentBoard?.id}/meetings`);
+    navigate(`/${routePrefix}/meetings`);
   };
 
   return (

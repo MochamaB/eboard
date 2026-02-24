@@ -11,6 +11,7 @@ import {
   UserListItemSchema,
   CreateUserPayloadSchema,
   UpdateUserPayloadSchema,
+  UpdateUserBoardAssignmentsPayloadSchema,
   EmailCheckResponseSchema,
   UserActivitySchema,
   UserSessionSchema,
@@ -18,6 +19,7 @@ import {
   type UserListItem,
   type CreateUserPayload,
   type UpdateUserPayload,
+  type UpdateUserBoardAssignmentsPayload,
   type EmailCheckResponse,
   type UserActivity,
   type UserSession,
@@ -60,7 +62,7 @@ export const usersApi = {
    * Get single user by ID
    */
   getUser: async (id: number): Promise<User> => {
-    const response = await apiClient.get(`/users/${id}`);
+    const response = await apiClient.get(`/admin/users/${id}`);
     return safeParseResponse(UserSchema, response.data, 'getUser');
   },
 
@@ -70,7 +72,7 @@ export const usersApi = {
   createUser: async (payload: CreateUserPayload): Promise<User> => {
     // Validate payload before sending
     const validatedPayload = safeParsePayload(CreateUserPayloadSchema, payload, 'createUser');
-    const response = await apiClient.post('/users', validatedPayload);
+    const response = await apiClient.post('/admin/users', validatedPayload);
     return safeParseResponse(UserSchema, response.data, 'createUser');
   },
 
@@ -79,15 +81,31 @@ export const usersApi = {
    */
   updateUser: async (id: number, payload: UpdateUserPayload): Promise<User> => {
     const validatedPayload = safeParsePayload(UpdateUserPayloadSchema, payload, 'updateUser');
-    const response = await apiClient.put(`/users/${id}`, validatedPayload);
+    const response = await apiClient.put(`/admin/users/${id}`, validatedPayload);
     return safeParseResponse(UserSchema, response.data, 'updateUser');
+  },
+
+  /**
+   * Update a user's board assignments
+   */
+  updateUserBoardAssignments: async (
+    id: number,
+    payload: UpdateUserBoardAssignmentsPayload
+  ): Promise<User> => {
+    const validatedPayload = safeParsePayload(
+      UpdateUserBoardAssignmentsPayloadSchema,
+      payload,
+      'updateUserBoardAssignments'
+    );
+    const response = await apiClient.put(`/admin/users/${id}/board-assignments`, validatedPayload);
+    return safeParseResponse(UserSchema, response.data, 'updateUserBoardAssignments');
   },
 
   /**
    * Delete user (soft delete - deactivate)
    */
   deleteUser: async (id: number): Promise<void> => {
-    await apiClient.delete(`/users/${id}`);
+    await apiClient.delete(`/admin/users/${id}`);
   },
 
   /**
@@ -96,6 +114,14 @@ export const usersApi = {
   checkEmail: async (email: string): Promise<EmailCheckResponse> => {
     const response = await apiClient.get('/users/check-email', { params: { email } });
     return safeParseResponse(EmailCheckResponseSchema, response.data, 'checkEmail');
+  },
+
+  /**
+   * Check if phone number is available
+   */
+  checkPhone: async (phone: string): Promise<EmailCheckResponse> => {
+    const response = await apiClient.get('/users/check-phone', { params: { phone } });
+    return safeParseResponse(EmailCheckResponseSchema, response.data, 'checkPhone');
   },
 
   /**

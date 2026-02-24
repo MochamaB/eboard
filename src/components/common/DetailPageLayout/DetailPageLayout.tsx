@@ -8,6 +8,9 @@
 import React from 'react';
 import { Button } from 'antd';
 
+import { useResponsive } from '../../../hooks';
+import { responsiveHelpers } from '../../../utils';
+
 import { DetailsHeader, HorizontalTabs } from '../';
 import type { MetadataItem, ActionButton } from '../DetailsHeader/DetailsHeader';
 import type { HorizontalTabItem } from '../HorizontalTabs/HorizontalTabs';
@@ -78,6 +81,72 @@ export const DetailPageLayout: React.FC<DetailPageLayoutProps> = ({
   headerStyle,
   tabBarStyle,
 }) => {
+  const { isMobile, currentBreakpoint } = useResponsive();
+
+  const horizontalPadding = responsiveHelpers.getResponsiveSpacing(
+    {
+      xs: 12,
+      md: 20,
+      lg: 24,
+    },
+    currentBreakpoint,
+  );
+
+  const bottomPadding = responsiveHelpers.getResponsiveSpacing(
+    {
+      xs: 16,
+      md: 20,
+      lg: 24,
+    },
+    currentBreakpoint,
+  );
+
+  const topPadding = responsiveHelpers.getResponsiveSpacing(
+    {
+      xs: 8,
+      md: 12,
+      lg: 16,
+    },
+    currentBreakpoint,
+  );
+
+  const resolvedContentPadding =
+    typeof contentPadding === 'number'
+      ? responsiveHelpers.getResponsiveSpacing(
+          {
+            xs: Math.max(contentPadding - 12, 12),
+            md: Math.max(contentPadding - 4, 16),
+            lg: contentPadding,
+          },
+          currentBreakpoint,
+        )
+      : contentPadding;
+
+  const tabsSize = isMobile ? 'small' : 'middle';
+
+  const mergedTabBarStyle: React.CSSProperties | undefined = tabBarStyle
+    ? {
+        ...(isMobile
+          ? {
+              margin: '0 -12px',
+              padding: '0 12px',
+            }
+          : {}),
+        ...tabBarStyle,
+      }
+    : isMobile
+    ? {
+        margin: '0 -12px',
+        padding: '0 12px',
+      }
+    : undefined;
+
+  const contentBorderRadius = tabs && tabs.length > 0
+    ? (isMobile ? '0 0 12px 12px' : '0 0 8px 8px')
+    : isMobile
+    ? '12px'
+    : '8px';
+
   // Loading state
   if (isLoading) {
     return (
@@ -117,7 +186,14 @@ export const DetailPageLayout: React.FC<DetailPageLayoutProps> = ({
   }
 
   return (
-    <div style={{ padding: '0 24px 24px' }}>
+    <div
+      style={{
+        paddingLeft: horizontalPadding,
+        paddingRight: horizontalPadding,
+        paddingBottom: bottomPadding,
+        paddingTop: topPadding,
+      }}
+    >
       
 
       {/* Details Header */}
@@ -139,9 +215,9 @@ export const DetailPageLayout: React.FC<DetailPageLayoutProps> = ({
           items={tabs}
           activeKey={activeTab}
           onChange={onTabChange}
-          size="middle"
-          style={{ marginBottom: 0 }}
-          tabBarStyle={tabBarStyle}
+          size={tabsSize}
+          style={{ marginBottom: isMobile ? 12 : 0 }}
+          tabBarStyle={mergedTabBarStyle}
           tabBarExtraContent={tabBarExtraContent}
         />
       )}
@@ -150,9 +226,9 @@ export const DetailPageLayout: React.FC<DetailPageLayoutProps> = ({
       <div
         style={{
           backgroundColor: contentBackground,
-          borderRadius: tabs && tabs.length > 0 ? '0 0 8px 8px' : '8px',
+          borderRadius: contentBorderRadius,
           minHeight: contentMinHeight,
-          padding: contentPadding,
+          padding: resolvedContentPadding,
         }}
       >
         {children}

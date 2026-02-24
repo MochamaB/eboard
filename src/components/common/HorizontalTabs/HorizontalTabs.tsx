@@ -7,6 +7,8 @@
 import React, { useMemo } from 'react';
 import { Tabs, Badge } from 'antd';
 import type { TabsProps } from 'antd';
+import { useResponsive } from '../../../hooks';
+import { useBoardContext } from '../../../contexts';
 
 export interface HorizontalTabItem {
   key: string;
@@ -53,10 +55,27 @@ export const HorizontalTabs: React.FC<HorizontalTabsProps> = ({
   tabBarStyle,
   tabBarExtraContent,
 }) => {
+  const { isMobile } = useResponsive();
+  const { theme } = useBoardContext();
+
   // Transform items to Ant Design Tabs format - memoized to prevent re-creation
   const tabItems: TabsProps['items'] = useMemo(() => items.map(item => ({
     key: item.key,
-    label: (
+    label: isMobile && item.icon ? (
+      // Mobile: badge overlaid on icon (top-right), text below (Material Design style)
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, minWidth: 48 }}>
+        <Badge
+          count={item.badge}
+          size="small"
+          style={{ backgroundColor: theme.primaryColor, fontSize: 9, height: 14, minWidth: 14, lineHeight: '14px' }}
+          overflowCount={99}
+        >
+          <span style={{ fontSize: 16, lineHeight: 1, display: 'block' }}>{item.icon}</span>
+        </Badge>
+        <span style={{ fontSize: 10, fontWeight: 500, lineHeight: 1 }}>{item.label}</span>
+      </div>
+    ) : (
+      // Tablet/Desktop: icon + label inline + badge
       <span style={LABEL_CONTAINER_STYLE}>
         {item.icon}
         <span>{item.label}</span>
@@ -70,7 +89,7 @@ export const HorizontalTabs: React.FC<HorizontalTabsProps> = ({
       </span>
     ),
     disabled: item.disabled,
-  })), [items]);
+  })), [items, isMobile, theme.primaryColor]);
 
   return (
     <Tabs

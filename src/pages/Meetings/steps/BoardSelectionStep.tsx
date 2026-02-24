@@ -1,26 +1,23 @@
 import React from 'react';
-import { Form, Typography, Divider, Select, Space } from 'antd';
-import { BankOutlined, ApartmentOutlined } from '@ant-design/icons';
+import { Form, Typography, Divider, Select, Space, Spin } from 'antd';
+import { BankOutlined, ApartmentOutlined, ShopOutlined } from '@ant-design/icons';
 import type { MeetingType } from '../../../types/meeting.types';
-import { getActiveBoardTypes } from '../../../mocks/db/tables/boardTypes';
-import { getAllMeetingTypes } from '../../../mocks/db/tables/meetingTypes';
+import { useLookups } from '../../../contexts/LookupsContext';
 
 const { Title, Text } = Typography;
 
-// Get board types from mock data
-const BOARD_TYPE_OPTIONS = getActiveBoardTypes().map(bt => ({
-  value: bt.code,
-  label: bt.label,
-  icon: bt.icon === 'BankOutlined' ? <BankOutlined /> : <ApartmentOutlined />,
-}));
-
-// Get meeting types from mock data
-const MEETING_TYPE_OPTIONS = getAllMeetingTypes().map(mt => ({
-  value: mt.code,
-  label: mt.label,
-  description: mt.description,
-  defaultDuration: mt.defaultDuration,
-}));
+// Icon mapping helper for board types
+const getIconComponent = (iconName?: string | null) => {
+  switch (iconName) {
+    case 'ApartmentOutlined':
+      return <ApartmentOutlined />;
+    case 'ShopOutlined':
+      return <ShopOutlined />;
+    case 'BankOutlined':
+    default:
+      return <BankOutlined />;
+  }
+};
 
 interface BoardSelectionStepProps {
   form: any;
@@ -47,11 +44,17 @@ const BoardSelectionStep: React.FC<BoardSelectionStepProps> = ({
   onBoardChange,
   onMeetingTypeChange,
 }) => {
+  const { boardTypeOptions, getBoardTypeByCode, meetingTypeOptions, getMeetingTypeByCode, isLoading } = useLookups();
+  
   const filteredBoards = selectedBoardType
     ? allBoardsWithCommittees.filter(board => board.type === selectedBoardType)
     : [];
 
   const selectedBoard = allBoardsWithCommittees.find(b => b.value === selectedBoardId);
+
+  if (isLoading) {
+    return <Spin tip="Loading meeting options..." />;
+  }
 
   return (
     <div>
@@ -69,7 +72,16 @@ const BoardSelectionStep: React.FC<BoardSelectionStepProps> = ({
           <Select
             placeholder="Select board type"
             onChange={onBoardTypeChange}
-            options={BOARD_TYPE_OPTIONS}
+            options={boardTypeOptions}
+            optionRender={(option) => {
+              const typeInfo = getBoardTypeByCode(option.value as string);
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {getIconComponent(typeInfo?.icon)}
+                  <span>{option.label}</span>
+                </div>
+              );
+            }}
           />
         </Form.Item>
 
@@ -102,15 +114,16 @@ const BoardSelectionStep: React.FC<BoardSelectionStepProps> = ({
           <Select
             placeholder="Select meeting type"
             onChange={onMeetingTypeChange}
-            options={MEETING_TYPE_OPTIONS.map(option => ({
-              value: option.value,
-              label: (
+            options={meetingTypeOptions}
+            optionRender={(option) => {
+              const typeInfo = getMeetingTypeByCode(option.value as string);
+              return (
                 <div>
                   <div style={{ fontWeight: 500 }}>{option.label}</div>
-                  <div style={{ fontSize: 12, color: '#8c8c8c' }}>{option.description}</div>
+                  <div style={{ fontSize: 12, color: '#8c8c8c' }}>{typeInfo?.description}</div>
                 </div>
-              ),
-            }))}
+              );
+            }}
           />
         </Form.Item>
       </Space>

@@ -49,7 +49,7 @@ import {
 export const MeetingDetailPage: React.FC = () => {
   const { meetingId } = useParams<{ meetingId: string }>();
   const navigate = useNavigate();
-  const { currentBoard, theme } = useBoardContext();
+  const { currentBoard, theme, routePrefix } = useBoardContext();
   const meetingPhase = useMeetingPhase();
   
   const [activeTab, setActiveTab] = useTabNavigation('notice');
@@ -57,15 +57,18 @@ export const MeetingDetailPage: React.FC = () => {
   // Get meeting permissions
   const permissions = useMeetingPermissions();
 
+  // Parse meeting ID from URL params (string to number)
+  const numericMeetingId = meetingId ? Number(meetingId) : 0;
+
   // Fetch meeting data from API
-  const { data: meeting, isLoading, error } = useMeeting(meetingId || '');
-  
-  // Fetch meeting documents for count badge
+  const { data: meeting, isLoading, error } = useMeeting(numericMeetingId);
+
+  // Fetch meeting documents for count badge (hook still expects string)
   const { data: meetingDocuments = [] } = useMeetingDocuments(meetingId || '', {
     enabled: !!meetingId,
   });
 
-  // Fetch meeting votes for count badge
+  // Fetch meeting votes for count badge (hook still expects string)
   const { data: meetingVotes = [] } = useMeetingVotes(meetingId || '', {
     enabled: !!meetingId,
   });
@@ -88,7 +91,7 @@ export const MeetingDetailPage: React.FC = () => {
     
     // Get merged requirements for validation
     const requirements = getMergedRequirements(
-      currentBoard?.id || '',
+      String(currentBoard?.id || meeting.boardId),
       meeting.meetingType
     );
     
@@ -247,7 +250,7 @@ export const MeetingDetailPage: React.FC = () => {
           icon: <PlayCircleOutlined />,
           type: 'primary',
           onClick: () => {
-            window.open(`/${currentBoard?.id}/meetings/${meeting.id}/room`, '_blank');
+            window.open(`/${routePrefix}/meetings/${meeting.id}/room`, '_blank');
           },
         };
       } else {
@@ -261,9 +264,9 @@ export const MeetingDetailPage: React.FC = () => {
         };
       }
     }
-    
+
     // In progress - Anyone can join
-    if (meeting.status === 'in_progress') {
+    if (meeting.status === 'inprogress') {
       // Determine button label based on location type
       const getButtonLabel = () => {
         switch (meeting.locationType) {
@@ -283,7 +286,7 @@ export const MeetingDetailPage: React.FC = () => {
         icon: <VideoCameraOutlined />,
         type: 'primary',
         onClick: () => {
-          window.open(`/${currentBoard?.id}/meetings/${meeting.id}/room`, '_blank');
+          window.open(`/${routePrefix}/meetings/${meeting.id}/room`, '_blank');
         },
       };
     }
@@ -302,7 +305,7 @@ export const MeetingDetailPage: React.FC = () => {
     }
 
     return undefined;
-  }, [meeting, currentBoard?.id, permissions]);
+  }, [meeting, routePrefix, permissions]);
 
   // Dropdown actions - Context-aware based on status
   const dropdownActions: MenuProps['items'] = useMemo(() => {
@@ -354,7 +357,7 @@ export const MeetingDetailPage: React.FC = () => {
         label: 'Start Meeting',
         icon: <PlayCircleOutlined />,
         onClick: () => {
-          window.open(`/${currentBoard?.id}/meetings/${meeting.id}/room`, '_blank');
+          window.open(`/${routePrefix}/meetings/${meeting.id}/room`, '_blank');
         },
       });
     }
@@ -383,7 +386,7 @@ export const MeetingDetailPage: React.FC = () => {
 
   // Handle back navigation
   const handleBack = () => {
-    navigate(`/${currentBoard?.id}/meetings`);
+    navigate(`/${routePrefix}/meetings`);
   };
 
   // Render validation errors for draft.incomplete

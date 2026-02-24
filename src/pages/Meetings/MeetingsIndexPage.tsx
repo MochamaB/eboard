@@ -86,7 +86,7 @@ export const MeetingsIndexPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { currentBoard, activeCommittee, theme, viewMode: boardViewMode, allBoards } = useBoardContext();
+  const { currentBoard, activeCommittee, theme, viewMode: boardViewMode, allBoards, routePrefix } = useBoardContext();
   const { isMobile } = useResponsive();
 
   // Check if we're in "View All" mode (route is /all/meetings)
@@ -107,8 +107,8 @@ export const MeetingsIndexPage: React.FC = () => {
     if (!meetings || meetings.length === 0) return 'all';
     
     // Priority 1: If any meeting is in progress, show that
-    const hasInProgress = meetings.some(m => m.status === 'in_progress');
-    if (hasInProgress) return 'in_progress';
+    const hasInProgress = meetings.some(m => m.status === 'inprogress');
+    if (hasInProgress) return 'inprogress';
     
     // Priority 2: If any pending approval, show that
     const hasPendingApproval = meetings.some(m => m.status === 'scheduled' && m.subStatus === 'pending_approval');
@@ -133,8 +133,8 @@ export const MeetingsIndexPage: React.FC = () => {
     if (tabFromUrl) {
       return tabFromUrl;
     }
-    // Default to 'in_progress' - will be updated by smart default when data loads
-    return 'in_progress';
+    // Default to 'inprogress' - will be updated by smart default when data loads
+    return 'inprogress';
   });
   const [meetingTypeFilter, setMeetingTypeFilter] = useState<MeetingType | undefined>();
   const [locationTypeFilter, setLocationTypeFilter] = useState<LocationType | undefined>();
@@ -143,7 +143,7 @@ export const MeetingsIndexPage: React.FC = () => {
   const [pageSize, setPageSize] = useState(20);
   
   // Board filter for "View All" mode - allows filtering by specific board
-  const [selectedBoardId, setSelectedBoardId] = useState<string | undefined>();
+  const [selectedBoardId, setSelectedBoardId] = useState<number | undefined>();
 
   // Reset filters when board changes or view mode changes
   useEffect(() => {
@@ -152,7 +152,7 @@ export const MeetingsIndexPage: React.FC = () => {
     const tabFromUrl = searchParams.get('tab');
     if (!tabFromUrl) {
       // Will be set by smart default when data loads
-      setStatusFilter('in_progress');
+      setStatusFilter('inprogress');
     }
     setMeetingTypeFilter(undefined);
     setLocationTypeFilter(undefined);
@@ -161,12 +161,12 @@ export const MeetingsIndexPage: React.FC = () => {
   }, [currentBoard?.id, activeCommittee, isAllBoardsView, searchParams]);
 
   // Determine boardId filter based on view mode and active committee
-  const boardIdFilter = useMemo(() => {
+  const boardIdFilter = useMemo((): number | undefined => {
     // In "View All" mode, use selectedBoardId if set, otherwise undefined (all boards)
     if (isAllBoardsView || boardViewMode === 'all') {
       return selectedBoardId; // undefined = all boards, or specific board if selected
     }
-    
+
     // In single board mode
     if (activeCommittee === 'all') {
       return currentBoard?.id; // Show board + committees
@@ -174,7 +174,9 @@ export const MeetingsIndexPage: React.FC = () => {
     if (activeCommittee === 'board') {
       return currentBoard?.id; // Show only board
     }
-    return activeCommittee; // Specific committee
+    // Specific committee - parse string to number
+    const committeeId = parseInt(activeCommittee, 10);
+    return isNaN(committeeId) ? currentBoard?.id : committeeId;
   }, [activeCommittee, currentBoard?.id, isAllBoardsView, boardViewMode, selectedBoardId]);
 
   // Build filter params for API
@@ -192,8 +194,8 @@ export const MeetingsIndexPage: React.FC = () => {
     } else if (statusFilter === 'upcoming') {
       statusParam = 'scheduled';
       subStatusParam = 'approved';
-    } else if (statusFilter === 'in_progress') {
-      statusParam = 'in_progress';
+    } else if (statusFilter === 'inprogress') {
+      statusParam = 'inprogress';
     } else if (statusFilter === 'past') {
       // Past includes completed (recent + archived) and cancelled
       statusParam = ['completed', 'cancelled'] as MeetingStatus[];
@@ -232,8 +234,8 @@ export const MeetingsIndexPage: React.FC = () => {
     // Only apply smart default if:
     // 1. Data is loaded
     // 2. No tab in URL
-    // 3. Still on initial 'in_progress' state
-    if (allMeetingsData?.data && !tabFromUrl && statusFilter === 'in_progress') {
+    // 3. Still on initial 'inprogress' state
+    if (allMeetingsData?.data && !tabFromUrl && statusFilter === 'inprogress') {
       const smartDefault = getSmartDefaultTab(allMeetingsData.data);
       setStatusFilter(smartDefault);
       // Update URL with smart default
@@ -265,7 +267,7 @@ export const MeetingsIndexPage: React.FC = () => {
 
     // Time-sensitive priority order: In Progress → Pending Approval → Upcoming → Drafts → Past → All
     return [
-      { key: 'in_progress', label: 'In Progress', icon: <PlayCircleOutlined />, count: getCount('in_progress') },
+      { key: 'inprogress', label: 'In Progress', icon: <PlayCircleOutlined />, count: getCount('inprogress') },
       { key: 'pending_approval', label: 'Pending Approval', icon: <ClockCircleOutlined />, count: getCount('scheduled', 'pending_approval') },
       { key: 'upcoming', label: 'Upcoming', icon: <CalendarOutlined />, count: getCount('scheduled', 'approved') },
       { key: 'drafts', label: 'Drafts', icon: <EditOutlined />, count: getCount('draft') },
@@ -341,14 +343,14 @@ export const MeetingsIndexPage: React.FC = () => {
         return (
           <Flex gap={8} align="flex-start">
             <div style={{ fontSize: 20, lineHeight: '1', marginTop: 4 }}>
-              {getLocationIcon(record.locationType)}
+              {getLocationIcon(record.locationType as LocationType)}
             </div>
             <Space orientation="vertical" size={2} style={{ flex: 1 }}>
               <Text strong style={{ fontSize: 13 }}>
-                {LOCATION_TYPE_LABELS[record.locationType]}
+                {LOCATION_TYPE_LABELS[record.locationType as LocationType]}
               </Text>
               <Tag color="blue" style={{ margin: 0, fontSize: 10 }}>
-                {MEETING_TYPE_LABELS[record.meetingType]}
+                {MEETING_TYPE_LABELS[record.meetingType as MeetingType]}
               </Tag>
               {(record.locationType === 'physical' || record.locationType === 'hybrid') && locationDisplay && (
                 <Text type="secondary" style={{ fontSize: 10 }} ellipsis={{ tooltip: locationDisplay }}>
@@ -394,9 +396,8 @@ export const MeetingsIndexPage: React.FC = () => {
       render: (_, record) => (
         <BoardPackStatusCell
           meetingId={record.id}
-          boardId={currentBoard?.id || record.boardId}
-          boardPackStatus={record.boardPackStatus}
-          meetingStatus={record.status}
+          boardPackStatus={record.boardPackStatus ?? undefined}
+          meetingStatus={record.status as MeetingStatus}
         />
       ),
     },
@@ -416,7 +417,7 @@ export const MeetingsIndexPage: React.FC = () => {
               key: 'view',
               label: 'View Details',
               icon: <EyeOutlined />,
-              onClick: () => navigate(`/${currentBoard?.id}/meetings/${record.id}`),
+              onClick: () => navigate(`/${routePrefix}/meetings/${record.id}`),
             },
           ];
 
@@ -428,7 +429,7 @@ export const MeetingsIndexPage: React.FC = () => {
                 key: 'edit',
                 label: 'Edit',
                 icon: <EditOutlined />,
-                onClick: () => navigate(`/${currentBoard?.id}/meetings/${record.id}/edit`),
+                onClick: () => navigate(`/${routePrefix}/meetings/${record.id}/edit`),
               },
               {
                 key: 'submit',
@@ -456,7 +457,7 @@ export const MeetingsIndexPage: React.FC = () => {
                 key: 'edit',
                 label: 'Edit',
                 icon: <EditOutlined />,
-                onClick: () => navigate(`/${currentBoard?.id}/meetings/${record.id}/edit`),
+                onClick: () => navigate(`/${routePrefix}/meetings/${record.id}/edit`),
               },
               {
                 key: 'approve',
@@ -482,7 +483,7 @@ export const MeetingsIndexPage: React.FC = () => {
                 key: 'edit',
                 label: 'Edit',
                 icon: <EditOutlined />,
-                onClick: () => navigate(`/${currentBoard?.id}/meetings/${record.id}/edit`),
+                onClick: () => navigate(`/${routePrefix}/meetings/${record.id}/edit`),
               },
               {
                 key: 'reschedule',
@@ -515,7 +516,7 @@ export const MeetingsIndexPage: React.FC = () => {
                 key: 'edit',
                 label: 'Edit',
                 icon: <EditOutlined />,
-                onClick: () => navigate(`/${currentBoard?.id}/meetings/${record.id}/edit`),
+                onClick: () => navigate(`/${routePrefix}/meetings/${record.id}/edit`),
               },
               {
                 key: 'reschedule',
@@ -535,7 +536,7 @@ export const MeetingsIndexPage: React.FC = () => {
           }
 
           // In progress actions
-          if (status === 'in_progress') {
+          if (status === 'inprogress') {
             items.push(
               { type: 'divider' },
               {
@@ -592,12 +593,12 @@ export const MeetingsIndexPage: React.FC = () => {
         );
       },
     },
-  ], [navigate, currentBoard?.id, theme, getLocationIcon, statusFilter]);
+  ], [navigate, routePrefix, theme, getLocationIcon, statusFilter]);
 
   // Handle row click
   const handleRowClick = useCallback((record: MeetingListItem) => {
-    navigate(`/${currentBoard?.id}/meetings/${record.id}`);
-  }, [navigate, currentBoard?.id]);
+    navigate(`/${routePrefix}/meetings/${record.id}`);
+  }, [navigate, routePrefix]);
 
   // Handle table change (pagination)
   const handleTableChange = useCallback((pagination: any) => {
@@ -607,8 +608,8 @@ export const MeetingsIndexPage: React.FC = () => {
 
   // Handle create meeting
   const handleCreateMeeting = useCallback(() => {
-    navigate(`/${currentBoard?.id}/meetings/create`);
-  }, [navigate, currentBoard?.id]);
+    navigate(`/${routePrefix}/meetings/create`);
+  }, [navigate, routePrefix]);
 
   // Handle export
   const handleExport = useCallback(() => {
@@ -751,7 +752,7 @@ export const MeetingsIndexPage: React.FC = () => {
           onDateClick={(date) => {
             // Navigate to create meeting with pre-filled date
             const dateStr = date.toISOString().split('T')[0];
-            navigate(`/${currentBoard?.id}/meetings/create?date=${dateStr}`);
+            navigate(`/${routePrefix}/meetings/create?date=${dateStr}`);
           }}
         />
       )}

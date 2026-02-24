@@ -1,24 +1,28 @@
 /**
  * BoardCreatePage - Refactored with separate step components
  * Multi-step wizard for creating new boards
- * Uses WizardForm component with 4 steps:
+ * Uses WizardForm component with up to 5 steps:
  * 1. Basic Information
  * 2. Board Settings
  * 3. Branding (conditional - only for main/subsidiary)
- * 4. Review & Create
+ * 4. Members (assign board members including required Chairman)
+ * 5. Review & Create
  */
 
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Form, message } from 'antd';
 import {
   ApartmentOutlined,
   SettingOutlined,
   BgColorsOutlined,
+  TeamOutlined,
   CheckCircleOutlined,
 } from '@ant-design/icons';
 import { WizardForm, type WizardStep } from '../../components/common';
 import { useBoardContext } from '../../contexts';
+import { useLookups } from '../../contexts/LookupsContext';
+import { useCreateBoard, useAddBoardMember } from '../../hooks/api/useBoards';
 import {
   DEFAULT_BOARD_SETTINGS,
   type BoardType,
@@ -27,13 +31,28 @@ import {
   BasicInfoStep,
   BoardSettingsStep,
   BrandingStep,
+  MembersStep,
   ReviewStep,
 } from './steps';
 
 const BoardCreatePage: React.FC = () => {
   const navigate = useNavigate();
-  const { currentBoard, allBoards } = useBoardContext();
+  const { allBoards, routePrefix } = useBoardContext();
+  const {
+    getBoardTypeByCode,
+    getBoardZoneByCode,
+    getMeetingFrequencyByCode,
+    getVotingThresholdByCode,
+    getRoleByCode
+  } = useLookups();
   const [form] = Form.useForm();
+
+  // Mutations
+  const createBoardMutation = useCreateBoard();
+  const addMemberMutation = useAddBoardMember();
+
+  // Track members validation state
+  const [membersValid, setMembersValid] = useState(false);
 
   // Watch board type for conditional rendering
   const boardType = Form.useWatch('type', form);
@@ -136,6 +155,20 @@ const BoardCreatePage: React.FC = () => {
     }
   };
 
+  const validateMembers = async (): Promise<boolean> => {
+    try {
+      await form.validateFields(['members']);
+      if (!membersValid) {
+        message.error('A Chairman must be assigned to the board');
+        return false;
+      }
+      return true;
+    } catch {
+      message.error('Please assign at least a Chairman to the board');
+      return false;
+    }
+  };
+
   // Define wizard steps dynamically
   const steps: WizardStep[] = useMemo(() => {
     const allSteps: WizardStep[] = [
@@ -189,6 +222,21 @@ const BoardCreatePage: React.FC = () => {
       });
     }
 
+    // Add members step (Chairman required)
+    allSteps.push({
+      key: 'members',
+      title: 'Members',
+      description: 'Assign members',
+      icon: <TeamOutlined />,
+      content: (
+        <MembersStep
+          form={form}
+          onValidationChange={setMembersValid}
+        />
+      ),
+      validate: validateMembers,
+    });
+
     // Always add review step
     allSteps.push({
       key: 'review',
@@ -208,6 +256,7 @@ const BoardCreatePage: React.FC = () => {
     });
 
     return allSteps;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     boardType,
     requiresBranding,
@@ -215,6 +264,7 @@ const BoardCreatePage: React.FC = () => {
     requiresZone,
     availableParentBoards,
     form,
+    membersValid,
   ]);
 
   // Handle form submission
@@ -222,18 +272,88 @@ const BoardCreatePage: React.FC = () => {
     const values = form.getFieldsValue(true);
     console.log('Creating board with values:', values);
 
-    // TODO: Call API to create board
-    message.success('Board created successfully!');
+    try {
+      // Step 1: Map lookup codes to IDs
+      const boardTypeId = getBoardTypeByCode(values.type)?.id;
+      if (!boardTypeId) {
+        message.error('Invalid board type selected');
+        return;
+      }
 
-    // Navigate to boards list after success
-    setTimeout(() => {
-      navigate(`/${currentBoard?.id}/boards`);
-    }, 1500);
+      const zoneId = values.zone ? getBoardZoneByCode(values.zone)?.id : undefined;
+
+      // Step 2: Map settings lookup codes to IDs
+      const meetingFrequencyId = values.meetingFrequency ?
+        getMeetingFrequencyByCode(values.meetingFrequency)?.id : undefined;
+      const votingThresholdId = values.votingThreshold ?
+        getVotingThresholdByCode(values.votingThreshold)?.id : undefined;
+      const approverRoleId = values.designatedApproverRole ?
+        getRoleByCode(values.designatedApproverRole)?.id : undefined;
+
+      // Step 3: Prepare create board payload
+      const createPayload = {
+        name: values.name,
+        shortName: values.shortName,
+        description: values.description,
+        boardTypeId,
+        parentId: values.parentId,
+        zoneId,
+        contactAddress: values.contactAddress,
+        contactPoBox: values.contactPoBox,
+        contactCity: values.contactCity,
+        contactCountry: values.contactCountry,
+        contactPhone: values.contactPhone,
+        contactPhoneAlt: values.contactPhoneAlt,
+        contactEmail: values.contactEmail,
+        contactWebsite: values.contactWebsite,
+        // Board Settings
+        quorumPercentage: values.quorumPercentage,
+        meetingFrequencyId,
+        votingThresholdId,
+        confirmationRequired: values.confirmationRequired,
+        approverRoleId,
+        minMeetingsPerYear: values.minMeetingsPerYear,
+        allowVirtualMeetings: values.allowVirtualMeetings,
+        requireAttendanceTracking: values.requireAttendanceTracking,
+      };
+
+      // Step 4: Create the board
+      const createdBoard = await createBoardMutation.mutateAsync(createPayload);
+      message.success(`Board "${createdBoard.name}" created successfully!`);
+
+      // Step 5: Add members if any
+      if (values.members && values.members.length > 0) {
+        const memberPromises = values.members.map((member: any) =>
+          addMemberMutation.mutateAsync({
+            boardId: createdBoard.id,
+            payload: {
+              userId: member.userId,
+              roleId: member.roleId,
+              startDate: member.startDate,
+              isDefault: false,
+            },
+          })
+        );
+
+        await Promise.all(memberPromises);
+        message.success(`Added ${values.members.length} member(s) to the board`);
+      }
+
+      // Step 6: Navigate to the new board's detail page
+      setTimeout(() => {
+        navigate(`/${routePrefix}/boards/${createdBoard.id}`);
+      }, 1500);
+    } catch (error: any) {
+      console.error('Error creating board:', error);
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to create board';
+      message.error(errorMessage);
+      throw error; // Re-throw to let WizardForm handle error state
+    }
   };
 
   // Handle cancel
   const handleCancel = () => {
-    navigate(`/${currentBoard?.id}/boards`);
+    navigate(`/${routePrefix}/boards`);
   };
 
   return (
@@ -247,7 +367,7 @@ const BoardCreatePage: React.FC = () => {
         finishButtonText="Create Board"
         successResult={{
           title: 'Board Created Successfully!',
-          subTitle: 'The board has been created. You can now add members and committees.',
+          subTitle: 'The board has been created and members have been assigned.',
         }}
         errorResult={{
           title: 'Failed to Create Board',

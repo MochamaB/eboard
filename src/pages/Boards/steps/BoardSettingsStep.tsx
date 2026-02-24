@@ -1,7 +1,9 @@
-import React from 'react';
-import { Form, Typography, Divider, InputNumber, Select, Switch, Space, Row, Col, Input } from 'antd';
+import React, { useMemo } from 'react';
+import { Form, Typography, Divider, InputNumber, Select, Switch, Space, Row, Col, Spin, Card } from 'antd';
 import type { FormInstance } from 'antd';
 import type { BoardSettings } from '../../../types/board.types';
+import { useLookups } from '../../../contexts/LookupsContext';
+import { useRolesByPermission } from '../../../hooks/api/useLookups';
 
 const { Title, Text } = Typography;
 
@@ -16,6 +18,23 @@ const BoardSettingsStep: React.FC<BoardSettingsStepProps> = ({
   boardType,
   defaultSettings,
 }) => {
+  const { meetingFrequencyOptions, votingThresholdOptions, isLoading } = useLookups();
+
+  // Fetch roles with meetings.approve permission for the approver dropdown
+  const { data: approverRoles = [], isLoading: loadingApproverRoles } = useRolesByPermission('meetings.approve');
+
+  // Convert approver roles to select options
+  const approverRoleOptions = useMemo(() => {
+    return approverRoles.map(role => ({
+      value: role.code,
+      label: role.name,
+    }));
+  }, [approverRoles]);
+
+  if (isLoading || loadingApproverRoles) {
+    return <Spin tip="Loading settings options..." />;
+  }
+
   return (
     <div>
       <Title level={5} style={{ marginBottom: 4 }}>Board Settings</Title>
@@ -73,12 +92,7 @@ const BoardSettingsStep: React.FC<BoardSettingsStepProps> = ({
         >
           <Select
             placeholder="Select meeting frequency"
-            options={[
-              { value: 'monthly', label: 'Monthly' },
-              { value: 'bi_monthly', label: 'Bi-Monthly (Every 2 months)' },
-              { value: 'quarterly', label: 'Quarterly' },
-              { value: 'as_needed', label: 'As Needed' },
-            ]}
+            options={meetingFrequencyOptions}
           />
         </Form.Item>
 
@@ -91,12 +105,7 @@ const BoardSettingsStep: React.FC<BoardSettingsStepProps> = ({
         >
           <Select
             placeholder="Select voting threshold"
-            options={[
-              { value: 'simple_majority', label: 'Simple Majority (>50%)' },
-              { value: 'two_thirds', label: 'Two-Thirds Majority (≥66.67%)' },
-              { value: 'three_quarters', label: 'Three-Quarters Majority (≥75%)' },
-              { value: 'unanimous', label: 'Unanimous (100%)' },
-            ]}
+            options={votingThresholdOptions}
           />
         </Form.Item>
 
@@ -131,12 +140,16 @@ const BoardSettingsStep: React.FC<BoardSettingsStepProps> = ({
             rules={[
               {
                 required: form.getFieldValue('confirmationRequired'),
-                message: 'Please enter approver role'
+                message: 'Please select an approver role'
               }
             ]}
+            tooltip="Role that can approve meeting minutes. Only roles with meetings.approve permission are shown."
           >
-            <Input
-              placeholder="e.g., company_secretary, chairman, committee_chair"
+            <Select
+              placeholder="Select approver role"
+              options={approverRoleOptions}
+              showSearch
+              optionFilterProp="label"
             />
           </Form.Item>
         )}
@@ -166,6 +179,47 @@ const BoardSettingsStep: React.FC<BoardSettingsStepProps> = ({
             </Form.Item>
           </Col>
         </Row>
+
+        <Divider style={{ margin: '12px 0' }} />
+
+        {/* Override Permissions */}
+        <Card size="small" title="Secretary Override Permissions" style={{ marginBottom: 0 }}>
+          <Space direction="vertical" size="small" style={{ width: '100%' }}>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  name="allowSecretarySkipAgenda"
+                  label="Skip Agenda Items"
+                  valuePropName="checked"
+                  tooltip="Allow secretary to skip agenda items during meetings"
+                  style={{ marginBottom: 8 }}
+                >
+                  <Switch />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="allowSecretarySkipDocuments"
+                  label="Skip Documents"
+                  valuePropName="checked"
+                  tooltip="Allow secretary to skip document requirements"
+                  style={{ marginBottom: 8 }}
+                >
+                  <Switch />
+                </Form.Item>
+              </Col>
+            </Row>
+            <Form.Item
+              name="requireApprovalForOverrides"
+              label="Require Approval for Overrides"
+              valuePropName="checked"
+              tooltip="Require chairman approval when secretary uses override permissions"
+              style={{ marginBottom: 0 }}
+            >
+              <Switch />
+            </Form.Item>
+          </Space>
+        </Card>
       </Space>
     </div>
   );

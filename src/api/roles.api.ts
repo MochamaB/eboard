@@ -9,6 +9,7 @@ import { z } from 'zod';
 import {
   RoleSchema,
   PermissionSchema,
+  PermissionGroupSchema,
   CreateRolePayloadSchema,
   UpdateRolePayloadSchema,
   type Role,
@@ -27,20 +28,20 @@ const RolesListResponseSchema = z.object({
   totalPages: z.number(),
 });
 
-const PermissionsListResponseSchema = z.object({
-  data: z.array(PermissionSchema),
-});
+const PermissionsGroupedResponseSchema = z.array(PermissionGroupSchema);
 
 export const rolesApi = {
   /**
    * Get all roles
+   * @param includePermissions - Include full permissions array (needed for filtering by permission)
    */
   getRoles: async (params?: {
     page?: number;
     pageSize?: number;
     includeSystem?: boolean;
+    includePermissions?: boolean;
   }): Promise<PaginatedResponse<Role>> => {
-    const response = await apiClient.get('/roles', { params });
+    const response = await apiClient.get('/admin/roles', { params });
     return safeParseResponse(RolesListResponseSchema, response.data, 'getRoles');
   },
 
@@ -48,7 +49,7 @@ export const rolesApi = {
    * Get single role by ID
    */
   getRole: async (id: number): Promise<Role> => {
-    const response = await apiClient.get(`/roles/${id}`);
+    const response = await apiClient.get(`/admin/roles/${id}`);
     return safeParseResponse(RoleSchema, response.data, 'getRole');
   },
 
@@ -57,7 +58,7 @@ export const rolesApi = {
    */
   createRole: async (payload: CreateRolePayload): Promise<Role> => {
     const validatedPayload = safeParsePayload(CreateRolePayloadSchema, payload, 'createRole');
-    const response = await apiClient.post('/roles', validatedPayload);
+    const response = await apiClient.post('/admin/roles', validatedPayload);
     return safeParseResponse(RoleSchema, response.data, 'createRole');
   },
 
@@ -66,7 +67,7 @@ export const rolesApi = {
    */
   updateRole: async (id: number, payload: UpdateRolePayload): Promise<Role> => {
     const validatedPayload = safeParsePayload(UpdateRolePayloadSchema, payload, 'updateRole');
-    const response = await apiClient.put(`/roles/${id}`, validatedPayload);
+    const response = await apiClient.put(`/admin/roles/${id}`, validatedPayload);
     return safeParseResponse(RoleSchema, response.data, 'updateRole');
   },
 
@@ -74,29 +75,28 @@ export const rolesApi = {
    * Delete custom role (system roles cannot be deleted)
    */
   deleteRole: async (id: number): Promise<void> => {
-    await apiClient.delete(`/roles/${id}`);
+    await apiClient.delete(`/admin/roles/${id}`);
   },
 
   /**
    * Get all available permissions
    */
   getPermissions: async (): Promise<Permission[]> => {
-    const response = await apiClient.get('/permissions');
-    const parsed = safeParseResponse(PermissionsListResponseSchema, response.data, 'getPermissions');
-    return parsed.data;
+    const response = await apiClient.get('/admin/permissions');
+    const parsed = safeParseResponse(PermissionsGroupedResponseSchema, response.data, 'getPermissions');
+
+    return parsed.flatMap(group => group.permissions);
   },
 
   /**
    * Get permissions grouped by category
    */
   getPermissionsByCategory: async (): Promise<Record<string, Permission[]>> => {
-    const permissions = await rolesApi.getPermissions();
-    return permissions.reduce((acc, permission) => {
-      const category = permission.category;
-      if (!acc[category]) {
-        acc[category] = [];
-      }
-      acc[category].push(permission);
+    const response = await apiClient.get('/admin/permissions');
+    const parsed = safeParseResponse(PermissionsGroupedResponseSchema, response.data, 'getPermissionsByCategory');
+
+    return parsed.reduce((acc, group) => {
+      acc[group.category] = group.permissions;
       return acc;
     }, {} as Record<string, Permission[]>);
   },

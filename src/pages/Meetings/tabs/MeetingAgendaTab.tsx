@@ -60,7 +60,7 @@ export const MeetingAgendaTab: React.FC<MeetingAgendaTabProps> = ({
   // Determine mode based on meeting status and permissions
   const getViewMode = (): 'edit' | 'view' | 'execute' => {
     // Active meetings show in execute mode
-    if (meeting.status === 'in_progress') {
+    if (meeting.status === 'inprogress') {
       return 'execute';
     }
     

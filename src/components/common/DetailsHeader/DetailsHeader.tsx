@@ -9,6 +9,9 @@ import { Card, Space, Tag, Badge, Button, Dropdown, Typography } from 'antd';
 import type { MenuProps } from 'antd';
 import { MoreOutlined } from '@ant-design/icons';
 
+import { useResponsive } from '../../../hooks';
+import { responsiveHelpers } from '../../../utils';
+
 const { Text, Title } = Typography;
 
 export interface MetadataItem {
@@ -51,6 +54,57 @@ export const DetailsHeader: React.FC<DetailsHeaderProps> = ({
   alert,
   style,
 }) => {
+  const { isMobile, currentBreakpoint } = useResponsive();
+
+  const iconSize = responsiveHelpers.getResponsiveSpacing(
+    {
+      xs: 48,
+      md: 58,
+      lg: 66,
+    },
+    currentBreakpoint,
+  );
+
+  const iconMarginRight = responsiveHelpers.getResponsiveSpacing(
+    {
+      xs: 12,
+      md: 14,
+      lg: 16,
+    },
+    currentBreakpoint,
+  );
+
+  const titleLevel = isMobile ? 5 : 4;
+  const titleMarginBottom = isMobile ? 2 : 4;
+  const descriptionMarginBottom = isMobile ? 8 : 12;
+  const metadataGap = isMobile ? 8 : 12;
+  const actionsGap = isMobile ? 6 : 8;
+
+  const headerFlexDirection = isMobile ? 'column' : 'row';
+  const headerAlignItems = isMobile ? 'flex-start' : 'flex-start';
+  const headerJustifyContent = isMobile ? 'flex-start' : 'space-between';
+  const headerGap = isMobile ? 12 : 0;
+
+  const leftContentFlex = isMobile ? '1 1 auto' : '1 1 auto';
+  const rightContentFlex = isMobile ? '1 1 auto' : '0 0 auto';
+  const rightContentMarginTop = isMobile ? 12 : 0;
+  const rightContentAlignSelf = isMobile ? 'flex-start' : 'auto';
+
+  const cardPadding = responsiveHelpers.getResponsiveSpacing(
+    {
+      xs: 16,
+      md: 20,
+      lg: 24,
+    },
+    currentBreakpoint,
+  );
+
+  const mergedCardStyle: React.CSSProperties = {
+    marginBottom: alert ? 16 : 24,
+    boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02)',
+    padding: cardPadding,
+    ...style,
+  };
   const renderMetadataItem = (item: MetadataItem) => {
     const content = item.value;
 
@@ -91,42 +145,43 @@ export const DetailsHeader: React.FC<DetailsHeaderProps> = ({
     <>
       <Card 
         bordered={false} 
-        style={{ 
-          marginBottom: alert ? 16 : 24,
-          boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02)',
-          ...style,
-        }}
+        style={mergedCardStyle}
       >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: headerFlexDirection,
+        justifyContent: headerJustifyContent,
+        alignItems: headerAlignItems,
+        gap: headerGap,
+      }}>
         {/* Left side: Icon + Title + Description + Metadata */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <Space align="start" size={16}>
+        <div style={{ flex: leftContentFlex, minWidth: 0 }}>
+          <Space align="start" size={iconMarginRight}>
             {icon && (
               <div style={{ 
-                fontSize: 40, 
-                color: '#324721',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                width: 56,
-                height: 56,
+                width: iconSize,
+                height: iconSize,
                 backgroundColor: 'rgba(50, 71, 33, 0.05)',
                 borderRadius: 8,
+                overflow: 'hidden',
               }}>
                 {icon}
               </div>
             )}
             <div style={{ flex: 1, minWidth: 0 }}>
-              <Title level={4} style={{ margin: 0, marginBottom: 4 }}>
+              <Title level={titleLevel} style={{ margin: 0, marginBottom: titleMarginBottom }}>
                 {title}
               </Title>
               {description && (
-                <Text type="secondary" style={{ display: 'block', marginBottom: 12 }}>
+                <Text type="secondary" style={{ display: 'block', marginBottom: descriptionMarginBottom }}>
                   {description}
                 </Text>
               )}
               {metadata.length > 0 && (
-                <Space size={12} wrap>
+                <Space size={metadataGap} wrap>
                   {metadata.map((item, index) => (
                     <React.Fragment key={index}>
                       {renderMetadataItem(item)}
@@ -139,7 +194,15 @@ export const DetailsHeader: React.FC<DetailsHeaderProps> = ({
         </div>
 
         {/* Right side: Action buttons */}
-        <Space size={8}>
+        <Space 
+          size={actionsGap}
+          direction={isMobile ? 'vertical' : 'horizontal'}
+          style={{ 
+            marginTop: rightContentMarginTop,
+            alignSelf: rightContentAlignSelf,
+            flex: rightContentFlex,
+          }}
+        >
           {extraActions.map(action => (
             <Button
               key={action.key}
@@ -163,7 +226,10 @@ export const DetailsHeader: React.FC<DetailsHeaderProps> = ({
           )}
           {dropdownActions && (
             <Dropdown menu={{ items: dropdownActions }} trigger={['click']}>
-              <Button icon={<MoreOutlined />}>
+              <Button 
+                icon={<MoreOutlined />}
+                size={isMobile ? 'middle' : 'middle'}
+              >
                 Actions
               </Button>
             </Dropdown>

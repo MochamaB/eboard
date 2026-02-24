@@ -5,4 +5,5 @@
 
 export { UsersIndexPage } from './UsersIndexPage';
 export { CreateUserPage } from './CreateUserPage';
+export { EditUserPage } from './EditUserPage';
 export { UserDetailsPage } from './UserDetailsPage';

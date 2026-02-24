@@ -36,7 +36,7 @@ export const MeetingsCalendarView: React.FC<MeetingsCalendarViewProps> = ({
   onMeetingClick,
 }) => {
   const navigate = useNavigate();
-  const { currentBoard } = useBoardContext();
+  const { currentBoard, theme, routePrefix } = useBoardContext();
 
   // Get status color based on status + subStatus
   const getStatusColor = useCallback((status: MeetingStatus, subStatus?: string | null): string => {
@@ -49,7 +49,7 @@ export const MeetingsCalendarView: React.FC<MeetingsCalendarViewProps> = ({
         'scheduled.pending_approval': '#faad14',
         'scheduled.approved': '#52c41a',
         'scheduled.rejected': '#ff4d4f',
-        'in_progress.active': '#52c41a',
+        'inprogress.active': '#52c41a',
         'completed.recent': '#52c41a',
         'completed.archived': '#d9d9d9',
       };
@@ -62,7 +62,7 @@ export const MeetingsCalendarView: React.FC<MeetingsCalendarViewProps> = ({
     const statusColors: Record<MeetingStatus, string> = {
       draft: '#d9d9d9',
       scheduled: '#13c2c2',
-      in_progress: '#52c41a',
+      inprogress: '#52c41a',
       completed: '#52c41a',
       cancelled: '#ff4d4f',
     };
@@ -139,9 +139,9 @@ export const MeetingsCalendarView: React.FC<MeetingsCalendarViewProps> = ({
     if (onMeetingClick) {
       onMeetingClick(meeting);
     } else {
-      navigate(`/${currentBoard?.id || meeting.boardId}/meetings/${meeting.id}`);
+      navigate(`/${routePrefix}/meetings/${meeting.id}`);
     }
-  }, [navigate, currentBoard?.id, onMeetingClick]);
+  }, [navigate, routePrefix, onMeetingClick]);
 
   // Handle date click (for creating new meeting)
   const handleDateClick = useCallback((clickInfo: DateClickArg) => {

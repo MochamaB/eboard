@@ -115,7 +115,7 @@ const PreMeetingLobby: React.FC<PreMeetingLobbyProps> = ({ onJoin, onLeave }) =>
 
   const isHybrid = mode === 'hybrid';
   const isHost = permissions.canStartMeeting;
-  const canJoin = status === 'waiting' || status === 'in_progress' || status === 'starting';
+  const canJoin = status === 'waiting' || status === 'inprogress' || status === 'starting';
 
   // Determine effective join mode
   const effectiveJoinType: JoinType = joinType || (

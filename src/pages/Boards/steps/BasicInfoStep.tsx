@@ -1,31 +1,29 @@
 import React from 'react';
-import { Form, Typography, Divider, Input, Select, Space, Alert, Tag } from 'antd';
+import { Form, Typography, Divider, Input, Select, Space, Alert, Tag, Switch, Spin } from 'antd';
 import type { FormInstance } from 'antd';
 import {
   ApartmentOutlined,
   BankOutlined,
   ShopOutlined,
 } from '@ant-design/icons';
-import {
-  BOARD_TYPE_LABELS,
-  BOARD_TYPE_COLORS,
-  ZONE_LABELS,
-  type BoardType,
-} from '../../../types/board.types';
 import type { Board } from '../../../types/board.types';
-import { getActiveBoardTypes } from '../../../mocks/db/tables/boardTypes';
+import { useLookups } from '../../../contexts/LookupsContext';
 
 const { Title, Text } = Typography;
 
-// Get board types from mock data and map icons
-const BOARD_TYPE_OPTIONS = getActiveBoardTypes().map(bt => ({
-  value: bt.code,
-  label: bt.label,
-  description: bt.description,
-  icon: bt.icon === 'ApartmentOutlined' ? <ApartmentOutlined /> :
-        bt.icon === 'ShopOutlined' ? <ShopOutlined /> :
-        <BankOutlined />,
-}));
+// Icon mapping helper
+const getIconComponent = (iconName?: string | null) => {
+  switch (iconName) {
+    case 'ApartmentOutlined':
+      return <ApartmentOutlined />;
+    case 'ShopOutlined':
+      return <ShopOutlined />;
+    case 'BankOutlined':
+      return <BankOutlined />;
+    default:
+      return <BankOutlined />;
+  }
+};
 
 interface BasicInfoStepProps {
   form: FormInstance;
@@ -34,6 +32,8 @@ interface BasicInfoStepProps {
   requiresZone: boolean;
   availableParentBoards: Board[];
   onTypeChange: () => void;
+  mode?: 'create' | 'edit';
+  slug?: string | null;
 }
 
 const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
@@ -43,7 +43,22 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
   requiresZone,
   availableParentBoards,
   onTypeChange,
+  mode = 'create',
+  slug,
 }) => {
+  const isEditMode = mode === 'edit';
+  const { 
+    boardTypeOptions, 
+    boardZoneOptions, 
+    getBoardTypeByCode,
+    getBoardZoneByCode,
+    isLoading 
+  } = useLookups();
+
+  if (isLoading) {
+    return <Spin tip="Loading board options..." />;
+  }
+
   return (
     <div>
       <Title level={5} style={{ marginBottom: 4 }}>Basic Information</Title>
@@ -62,17 +77,15 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
           <Select
             placeholder="Select board type"
             onChange={onTypeChange}
-            options={BOARD_TYPE_OPTIONS.map(type => ({
-              value: type.value,
-              label: type.label,
-            }))}
+            disabled={isEditMode}
+            options={boardTypeOptions}
             optionRender={(option) => {
-              const typeInfo = BOARD_TYPE_OPTIONS.find(t => t.value === option.value);
+              const typeInfo = getBoardTypeByCode(option.value as string);
               return (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '4px 0' }}>
-                  <span style={{ fontSize: 18, color: '#8c8c8c' }}>{typeInfo?.icon}</span>
+                  <span style={{ fontSize: 18, color: '#8c8c8c' }}>{getIconComponent(typeInfo?.icon)}</span>
                   <div>
-                    <div style={{ fontWeight: 500 }}>{typeInfo?.label}</div>
+                    <div style={{ fontWeight: 500 }}>{option.label}</div>
                     <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.45)' }}>{typeInfo?.description}</div>
                   </div>
                 </div>
@@ -82,14 +95,27 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
         </Form.Item>
 
         {/* Board Type Info Alert */}
-        {boardType && (
-          <Alert
-            message={`${BOARD_TYPE_LABELS[boardType as BoardType]} Selected`}
-            description={BOARD_TYPE_OPTIONS.find(t => t.value === boardType)?.description}
-            type="info"
-            showIcon
-            icon={BOARD_TYPE_OPTIONS.find(t => t.value === boardType)?.icon}
-          />
+        {boardType && (() => {
+          const typeInfo = getBoardTypeByCode(boardType);
+          return (
+            <Alert
+              message={`${typeInfo?.name} Selected`}
+              description={typeInfo?.description}
+              type="info"
+              showIcon
+              icon={getIconComponent(typeInfo?.icon)}
+            />
+          );
+        })()}
+
+        {/* Board Slug (read-only) */}
+        {isEditMode && slug && (
+          <Form.Item
+            name="slug"
+            label="Board Slug"
+          >
+            <Input disabled />
+          </Form.Item>
         )}
 
         {/* Parent Board (conditional) */}
@@ -121,8 +147,8 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                   <div style={{ padding: '4px 0' }}>
                     <div style={{ fontWeight: 500 }}>{boardInfo?.name}</div>
                     <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.45)' }}>
-                      <Tag color={BOARD_TYPE_COLORS[boardInfo?.type || 'main']} style={{ marginRight: 4 }}>
-                        {BOARD_TYPE_LABELS[boardInfo?.type || 'main']}
+                      <Tag color="blue" style={{ marginRight: 4 }}>
+                        {getBoardTypeByCode(boardInfo?.type || 'main')?.name}
                       </Tag>
                     </div>
                   </div>
@@ -141,11 +167,19 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
           >
             <Select
               placeholder="Select factory zone"
-              options={Object.entries(ZONE_LABELS).map(([key, label]) => ({
-                value: key,
-                label: label,
-              }))}
+              options={boardZoneOptions}
             />
+          </Form.Item>
+        )}
+
+        {/* Board Status Toggle (edit mode only) */}
+        {isEditMode && (
+          <Form.Item
+            name="isActive"
+            label="Board Status"
+            valuePropName="checked"
+          >
+            <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
           </Form.Item>
         )}
 

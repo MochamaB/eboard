@@ -34,7 +34,7 @@ export const MeetingVotesTab: React.FC<MeetingVotesTabProps> = ({
   // Status flags
   const isCancelled = meeting.status === 'cancelled';
   const isCompleted = meeting.status.startsWith('completed');
-  const isInProgress = meeting.status === 'in_progress';
+  const isInProgress = meeting.status === 'inprogress';
   const isApproved = meeting.status === 'scheduled' && meeting.subStatus === 'approved';
   const isRejected = meeting.status === 'scheduled' && meeting.subStatus === 'rejected';
 

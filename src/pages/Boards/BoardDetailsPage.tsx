@@ -6,7 +6,7 @@
 
 import React, { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button, message } from 'antd';
+import { message } from 'antd';
 import {
   ApartmentOutlined,
   EditOutlined,
@@ -22,8 +22,9 @@ import type { MenuProps } from 'antd';
 
 import { useBoardContext } from '../../contexts';
 import { useBoard } from '../../hooks/api';
+import { useLookups } from '../../contexts/LookupsContext';
 import { useTabNavigation } from '../../hooks/useTabNavigation';
-import { DetailsHeader, HorizontalTabs } from '../../components/common';
+import { DetailPageLayout } from '../../components/common';
 import type { HorizontalTabItem } from '../../components/common';
 import {
   OverviewTab,
@@ -38,12 +39,14 @@ import {
 export const BoardDetailsPage: React.FC = () => {
   const { targetBoardId } = useParams<{ targetBoardId: string }>();
   const navigate = useNavigate();
-  const { currentBoard, theme } = useBoardContext();
+  const { currentBoard, theme, routePrefix, logo } = useBoardContext();
+  const { getBoardTypeByCode } = useLookups();
   
   const [activeTab, setActiveTab] = useTabNavigation('overview');
 
-  // Fetch board data from API
-  const { data: board, isLoading, error } = useBoard(targetBoardId || '');
+  // Fetch board data from API using numeric ID parsed from URL
+  const numericBoardId = targetBoardId ? parseInt(targetBoardId, 10) : currentBoard?.id || 0;
+  const { data: board, isLoading, error } = useBoard(isNaN(numericBoardId) ? 0 : numericBoardId);
 
   // Tab items with badges
   const tabItems: HorizontalTabItem[] = useMemo(() => {
@@ -105,14 +108,14 @@ export const BoardDetailsPage: React.FC = () => {
   const metadata = useMemo(() => {
     if (!board) return [];
 
+    const typeInfo = getBoardTypeByCode(board.type);
+
     return [
       {
         label: 'Type',
-        value: board.type === 'main' ? 'Main Board' : 
-               board.type === 'subsidiary' ? 'Subsidiary' :
-               board.type === 'factory' ? 'Factory' : 'Committee',
+        value: typeInfo?.name || board.type,
         type: 'tag' as const,
-        color: board.type === 'main' ? 'purple' : 
+        color: board.type === 'main' ? 'purple' :
                board.type === 'subsidiary' ? 'blue' :
                board.type === 'factory' ? 'green' : 'orange',
       },
@@ -122,26 +125,8 @@ export const BoardDetailsPage: React.FC = () => {
         type: 'tag' as const,
         color: board.status === 'active' ? theme.successColor : 'default',
       },
-      {
-        label: 'Members',
-        value: board.memberCount || 0,
-        type: 'badge' as const,
-        color: theme.primaryColor,
-      },
-      ...(board.type === 'main' || board.type === 'subsidiary' ? [{
-        label: 'Committees',
-        value: board.committeeCount || 0,
-        type: 'badge' as const,
-        color: theme.primaryColor,
-      }] : []),
-      {
-        label: 'Meetings (2026)',
-        value: board.meetingsThisYear || 0,
-        type: 'badge' as const,
-        color: theme.primaryColor,
-      },
     ];
-  }, [board, theme]);
+  }, [board, theme, getBoardTypeByCode]);
 
   // Dropdown actions
   const dropdownActions: MenuProps['items'] = useMemo(() => {
@@ -152,7 +137,7 @@ export const BoardDetailsPage: React.FC = () => {
         key: 'edit',
         label: 'Edit Board',
         icon: <EditOutlined />,
-        onClick: () => navigate(`/${currentBoard?.id}/boards/${targetBoardId}/edit`),
+        onClick: () => navigate(`/${routePrefix}/boards/${board.id}/edit`),
       },
       {
         key: 'deactivate',
@@ -169,19 +154,26 @@ export const BoardDetailsPage: React.FC = () => {
   // Loading state
   if (isLoading) {
     return (
-      <div style={{ padding: 24, textAlign: 'center' }}>
-        <p>Loading board details...</p>
-      </div>
+      <DetailPageLayout
+        title=""
+        isLoading
+      >
+        {null}
+      </DetailPageLayout>
     );
   }
 
   // Error state
   if (error || !board) {
+    const errorMessage = typeof error === 'string' ? error : error?.message;
     return (
-      <div style={{ padding: 24, textAlign: 'center' }}>
-        <p>Board not found</p>
-        <Button onClick={() => navigate(`/${currentBoard?.id}/boards`)}>Back to Boards</Button>
-      </div>
+      <DetailPageLayout
+        title=""
+        error={errorMessage || 'Board not found'}
+        showBackButton={false}
+      >
+        {null}
+      </DetailPageLayout>
     );
   }
 
@@ -215,49 +207,22 @@ export const BoardDetailsPage: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '0 24px 24px' }}>
-      {/* Back Button */}
-      <Button
-        type="link"
-        onClick={() => navigate(`/${currentBoard?.id}/boards`)}
-        style={{ paddingLeft: 0, marginBottom: 16 }}
-      >
-        ← Back to Boards
-      </Button>
-
-      {/* Details Header */}
-      <DetailsHeader
-        icon={<ApartmentOutlined />}
-        title={board.name}
-        description={board.description}
-        metadata={metadata}
-        dropdownActions={dropdownActions}
-      />
-
-      {/* Horizontal Tabs */}
-      <HorizontalTabs
-        items={tabItems}
-        activeKey={activeTab}
-        onChange={setActiveTab}
-        size="middle"
-        style={{ marginBottom: 0 }}
-        tabBarStyle={{
-          borderBottom: `2px solid ${theme.borderColor}`,
-          paddingLeft: 0,
-        }}
-      />
-
-      {/* Tab Content */}
-      <div style={{
-        backgroundColor: '#fff',
-        borderRadius: '0 0 8px 8px',
-        minHeight: 400,
-        overflow: 'hidden',
-      }}>
-        {renderTabContent()}
-      </div>
-    </div>
+    <DetailPageLayout
+      icon={logo ? <img src={logo} alt={board.name} style={{ width: 40, height: 40, objectFit: 'contain' }} /> : <ApartmentOutlined />}
+      title={board.name}
+      description={board.description || undefined}
+      metadata={metadata}
+      dropdownActions={dropdownActions}
+      tabs={tabItems}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      tabBarStyle={{
+        borderBottom: `2px solid ${theme.borderColor}`,
+      }}
+    >
+      {renderTabContent()}
+    </DetailPageLayout>
   );
-};
+}
 
 export default BoardDetailsPage;

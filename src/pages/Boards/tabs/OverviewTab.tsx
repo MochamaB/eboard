@@ -8,6 +8,7 @@ import {
 } from '@ant-design/icons';
 import type { Board } from '../../../types/board.types';
 import { useBoardContext } from '../../../contexts';
+import { useLookups } from '../../../contexts/LookupsContext';
 
 const { Title, Text } = Typography;
 
@@ -17,6 +18,7 @@ interface OverviewTabProps {
 
 export const OverviewTab: React.FC<OverviewTabProps> = ({ board }) => {
   const { theme } = useBoardContext();
+  const { getBoardTypeByCode } = useLookups();
 
   return (
     <div style={{ padding: 24 }}>
@@ -82,9 +84,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ board }) => {
                 <Text type="secondary" strong>Board Type</Text>
                 <div style={{ marginTop: 4 }}>
                   <Text>
-                    {board.type === 'main' ? 'Main Board' :
-                     board.type === 'subsidiary' ? 'Subsidiary' :
-                     board.type === 'factory' ? 'Factory' : 'Committee'}
+                    {getBoardTypeByCode(board.type)?.name || board.type}
                   </Text>
                 </div>
               </Col>

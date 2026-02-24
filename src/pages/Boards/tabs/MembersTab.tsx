@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Button, Space, Tag, Typography, Input, Select, Flex, Avatar, Tooltip } from 'antd';
+import { Button, Space, Tag, Typography, Input, Select, Flex, Avatar, Tooltip, Spin } from 'antd';
 import type { ColumnsType } from 'antd/es/table/interface';
 import {
   UserOutlined,
@@ -13,7 +13,9 @@ import {
 
 import { DataTable } from '../../../components/common';
 import { useBoardContext } from '../../../contexts';
-import type { Board } from '../../../types/board.types';
+import { useBoardMembers } from '../../../hooks/api/useBoards';
+import { useLookups } from '../../../contexts/LookupsContext';
+import type { Board, BoardMember } from '../../../types/board.types';
 
 const { Text } = Typography;
 
@@ -21,40 +23,25 @@ interface MembersTabProps {
   board: Board;
 }
 
-// Mock member type - will be replaced with actual API
-interface BoardMember {
-  id: string;
-  userId: string;
-  name: string;
-  email: string;
-  phone?: string;
-  role: string;
-  position?: string;
-  status: 'active' | 'inactive';
-  joinedDate: string;
-  avatar?: string;
-}
-
 export const MembersTab: React.FC<MembersTabProps> = ({ board }) => {
   const { theme } = useBoardContext();
+  const { getRoleByCode } = useLookups();
   const [searchValue, setSearchValue] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  // Mock data - will be replaced with API call
-  const mockMembers: BoardMember[] = [];
+  // Fetch members from API
+  const { data: membersData, isLoading } = useBoardMembers(board.id, {
+    page,
+    pageSize,
+    search: searchValue || undefined,
+    role: roleFilter !== 'all' ? roleFilter : undefined,
+  });
 
-  // Filter members based on search and role filter
-  const filteredMembers = useMemo(() => {
-    return mockMembers.filter(member => {
-      const matchesSearch = !searchValue ||
-        member.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-        member.email.toLowerCase().includes(searchValue.toLowerCase());
-      const matchesRole = roleFilter === 'all' || member.role === roleFilter;
-      return matchesSearch && matchesRole;
-    });
-  }, [mockMembers, searchValue, roleFilter]);
+  // Get members from API response
+  const members = membersData?.data ?? [];
+  const totalMembers = membersData?.total ?? 0;
 
   // Table columns
   const columns: ColumnsType<BoardMember> = useMemo(() => [
@@ -71,9 +58,9 @@ export const MembersTab: React.FC<MembersTabProps> = ({ board }) => {
             style={{ backgroundColor: theme.primaryColor }}
           />
           <Space direction="vertical" size={0}>
-            <Text strong>{record.name}</Text>
-            {record.position && (
-              <Text type="secondary" style={{ fontSize: 12 }}>{record.position}</Text>
+            <Text strong>{record.fullName}</Text>
+            {record.title && (
+              <Text type="secondary" style={{ fontSize: 12 }}>{record.title}</Text>
             )}
           </Space>
         </Space>
@@ -100,38 +87,41 @@ export const MembersTab: React.FC<MembersTabProps> = ({ board }) => {
     },
     {
       title: 'Role',
-      dataIndex: 'role',
+      dataIndex: 'roleCode',
       key: 'role',
       width: 150,
-      render: (role: string) => (
-        <Tag color={
-          role === 'chairman' ? 'purple' :
-          role === 'director' ? 'blue' :
-          role === 'secretary' ? 'green' :
-          'default'
-        }>
-          {role.replace('_', ' ').toUpperCase()}
-        </Tag>
-      ),
+      render: (roleCode: string) => {
+        const roleInfo = getRoleByCode(roleCode);
+        return (
+          <Tag color={
+            roleCode === 'chairman' ? 'purple' :
+            roleCode === 'director' ? 'blue' :
+            roleCode === 'secretary' ? 'green' :
+            'default'
+          }>
+            {roleInfo?.name || roleCode.replace('_', ' ').toUpperCase()}
+          </Tag>
+        );
+      },
     },
     {
       title: 'Status',
-      dataIndex: 'status',
+      dataIndex: 'isActive',
       key: 'status',
       width: 100,
-      render: (status: string) => (
-        <Tag color={status === 'active' ? 'success' : 'default'}>
-          {status === 'active' ? 'Active' : 'Inactive'}
+      render: (isActive: boolean) => (
+        <Tag color={isActive ? 'success' : 'default'}>
+          {isActive ? 'Active' : 'Inactive'}
         </Tag>
       ),
     },
     {
       title: 'Joined',
-      dataIndex: 'joinedDate',
-      key: 'joinedDate',
+      dataIndex: 'startDate',
+      key: 'startDate',
       width: 120,
       render: (date: string) => (
-        <Text type="secondary">{new Date(date).toLocaleDateString()}</Text>
+        <Text type="secondary">{date ? new Date(date).toLocaleDateString() : '-'}</Text>
       ),
     },
     {
@@ -167,7 +157,18 @@ export const MembersTab: React.FC<MembersTabProps> = ({ board }) => {
         </Space>
       ),
     },
-  ], [theme]);
+  ], [theme, getRoleByCode]);
+
+  if (isLoading) {
+    return (
+      <div style={{ padding: 48, textAlign: 'center' }}>
+        <Spin size="large" />
+        <div style={{ marginTop: 16 }}>
+          <Text type="secondary">Loading members...</Text>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: 24 }}>
@@ -220,7 +221,7 @@ export const MembersTab: React.FC<MembersTabProps> = ({ board }) => {
         </Flex>
 
         {/* Members Table */}
-        {filteredMembers.length === 0 ? (
+        {members.length === 0 ? (
           <div style={{
             padding: 48,
             textAlign: 'center',
@@ -253,14 +254,14 @@ export const MembersTab: React.FC<MembersTabProps> = ({ board }) => {
         ) : (
           <DataTable<BoardMember>
             columns={columns}
-            dataSource={filteredMembers}
-            loading={false}
+            dataSource={members}
+            loading={isLoading}
             rowKey="id"
             showSearch={false}
             pagination={{
               current: page,
               pageSize: pageSize,
-              total: filteredMembers.length,
+              total: totalMembers,
               showSizeChanger: true,
               showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} members`,
             }}

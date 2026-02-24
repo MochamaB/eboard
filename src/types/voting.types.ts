@@ -5,6 +5,7 @@
  */
 
 import { z } from 'zod';
+import { VotingThresholdSchema } from './board.types';
 
 // ============================================================================
 // ENUMS
@@ -39,12 +40,11 @@ export const VoteEntityTypeSchema = z.enum([
   'resolution',    // Vote on resolution
 ]);
 
-export const PassingRuleSchema = z.enum([
-  'simple_majority',   // >50%
-  'two_thirds',        // ≥66.67%
-  'three_quarters',    // ≥75%
-  'unanimous',         // 100%
-]);
+/**
+ * @deprecated Use VotingThresholdSchema from board.types.ts instead
+ * This is a duplicate that should be removed. Use useLookups().votingThresholdOptions
+ */
+export const PassingRuleSchema = VotingThresholdSchema;
 
 export const VoteActionTypeSchema = z.enum([
   'created',            // Vote created

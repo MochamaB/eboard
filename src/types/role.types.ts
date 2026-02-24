@@ -5,40 +5,35 @@
 
 import { z } from 'zod';
 
-// System Roles (from docs/02_REQUIREMENTS_DOCUMENT.md)
-export const SystemRoleSchema = z.enum([
-  'system_admin',           // Full system access across all boards
-  'group_chairman',         // Group-level chairman (global access)
-  'group_company_secretary', // Group-level company secretary (global access)
-  'board_secretary',        // Create meetings, upload documents, manage participants
-  'chairman',               // Control meetings, start votes, approve minutes
-  'vice_chairman',          // Similar to Chairman for specific board
-  'company_secretary',      // Board-level company secretary
-  'board_member',           // Join meetings, vote, view documents
-  'committee_member',       // Committee-specific access
-  'executive_member',       // CEO, Company Secretary, Group Finance Director
-  'presenter',              // Present at meetings
-  'observer',               // View meetings but cannot vote
-  'guest',                  // Temporary meeting access
+// System Roles - Now dynamic from backend API
+// Use useLookups().roles and useLookups().roleOptions instead
+// Values fetched from /api/lookups/roles (board-scope only, excludes global roles)
+export const SystemRoleSchema = z.string();
+
+// Board-specific roles - Now dynamic from backend API
+// Use useLookups().roles and useLookups().roleOptions instead
+export const BoardRoleSchema = z.string();
+
+// Role scope - defines access breadth and assignment rules
+export const RoleScopeSchema = z.enum([
+  'global',           // System-wide roles with cross-board access (group_chairman, group_company_secretary)
+  'board',            // Board-specific roles, multiple users allowed (board_member, observer, secretary)
+  'board_leadership', // Board leadership roles, singular per board (chairman, vice_chairman),
+  'participant',      // Participant roles, multiple users allowed (participant)
 ]);
 
-// Board-specific roles (role a user has ON a specific board)
-export const BoardRoleSchema = z.enum([
-  'chairman',
-  'vice_chairman',
-  'secretary',
-  'member',
-  'observer',
-]);
-
-// Permission categories
+// Permission categories - must match backend categories from RolePermissionSeeder
 export const PermissionCategorySchema = z.enum([
   'users',
   'boards',
   'meetings',
+  'agenda',
   'documents',
   'voting',
   'minutes',
+  'actions',
+  'resolutions',
+  'templates',
   'reports',
   'settings',
   'admin',
@@ -53,6 +48,11 @@ export const PermissionSchema = z.object({
   category: PermissionCategorySchema,
 });
 
+export const PermissionGroupSchema = z.object({
+  category: PermissionCategorySchema,
+  permissions: z.array(PermissionSchema),
+});
+
 // Role with permissions
 export const RoleSchema = z.object({
   id: z.number(),
@@ -60,7 +60,9 @@ export const RoleSchema = z.object({
   name: z.string(),
   description: z.string(),
   isSystem: z.boolean(), // System roles cannot be deleted
-  permissions: z.array(PermissionSchema),
+  scope: z.string(), // 'global' or 'board'
+  permissions: z.array(PermissionSchema).optional(), // Only included when includePermissions=true
+  permissionCount: z.number().optional(), // Included when permissions array is not
   userCount: z.number().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -76,16 +78,21 @@ export const CreateRolePayloadSchema = z.object({
 export const UpdateRolePayloadSchema = CreateRolePayloadSchema.partial();
 
 // Types
-export type SystemRole = z.infer<typeof SystemRoleSchema>;
-export type BoardRole = z.infer<typeof BoardRoleSchema>;
+export type SystemRole = string; // Dynamic role code from backend
+export type BoardRole = string; // Dynamic role code from backend
+export type RoleScope = z.infer<typeof RoleScopeSchema>;
 export type PermissionCategory = z.infer<typeof PermissionCategorySchema>;
 export type Permission = z.infer<typeof PermissionSchema>;
+export type PermissionGroup = z.infer<typeof PermissionGroupSchema>;
 export type Role = z.infer<typeof RoleSchema>;
 export type CreateRolePayload = z.infer<typeof CreateRolePayloadSchema>;
 export type UpdateRolePayload = z.infer<typeof UpdateRolePayloadSchema>;
 
-// Role display info (for UI)
-export const SYSTEM_ROLE_INFO: Record<SystemRole, { label: string; description: string; color: string }> = {
+/**
+ * @deprecated Use useLookups().roles and useLookups().getRoleByCode() instead
+ * This hardcoded mapping will be removed once all components migrate to dynamic roles
+ */
+export const SYSTEM_ROLE_INFO: Record<string, { label: string; description: string; color: string }> = {
   system_admin: {
     label: 'System Administrator',
     description: 'Full system access across all boards and committees',
@@ -153,7 +160,11 @@ export const SYSTEM_ROLE_INFO: Record<SystemRole, { label: string; description: 
   },
 };
 
-export const BOARD_ROLE_INFO: Record<BoardRole, { label: string; color: string }> = {
+/**
+ * @deprecated Use useLookups().roles and useLookups().getRoleByCode() instead
+ * This hardcoded mapping will be removed once all components migrate to dynamic roles
+ */
+export const BOARD_ROLE_INFO: Record<string, { label: string; color: string }> = {
   chairman: { label: 'Chairman', color: 'gold' },
   vice_chairman: { label: 'Vice Chairman', color: 'orange' },
   secretary: { label: 'Secretary', color: 'blue' },

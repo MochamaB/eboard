@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/KTDA/source/repos/eboard-api/eBoard.Infrastructure/Persistence/Configurations/**)",
+      "Bash(tree:*)",
+      "Bash(dir /s /b \"c:\\\\Users\\\\KTDA\\\\source\\\\repos\\\\eboard-api\"\")"
+    ]
+  }
+}

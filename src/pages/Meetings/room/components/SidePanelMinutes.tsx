@@ -52,7 +52,7 @@ const SidePanelMinutes: React.FC = () => {
             description={
               <div>
                 <span style={{ ...getTypographyCSS('text'), color: theme.textSecondary }}>No minutes created yet</span>
-                {permissions.canTakeMinutes && status === 'in_progress' && (
+                {permissions.canTakeMinutes && status === 'inprogress' && (
                   <div style={{ marginTop: 8 }}>
                     <span style={{ ...getTypographyCSS('textSm'), color: theme.textSecondary }}>
                       Minutes can be started from the Minutes tab in meeting details.

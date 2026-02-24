@@ -33,7 +33,7 @@ export const BoardSelector: React.FC = () => {
   } = useBoardContext();
 
   // Group boards by type
-  const mainBoard = allBoards.find(b => b.type === 'main');
+  const mainBoards = allBoards.filter(b => b.type === 'main');
   const subsidiaries = allBoards.filter(b => b.type === 'subsidiary');
   const factories = allBoards.filter(b => b.type === 'factory');
   
@@ -64,10 +64,13 @@ export const BoardSelector: React.FC = () => {
   const moduleLabel = moduleLabels[currentModule] || 'Boards';
 
   const handleBoardSelect = (board: Board) => {
-    setCurrentBoard(board.id);
-    setViewMode('single');
+    const boardSlug = board.slug || String(board.id);
+    if (!isAllView) {
+      setCurrentBoard(boardSlug);
+      setViewMode('single');
+    }
     // Preserve current module when switching boards
-    navigate(`/${board.id}/${currentModule}`);
+    navigate(`/${boardSlug}/${currentModule}`);
   };
 
   const handleViewAll = () => {
@@ -76,8 +79,20 @@ export const BoardSelector: React.FC = () => {
     navigate(`/all/${currentModule}`);
   };
 
-  const getBoardLogo = (board: Board): string => {
-    return board.branding?.logo?.main || board.branding?.logo?.small || '';
+  const getBoardLogo = (board: Board): string | undefined => {
+    return board.branding?.logo?.main || board.branding?.logo?.small || undefined;
+  };
+
+  const BoardLogo: React.FC<{ board: Board; size?: number }> = ({ board, size = 20 }) => {
+    const logo = getBoardLogo(board);
+    if (logo) {
+      return <img src={logo} alt="" style={{ width: size, height: size, borderRadius: 4, objectFit: 'contain' }} />;
+    }
+    return (
+      <div style={{ width: size, height: size, borderRadius: 4, background: theme.primaryLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.6, fontWeight: 600, color: theme.primaryColor }}>
+        {board.shortName?.charAt(0) || 'B'}
+      </div>
+    );
   };
 
   // Build "View All [Module]" option - context aware
@@ -105,17 +120,17 @@ export const BoardSelector: React.FC = () => {
     {
       key: 'main-header',
       type: 'group' as const,
-      label: <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>MAIN BOARD</Text>,
-      children: mainBoard ? [{
-        key: mainBoard.id,
+      label: <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>{mainBoards.length > 1 ? 'MAIN BOARDS' : 'MAIN BOARD'}</Text>,
+      children: mainBoards.map(board => ({
+        key: board.id,
         label: (
           <Space>
-            <img src={getBoardLogo(mainBoard)} alt="" style={{ width: 20, height: 20, borderRadius: 4 }} />
-            {mainBoard.name}
+            <BoardLogo board={board} />
+            {board.name}
           </Space>
         ),
-        onClick: () => handleBoardSelect(mainBoard),
-      }] : [],
+        onClick: () => handleBoardSelect(board),
+      })),
     },
     {
       key: 'subsidiaries-header',
@@ -125,7 +140,7 @@ export const BoardSelector: React.FC = () => {
         key: board.id,
         label: (
           <Space>
-            <img src={getBoardLogo(board)} alt="" style={{ width: 20, height: 20, borderRadius: 4 }} />
+            <BoardLogo board={board} />
             {board.name}
           </Space>
         ),
@@ -140,7 +155,7 @@ export const BoardSelector: React.FC = () => {
         key: board.id,
         label: (
           <Space>
-            <img src={getBoardLogo(board)} alt="" style={{ width: 20, height: 20, borderRadius: 4 }} />
+            <BoardLogo board={board} />
             {board.name}
           </Space>
         ),
@@ -199,11 +214,17 @@ export const BoardSelector: React.FC = () => {
           {isViewingAll ? (
             <AppstoreOutlined style={{ fontSize: 18, color: '#fff' }} />
           ) : (
-            <img
-              src={getBoardLogo(currentBoard)}
-              alt={currentBoard?.shortName}
-              style={{ width: 26, height: 26, objectFit: 'contain' }}
-            />
+            getBoardLogo(currentBoard) ? (
+              <img
+                src={getBoardLogo(currentBoard)}
+                alt={currentBoard?.shortName}
+                style={{ width: 26, height: 26, objectFit: 'contain' }}
+              />
+            ) : (
+              <span style={{ fontSize: 14, fontWeight: 700, color: theme.primaryColor }}>
+                {currentBoard?.shortName?.charAt(0) || 'B'}
+              </span>
+            )
           )}
         </div>
         

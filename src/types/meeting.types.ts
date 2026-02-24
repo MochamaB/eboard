@@ -5,7 +5,6 @@
  */
 
 import { z } from 'zod';
-import { BoardTypeSchema, BoardRoleSchema } from './board.types';
 
 // ============================================================================
 // ENUMS
@@ -15,7 +14,7 @@ import { BoardTypeSchema, BoardRoleSchema } from './board.types';
 export const MeetingStatusSchema = z.enum([
   'draft',       // Being prepared
   'scheduled',   // Confirmed and scheduled
-  'in_progress', // Currently happening
+  'inprogress',  // Currently happening (backend: InProgress.ToString().ToLower())
   'completed',   // Finished
   'cancelled',   // Terminal state
 ]);
@@ -85,13 +84,9 @@ export const MeetingEventTypeSchema = z.enum([
   'meeting_cancelled',         // Terminal cancellation (can happen in any phase)
 ]);
 
-export const MeetingTypeSchema = z.enum([
-  'regular',      // Regular board meeting
-  'special',      // Special board meeting
-  'agm',          // Annual General Meeting
-  'emergency',    // Emergency meeting
-  'committee',    // Committee meeting
-]);
+// Meeting type - Dynamic lookup from backend (use useLookups context)
+// Values: 'regular', 'special', 'agm', 'emergency', 'committee'
+export const MeetingTypeSchema = z.string();
 
 export const LocationTypeSchema = z.enum([
   'virtual',
@@ -100,10 +95,19 @@ export const LocationTypeSchema = z.enum([
 ]);
 
 export const RSVPStatusSchema = z.enum([
+  'pending',     // Default status when participant is added
   'accepted',
   'declined',
   'tentative',
-  'no_response',
+  'noresponse',  // Backend: NoResponse.ToString().ToLower()
+]);
+
+export const AttendanceStatusSchema = z.enum([
+  'present',      // Attended the meeting
+  'absent',       // Did not attend
+  'late',         // Arrived late
+  'leftearly',    // Left before meeting ended (backend: LeftEarly.ToString().ToLower())
+  'excused',      // Absence was excused
 ]);
 
 export const ConfirmationEventTypeSchema = z.enum([
@@ -126,25 +130,35 @@ export const RejectionReasonSchema = z.enum([
 // NESTED SCHEMAS
 // ============================================================================
 
+// Board role object from backend (for participants)
+export const ParticipantBoardRoleSchema = z.object({
+  id: z.number(),
+  code: z.string(),
+  name: z.string(),
+}).nullable().optional();
+
 // Meeting participant (board member + RSVP status)
 export const MeetingParticipantSchema = z.object({
-  id: z.string(),
-  userId: z.union([z.string(), z.number()]),
+  id: z.number(),
+  userId: z.number(),
   name: z.string(),
   email: z.string(),
-  avatar: z.string().optional(),
-  boardRole: BoardRoleSchema, // From board membership
-  rsvpStatus: RSVPStatusSchema.default('no_response'),
+  avatar: z.string().nullable().optional(),
+  boardRole: ParticipantBoardRoleSchema, // Role object from backend
+  rsvpStatus: RSVPStatusSchema.default('pending'),
+  rsvpNote: z.string().nullable().optional(),
   isGuest: z.boolean().default(false),
 
   // For guests/presenters
-  guestRole: z.string().optional(),
-  timeSlotStart: z.string().optional(),
-  timeSlotEnd: z.string().optional(),
-  presentationTopic: z.string().optional(),
+  guestRole: z.string().nullable().optional(),
+  timeSlotStart: z.string().nullable().optional(),
+  timeSlotEnd: z.string().nullable().optional(),
+  presentationTopic: z.string().nullable().optional(),
+  canVote: z.boolean().default(true),
   canViewDocuments: z.boolean().default(false),
   canShareScreen: z.boolean().default(true),
   receiveMinutes: z.boolean().default(false),
+  isRequired: z.boolean().default(true),
 });
 
 // Recurrence pattern (optional)
@@ -166,20 +180,23 @@ export const MeetingOverridesSchema = z.object({
 
 // Meeting event (replaces meetingConfirmationHistory)
 export const MeetingEventSchema = z.object({
-  id: z.string(),
-  meetingId: z.string(),
-  eventType: MeetingEventTypeSchema,
+  id: z.number(),
+  meetingId: z.number(),
+  eventType: z.string(), // Event type as string from backend
 
   // Status transition (null for non-status-changing events)
-  fromStatus: MeetingStatusSchema.nullable().optional(),
+  fromStatus: z.string().nullable().optional(),
   fromSubStatus: z.string().nullable().optional(),
-  toStatus: MeetingStatusSchema.nullable().optional(),
+  toStatus: z.string().nullable().optional(),
   toSubStatus: z.string().nullable().optional(),
 
   // Actor
-  performedBy: z.number(),
-  performedByName: z.string(),
+  performedBy: z.number().nullable().optional(),
+  performedByName: z.string().nullable().optional(),
   performedAt: z.string(),
+
+  // System action flag
+  isSystemAction: z.boolean().default(false),
 
   // Event-specific metadata (polymorphic JSON)
   metadata: z.record(z.string(), z.unknown()).nullable().optional(),
@@ -226,32 +243,32 @@ export const MeetingConfirmationHistorySchema = z.object({
 // ============================================================================
 
 export const MeetingSchema = z.object({
-  id: z.string(),
+  id: z.number(),
 
   // Board Association (board-centric architecture)
-  boardId: z.string(),
+  boardId: z.number(),
   boardName: z.string(),
-  boardType: BoardTypeSchema,
-  parentBoardId: z.string().optional(), // If committee, parent board id
-  parentBoardName: z.string().optional(), // If committee, parent board name
+  boardType: z.string(), // Backend returns string code like 'main', 'subsidiary'
+  parentBoardId: z.number().nullable().optional(), // If committee, parent board id
+  parentBoardName: z.string().nullable().optional(), // If committee, parent board name
 
   // Basic Info
   title: z.string(),
-  description: z.string().optional(),
-  meetingType: MeetingTypeSchema,
+  description: z.string().nullable().optional(),
+  meetingType: z.string(), // Backend returns meeting type code
 
   // Schedule
   startDate: z.string(), // ISO date (YYYY-MM-DD)
-  startTime: z.string(), // HH:mm format
+  startTime: z.string(), // "h:mm tt" format (e.g., "2:30 PM")
   duration: z.number(), // minutes
   endDateTime: z.string(), // calculated ISO datetime
   timezone: z.string().default('Africa/Nairobi'),
 
   // Location
-  locationType: LocationTypeSchema,
-  locationDetails: z.string().optional(),
-  virtualMeetingLink: z.string().optional(),
-  physicalAddress: z.string().optional(),
+  locationType: z.string(), // Backend returns lowercase string
+  locationDetails: z.string().nullable().optional(),
+  virtualMeetingLink: z.string().nullable().optional(),
+  physicalAddress: z.string().nullable().optional(),
 
   // Participants
   participants: z.array(MeetingParticipantSchema),
@@ -261,34 +278,34 @@ export const MeetingSchema = z.object({
 
   // Confirmation
   requiresConfirmation: z.boolean(),
-  confirmationStatus: z.enum(['pending', 'approved', 'rejected']).optional(),
-  confirmedBy: z.string().optional(), // User ID
-  confirmedByName: z.string().optional(),
-  confirmedAt: z.string().optional(),
-  rejectionReason: z.string().optional(),
-  confirmationDocumentUrl: z.string().optional(),
+  confirmationStatus: z.enum(['pending', 'approved', 'rejected']).nullable().optional(),
+  confirmedBy: z.number().nullable().optional(), // User ID
+  confirmedByName: z.string().nullable().optional(),
+  confirmedAt: z.string().nullable().optional(),
+  rejectionReason: z.string().nullable().optional(),
+  confirmationDocumentUrl: z.string().nullable().optional(),
 
   // Status (Status + SubStatus model)
-  status: MeetingStatusSchema,
+  status: z.string(), // Backend returns lowercase status
   subStatus: z.string().nullable().optional(), // Contextual substatus
   statusUpdatedAt: z.string(),                  // Last status change timestamp
 
   // Validation overrides (for special circumstances)
-  overrides: MeetingOverridesSchema.optional(),
+  overrides: MeetingOverridesSchema.nullable().optional(),
   overrideReason: z.string().nullable().optional(),
 
   // Recurrence
   isRecurring: z.boolean().default(false),
-  recurrencePattern: RecurrencePatternSchema.optional(),
-  recurrenceGroupId: z.string().optional(), // Group ID for series
+  recurrencePattern: RecurrencePatternSchema.nullable().optional(),
+  recurrenceGroupId: z.string().nullable().optional(), // Group ID for series
 
   // Metadata
-  createdBy: z.string(),
+  createdBy: z.number(),
   createdByName: z.string(),
   createdAt: z.string(),
   updatedAt: z.string(),
-  cancelledAt: z.string().optional(),
-  cancellationReason: z.string().optional(),
+  cancelledAt: z.string().nullable().optional(),
+  cancellationReason: z.string().nullable().optional(),
 });
 
 // Board Pack Status (for meeting list display)
@@ -310,20 +327,20 @@ export const BoardPackStatusSchema = z.object({
 
 // Meeting list item (lighter for tables)
 export const MeetingListItemSchema = z.object({
-  id: z.string(),
-  boardId: z.string(),
+  id: z.number(),
+  boardId: z.number(),
   boardName: z.string(),
-  boardType: BoardTypeSchema,
-  parentBoardName: z.string().optional(), // For committees
+  boardType: z.string(), // Backend returns string code
+  parentBoardName: z.string().nullable().optional(), // For committees
   title: z.string(),
-  meetingType: MeetingTypeSchema,
+  meetingType: z.string(), // Backend returns meeting type code
   startDate: z.string(),
-  startTime: z.string(),
+  startTime: z.string(), // "h:mm tt" format (e.g., "2:30 PM")
   duration: z.number(),
-  locationType: LocationTypeSchema,
+  locationType: z.string(), // Backend returns lowercase string
   physicalLocation: z.string().nullable().optional(), // Physical location address
   meetingLink: z.string().nullable().optional(), // Virtual meeting link
-  status: MeetingStatusSchema,
+  status: z.string(), // Backend returns lowercase status
   subStatus: z.string().nullable().optional(), // Contextual substatus
   statusUpdatedAt: z.string(),
   participantCount: z.number(),
@@ -334,7 +351,7 @@ export const MeetingListItemSchema = z.object({
   createdByName: z.string(),
   createdAt: z.string(),
   // Board Pack status for quick overview
-  boardPackStatus: BoardPackStatusSchema.optional(),
+  boardPackStatus: BoardPackStatusSchema.nullable().optional(),
 });
 
 // ============================================================================
@@ -342,14 +359,14 @@ export const MeetingListItemSchema = z.object({
 // ============================================================================
 
 export const CreateMeetingPayloadSchema = z.object({
-  boardId: z.string().min(1, 'Board is required'),
+  boardId: z.number({ message: 'Board is required' }),
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
-  meetingType: MeetingTypeSchema,
+  meetingType: z.string(), // Meeting type code
   startDate: z.string(),
-  startTime: z.string(),
+  startTime: z.string(), // HH:mm format for backend parsing
   duration: z.number().min(15).max(480),
-  locationType: LocationTypeSchema,
+  locationType: z.string(), // 'virtual', 'physical', 'hybrid'
   locationDetails: z.string().optional(),
   virtualMeetingLink: z.string().optional(),
   physicalAddress: z.string().optional(),
@@ -369,7 +386,7 @@ export const CreateMeetingPayloadSchema = z.object({
 export const UpdateMeetingPayloadSchema = CreateMeetingPayloadSchema.partial().extend({
   // Can't change boardId after creation
   boardId: z.undefined(),
-  status: MeetingStatusSchema.optional(),
+  status: z.string().optional(),
 });
 
 export const AddGuestPayloadSchema = z.object({
@@ -405,11 +422,11 @@ export const RescheduleMeetingPayloadSchema = z.object({
 
 export interface MeetingFilterParams {
   // Board filtering (board-centric)
-  boardId?: string; // Filter by specific board
-  boardIds?: string[]; // Filter by multiple boards (for chairman)
+  boardId?: number; // Filter by specific board
+  boardIds?: number[]; // Filter by multiple boards (for chairman)
   boardType?: string; // main, subsidiary, factory, committee
   includeCommittees?: boolean; // Include committee meetings of this board
-  committeeId?: string; // Filter by specific committee
+  committeeId?: number; // Filter by specific committee
 
   // Status & Type
   search?: string;
@@ -474,6 +491,7 @@ export type MeetingEventType = z.infer<typeof MeetingEventTypeSchema>;
 export type MeetingType = z.infer<typeof MeetingTypeSchema>;
 export type LocationType = z.infer<typeof LocationTypeSchema>;
 export type RSVPStatus = z.infer<typeof RSVPStatusSchema>;
+export type AttendanceStatus = z.infer<typeof AttendanceStatusSchema>;
 export type ConfirmationEventType = z.infer<typeof ConfirmationEventTypeSchema>;
 export type RejectionReason = z.infer<typeof RejectionReasonSchema>;
 export type MeetingParticipant = z.infer<typeof MeetingParticipantSchema>;
@@ -502,7 +520,7 @@ export type CalendarDataResponse = z.infer<typeof CalendarDataResponseSchema>;
 export const MEETING_STATUS_LABELS: Record<MeetingStatus, string> = {
   draft: 'Draft',
   scheduled: 'Scheduled',
-  in_progress: 'In Progress',
+  inprogress: 'In Progress',
   completed: 'Completed',
   cancelled: 'Cancelled',
 };
@@ -511,7 +529,7 @@ export const MEETING_STATUS_LABELS: Record<MeetingStatus, string> = {
 export const MEETING_STATUS_COLORS: Record<MeetingStatus, string> = {
   draft: 'default',
   scheduled: 'cyan',
-  in_progress: 'processing',
+  inprogress: 'processing',
   completed: 'success',
   cancelled: 'error',
 };
@@ -649,17 +667,19 @@ export const LOCATION_TYPE_LABELS: Record<LocationType, string> = {
 };
 
 export const RSVP_STATUS_LABELS: Record<RSVPStatus, string> = {
+  pending: 'Pending',
   accepted: 'Accepted',
   declined: 'Declined',
   tentative: 'Tentative',
-  no_response: 'No Response',
+  noresponse: 'No Response',
 };
 
 export const RSVP_STATUS_COLORS: Record<RSVPStatus, string> = {
+  pending: 'processing',
   accepted: 'success',
   declined: 'error',
   tentative: 'warning',
-  no_response: 'default',
+  noresponse: 'default',
 };
 
 // Default meeting duration by type (in minutes)

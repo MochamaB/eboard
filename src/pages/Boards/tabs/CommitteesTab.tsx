@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
-import { Button, Card, Row, Col, Space, Typography, Tag, Avatar, Input, Flex, Empty } from 'antd';
+import React, { useState, useMemo } from 'react';
+import { Button, Card, Row, Col, Space, Typography, Tag, Avatar, Input, Flex, Spin } from 'antd';
 import {
   ApartmentOutlined,
   TeamOutlined,
-  CalendarOutlined,
   PlusOutlined,
   SearchOutlined,
 } from '@ant-design/icons';
 
 import { useBoardContext } from '../../../contexts';
+import { useBoardCommittees } from '../../../hooks/api/useBoards';
 import type { Board } from '../../../types/board.types';
 
 const { Text, Title } = Typography;
@@ -17,35 +17,33 @@ interface CommitteesTabProps {
   board: Board;
 }
 
-// Mock committee type - will be replaced with actual API
-interface Committee {
-  id: string;
-  name: string;
-  shortName: string;
-  description: string;
-  type: 'committee';
-  status: 'active' | 'inactive';
-  memberCount: number;
-  meetingsThisYear: number;
-  chairman?: {
-    name: string;
-    avatar?: string;
-  };
-}
-
 export const CommitteesTab: React.FC<CommitteesTabProps> = ({ board }) => {
   const { theme } = useBoardContext();
   const [searchValue, setSearchValue] = useState('');
 
-  // Mock data - will be replaced with API call
-  const mockCommittees: Committee[] = [];
+  // Fetch committees from API
+  const { data: committeesData, isLoading } = useBoardCommittees(board.id);
 
-  // Filter committees based on search
-  const filteredCommittees = mockCommittees.filter(committee =>
-    !searchValue ||
-    committee.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-    committee.shortName.toLowerCase().includes(searchValue.toLowerCase())
-  );
+  // Filter committees based on search (client-side filtering)
+  const filteredCommittees = useMemo(() => {
+    const committees = committeesData?.data ?? [];
+    if (!searchValue) return committees;
+    return committees.filter(committee =>
+      committee.name.toLowerCase().includes(searchValue.toLowerCase()) ||
+      committee.shortName.toLowerCase().includes(searchValue.toLowerCase())
+    );
+  }, [committeesData?.data, searchValue]);
+
+  if (isLoading) {
+    return (
+      <div style={{ padding: 48, textAlign: 'center' }}>
+        <Spin size="large" />
+        <div style={{ marginTop: 16 }}>
+          <Text type="secondary">Loading committees...</Text>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: 24 }}>
@@ -148,43 +146,18 @@ export const CommitteesTab: React.FC<CommitteesTabProps> = ({ board }) => {
                     </Flex>
 
                     {/* Description */}
-                    <Text type="secondary" ellipsis style={{ fontSize: 13 }}>
-                      {committee.description}
-                    </Text>
-
-                    {/* Chairman */}
-                    {committee.chairman && (
-                      <Flex align="center" gap={8}>
-                        <Avatar
-                          size="small"
-                          src={committee.chairman.avatar}
-                          style={{ backgroundColor: theme.infoColor }}
-                        >
-                          {committee.chairman.name.charAt(0)}
-                        </Avatar>
-                        <div>
-                          <Text type="secondary" style={{ fontSize: 11 }}>Chairman</Text>
-                          <div>
-                            <Text strong style={{ fontSize: 12 }}>
-                              {committee.chairman.name}
-                            </Text>
-                          </div>
-                        </div>
-                      </Flex>
+                    {committee.description && (
+                      <Text type="secondary" ellipsis style={{ fontSize: 13 }}>
+                        {committee.description}
+                      </Text>
                     )}
 
                     {/* Stats */}
-                    <Flex justify="space-between">
+                    <Flex justify="flex-start">
                       <Space size={4}>
                         <TeamOutlined style={{ color: theme.textSecondary }} />
                         <Text type="secondary" style={{ fontSize: 12 }}>
                           {committee.memberCount} members
-                        </Text>
-                      </Space>
-                      <Space size={4}>
-                        <CalendarOutlined style={{ color: theme.textSecondary }} />
-                        <Text type="secondary" style={{ fontSize: 12 }}>
-                          {committee.meetingsThisYear} meetings
                         </Text>
                       </Space>
                     </Flex>

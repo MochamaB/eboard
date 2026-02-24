@@ -197,8 +197,8 @@ export function useMeetingPermissions(): MeetingPermissions {
       status === 'scheduled' && 
       subStatus === 'approved';
     
-    // Can join meeting: any participant when meeting is in_progress
-    const canJoinMeeting = status === 'in_progress';
+    // Can join meeting: any participant when meeting is inprogress
+    const canJoinMeeting = status === 'inprogress';
     
     // POST-MEETING PERMISSIONS
     // Minutes creation and editing

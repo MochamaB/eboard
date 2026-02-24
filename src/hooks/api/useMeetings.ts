@@ -1,6 +1,7 @@
 /**
  * Meetings React Query Hooks
  * Custom hooks for meeting management using React Query
+ * Updated for backend integration with integer IDs
  */
 
 import { useQuery, useMutation, useQueryClient, type UseQueryOptions, type UseMutationOptions } from '@tanstack/react-query';
@@ -12,11 +13,11 @@ import type {
   MeetingStatus,
   CreateMeetingPayload,
   UpdateMeetingPayload,
-  AddGuestPayload,
   UpdateRSVPPayload,
   CancelMeetingPayload,
   RescheduleMeetingPayload,
   MeetingEvent,
+  MeetingParticipant,
   RejectionReason,
 } from '../../types/meeting.types';
 import type { PaginatedResponse } from '../../types/api.types';
@@ -30,13 +31,15 @@ export const meetingKeys = {
   lists: () => [...meetingKeys.all, 'list'] as const,
   list: (params?: MeetingFilterParams) => [...meetingKeys.lists(), params] as const,
   details: () => [...meetingKeys.all, 'detail'] as const,
-  detail: (id: string) => [...meetingKeys.details(), id] as const,
-  boardMeetings: (boardId: string, includeCommittees?: boolean) =>
+  detail: (id: number) => [...meetingKeys.details(), id] as const,
+  boardMeetings: (boardId: number, includeCommittees?: boolean) =>
     [...meetingKeys.all, 'board', boardId, includeCommittees] as const,
   upcoming: (limit?: number) => [...meetingKeys.all, 'upcoming', limit] as const,
   pendingConfirmation: () => [...meetingKeys.all, 'pending-confirmation'] as const,
-  meetingEvents: (id: string) => [...meetingKeys.all, 'events', id] as const,
-  latestApprovalEvent: (id: string) => [...meetingKeys.all, 'latest-approval-event', id] as const,
+  meetingEvents: (id: number) => [...meetingKeys.all, 'events', id] as const,
+  latestApprovalEvent: (id: number) => [...meetingKeys.all, 'latest-approval-event', id] as const,
+  participants: (meetingId: number) => [...meetingKeys.all, 'participants', meetingId] as const,
+  allowedTransitions: (meetingId: number) => [...meetingKeys.all, 'allowed-transitions', meetingId] as const,
 };
 
 // ============================================================================
@@ -44,7 +47,7 @@ export const meetingKeys = {
 // ============================================================================
 
 /**
- * Get meetings with filters
+ * Get meetings with filters (requires boardId in params)
  */
 export const useMeetings = (
   params?: MeetingFilterParams,
@@ -53,6 +56,7 @@ export const useMeetings = (
   return useQuery({
     queryKey: meetingKeys.list(params),
     queryFn: () => meetingsApi.getMeetings(params),
+    enabled: !!params?.boardId,
     ...options,
   });
 };
@@ -61,7 +65,7 @@ export const useMeetings = (
  * Get meetings for a specific board
  */
 export const useBoardMeetings = (
-  boardId: string,
+  boardId: number,
   params?: { includeCommittees?: boolean; page?: number; pageSize?: number },
   options?: Omit<UseQueryOptions<PaginatedResponse<MeetingListItem>>, 'queryKey' | 'queryFn'>
 ) => {
@@ -77,7 +81,7 @@ export const useBoardMeetings = (
  * Get single meeting
  */
 export const useMeeting = (
-  id: string,
+  id: number,
   options?: Omit<UseQueryOptions<Meeting>, 'queryKey' | 'queryFn'>
 ) => {
   return useQuery({
@@ -106,13 +110,50 @@ export const useUpcomingMeetings = (
  * Get meetings pending confirmation (for approvers)
  */
 export const usePendingConfirmations = (
-  boardId?: string,
+  boardId?: number,
   includeCommittees?: boolean,
   options?: Omit<UseQueryOptions<{ data: MeetingListItem[]; total: number }>, 'queryKey' | 'queryFn'>
 ) => {
   return useQuery({
     queryKey: [...meetingKeys.pendingConfirmation(), boardId, includeCommittees],
     queryFn: () => meetingsApi.getPendingConfirmations(boardId, includeCommittees),
+    ...options,
+  });
+};
+
+/**
+ * Get meeting participants
+ */
+export const useMeetingParticipants = (
+  meetingId: number,
+  options?: Omit<UseQueryOptions<MeetingParticipant[]>, 'queryKey' | 'queryFn'>
+) => {
+  return useQuery({
+    queryKey: meetingKeys.participants(meetingId),
+    queryFn: () => meetingsApi.getParticipants(meetingId),
+    enabled: !!meetingId,
+    ...options,
+  });
+};
+
+/**
+ * Get allowed status transitions for a meeting
+ */
+export const useAllowedTransitions = (
+  meetingId: number,
+  options?: Omit<UseQueryOptions<Array<{
+    targetStatus: string;
+    targetSubStatus?: string | null;
+    label: string;
+    description?: string | null;
+    requiresReason: boolean;
+    requiredPermission?: string | null;
+  }>>, 'queryKey' | 'queryFn'>
+) => {
+  return useQuery({
+    queryKey: meetingKeys.allowedTransitions(meetingId),
+    queryFn: () => meetingsApi.getAllowedTransitions(meetingId),
+    enabled: !!meetingId,
     ...options,
   });
 };
@@ -148,7 +189,7 @@ export const useCreateMeeting = (
  * Update meeting
  */
 export const useUpdateMeeting = (
-  id: string,
+  id: number,
   options?: UseMutationOptions<Meeting, Error, UpdateMeetingPayload>
 ) => {
   const queryClient = useQueryClient();
@@ -174,12 +215,12 @@ export const useUpdateMeeting = (
  * Delete meeting
  */
 export const useDeleteMeeting = (
-  options?: UseMutationOptions<void, Error, string>
+  options?: UseMutationOptions<void, Error, number>
 ) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => meetingsApi.deleteMeeting(id),
+    mutationFn: (id: number) => meetingsApi.deleteMeeting(id),
     onSuccess: () => {
       // Invalidate all meeting queries
       queryClient.invalidateQueries({ queryKey: meetingKeys.all });
@@ -192,18 +233,17 @@ export const useDeleteMeeting = (
  * Cancel meeting
  */
 export const useCancelMeeting = (
-  id: string,
-  options?: UseMutationOptions<Meeting, Error, CancelMeetingPayload>
+  id: number,
+  options?: UseMutationOptions<void, Error, CancelMeetingPayload>
 ) => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (payload: CancelMeetingPayload) => meetingsApi.cancelMeeting(id, payload),
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: meetingKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: meetingKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: meetingKeys.boardMeetings(data.boardId) });
-      queryClient.invalidateQueries({ queryKey: meetingKeys.upcoming() });
+      queryClient.invalidateQueries({ queryKey: meetingKeys.all });
     },
     ...options,
   });
@@ -213,7 +253,7 @@ export const useCancelMeeting = (
  * Reschedule meeting
  */
 export const useRescheduleMeeting = (
-  id: string,
+  id: number,
   options?: UseMutationOptions<Meeting, Error, RescheduleMeetingPayload>
 ) => {
   const queryClient = useQueryClient();
@@ -240,7 +280,7 @@ type SubmitForApprovalPayload = { submittedBy: number; notes?: string };
 type ApprovalActionResponse = { success: boolean; data?: MeetingEvent; message: string };
 
 export const useSubmitForApproval = (
-  id: string,
+  id: number,
   options?: UseMutationOptions<ApprovalActionResponse, Error, SubmitForApprovalPayload>
 ) => {
   const queryClient = useQueryClient();
@@ -263,7 +303,7 @@ export const useSubmitForApproval = (
 type ApproveMeetingPayload = { approvedBy: number; pin: string; signatureId?: string; signatureImage?: string };
 
 export const useApproveMeeting = (
-  id: string,
+  id: number,
   options?: UseMutationOptions<ApprovalActionResponse, Error, ApproveMeetingPayload>
 ) => {
   const queryClient = useQueryClient();
@@ -287,7 +327,7 @@ export const useApproveMeeting = (
 type RejectMeetingPayload = { rejectedBy: number; reason: RejectionReason; comments?: string };
 
 export const useRejectMeeting = (
-  id: string,
+  id: number,
   options?: UseMutationOptions<ApprovalActionResponse, Error, RejectMeetingPayload>
 ) => {
   const queryClient = useQueryClient();
@@ -308,16 +348,17 @@ export const useRejectMeeting = (
  * Update RSVP status
  */
 export const useUpdateRSVP = (
-  id: string,
-  options?: UseMutationOptions<Meeting, Error, UpdateRSVPPayload>
+  id: number,
+  options?: UseMutationOptions<{ message: string; rsvpStatus: string }, Error, UpdateRSVPPayload>
 ) => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (payload: UpdateRSVPPayload) => meetingsApi.updateRSVP(id, payload),
     onSuccess: () => {
-      // Optimistically update meeting detail
+      // Invalidate meeting detail to refresh participant RSVP status
       queryClient.invalidateQueries({ queryKey: meetingKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: meetingKeys.participants(id) });
       // Update lists (participant count might change RSVP counts)
       queryClient.invalidateQueries({ queryKey: meetingKeys.lists() });
     },
@@ -325,39 +366,92 @@ export const useUpdateRSVP = (
   });
 };
 
+// ============================================================================
+// PARTICIPANT MANAGEMENT HOOKS
+// ============================================================================
+
 /**
- * Add guest to meeting
+ * Add participant to meeting
  */
-export const useAddGuest = (
-  id: string,
-  options?: UseMutationOptions<Meeting, Error, AddGuestPayload>
+type AddParticipantPayload = {
+  userId: number;
+  roleId?: number;
+  roleTitle?: string;
+  canVote?: boolean;
+  canUploadDocuments?: boolean;
+  canViewDocuments?: boolean;
+  canShareScreen?: boolean;
+  receiveMinutes?: boolean;
+  isRequired?: boolean;
+  presentationTopic?: string;
+  timeSlotStart?: string;
+  timeSlotEnd?: string;
+};
+
+export const useAddParticipant = (
+  meetingId: number,
+  options?: UseMutationOptions<MeetingParticipant, Error, AddParticipantPayload>
 ) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: AddGuestPayload) => meetingsApi.addGuest(id, payload),
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: meetingKeys.detail(id) });
+    mutationFn: (payload: AddParticipantPayload) => meetingsApi.addParticipant(meetingId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: meetingKeys.detail(meetingId) });
+      queryClient.invalidateQueries({ queryKey: meetingKeys.participants(meetingId) });
       queryClient.invalidateQueries({ queryKey: meetingKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: meetingKeys.boardMeetings(data.boardId) });
     },
     ...options,
   });
 };
 
 /**
- * Remove guest from meeting
+ * Update participant
  */
-export const useRemoveGuest = (
-  id: string,
-  options?: UseMutationOptions<void, Error, string>
+type UpdateParticipantPayload = {
+  roleId?: number;
+  roleTitle?: string;
+  canVote?: boolean;
+  canUploadDocuments?: boolean;
+  canViewDocuments?: boolean;
+  canShareScreen?: boolean;
+  receiveMinutes?: boolean;
+  isRequired?: boolean;
+  presentationTopic?: string;
+  timeSlotStart?: string;
+  timeSlotEnd?: string;
+};
+
+export const useUpdateParticipant = (
+  meetingId: number,
+  options?: UseMutationOptions<void, Error, { participantId: number; payload: UpdateParticipantPayload }>
 ) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (guestId: string) => meetingsApi.removeGuest(id, guestId),
+    mutationFn: ({ participantId, payload }) => meetingsApi.updateParticipant(meetingId, participantId, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: meetingKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: meetingKeys.detail(meetingId) });
+      queryClient.invalidateQueries({ queryKey: meetingKeys.participants(meetingId) });
+    },
+    ...options,
+  });
+};
+
+/**
+ * Remove participant from meeting
+ */
+export const useRemoveParticipant = (
+  meetingId: number,
+  options?: UseMutationOptions<void, Error, number>
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (participantId: number) => meetingsApi.removeParticipant(meetingId, participantId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: meetingKeys.detail(meetingId) });
+      queryClient.invalidateQueries({ queryKey: meetingKeys.participants(meetingId) });
       queryClient.invalidateQueries({ queryKey: meetingKeys.lists() });
     },
     ...options,
@@ -365,15 +459,15 @@ export const useRemoveGuest = (
 };
 
 // ============================================================================
-// CONFIRMATION QUERY HOOKS
+// MEETING EVENTS (AUDIT TRAIL)
 // ============================================================================
 
 /**
  * Get all meeting events (audit trail)
  */
 export const useMeetingEvents = (
-  meetingId: string,
-  options?: Omit<UseQueryOptions<{ data: MeetingEvent[]; total: number }>, 'queryKey' | 'queryFn'>
+  meetingId: number,
+  options?: Omit<UseQueryOptions<MeetingEvent[]>, 'queryKey' | 'queryFn'>
 ) => {
   return useQuery({
     queryKey: meetingKeys.meetingEvents(meetingId),
@@ -387,7 +481,7 @@ export const useMeetingEvents = (
  * Get latest approval event for a meeting
  */
 export const useLatestApprovalEvent = (
-  meetingId: string,
+  meetingId: number,
   options?: Omit<UseQueryOptions<{ data: MeetingEvent | null; message?: string }>, 'queryKey' | 'queryFn'>
 ) => {
   return useQuery({
@@ -404,7 +498,7 @@ export const useLatestApprovalEvent = (
 type ResubmitForApprovalPayload = { submittedBy: number; notes?: string };
 
 export const useResubmitForApproval = (
-  id: string,
+  id: number,
   options?: UseMutationOptions<ApprovalActionResponse, Error, ResubmitForApprovalPayload>
 ) => {
   const queryClient = useQueryClient();
@@ -430,10 +524,10 @@ export const useResubmitForApproval = (
  * Download meeting notice as PDF
  */
 export const useDownloadNoticePDF = (
-  options?: UseMutationOptions<Blob, Error, string>
+  options?: UseMutationOptions<Blob, Error, number>
 ) => {
   return useMutation({
-    mutationFn: (meetingId: string) => meetingsApi.downloadNoticePDF(meetingId),
+    mutationFn: (meetingId: number) => meetingsApi.downloadNoticePDF(meetingId),
     ...options,
   });
 };
@@ -449,7 +543,7 @@ export const useDownloadNoticePDF = (
  * invalidateQueries would not trigger a visible UI update.
  */
 export const useArchiveMeeting = (
-  id: string,
+  id: number,
   options?: UseMutationOptions<Meeting, Error, void>
 ) => {
   const queryClient = useQueryClient();
@@ -475,7 +569,7 @@ export const useArchiveMeeting = (
 type TransitionPayload = { status: MeetingStatus; subStatus?: string; reason?: string };
 
 export const useTransitionMeetingStatus = (
-  id: string,
+  id: number,
   options?: UseMutationOptions<Meeting, Error, TransitionPayload>
 ) => {
   const queryClient = useQueryClient();
@@ -486,11 +580,28 @@ export const useTransitionMeetingStatus = (
       // Refetch detail immediately — user is on the detail page watching the status change
       await queryClient.refetchQueries({ queryKey: meetingKeys.detail(id) });
       await queryClient.refetchQueries({ queryKey: meetingKeys.meetingEvents(id) });
+      // Invalidate allowed transitions since they change after a transition
+      queryClient.invalidateQueries({ queryKey: meetingKeys.allowedTransitions(id) });
       // Lazily invalidate lists and upcoming — not actively mounted
       queryClient.invalidateQueries({ queryKey: meetingKeys.lists() });
       queryClient.invalidateQueries({ queryKey: meetingKeys.boardMeetings(data.boardId) });
       queryClient.invalidateQueries({ queryKey: meetingKeys.upcoming() });
     },
+    ...options,
+  });
+};
+
+/**
+ * Validate meeting configuration
+ */
+export const useValidateMeeting = (
+  meetingId: number,
+  options?: Omit<UseQueryOptions<{ isValid: boolean; errors?: string[]; warnings?: string[] }>, 'queryKey' | 'queryFn'>
+) => {
+  return useQuery({
+    queryKey: [...meetingKeys.detail(meetingId), 'validation'],
+    queryFn: () => meetingsApi.validateMeeting(meetingId),
+    enabled: !!meetingId,
     ...options,
   });
 };

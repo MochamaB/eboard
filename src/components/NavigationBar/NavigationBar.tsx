@@ -41,18 +41,102 @@ const getCommitteeIcon = (key: string): React.ReactNode => {
 export const NavigationBar: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { 
-    currentBoard, 
-    committees, 
-    hasCommittees, 
-    activeCommittee, 
-    setActiveCommittee, 
-    theme, 
+  const {
+    currentBoard,
+    committees,
+    hasCommittees,
+    activeCommittee,
+    setActiveCommittee,
+    theme,
+    allBoards,
+    routePrefix,
   } = useBoardContext();
   const { isInMeetingDetail, phaseInfo } = useMeetingPhase();
   const { isMobile, currentBreakpoint } = useResponsive();
   
-  const breadcrumbs = generateBreadcrumbs(location.pathname);
+  const rawBreadcrumbs = generateBreadcrumbs(location.pathname);
+  
+  // Context-aware back navigation logic
+  const getBackNavigation = () => {
+    const pathSegments = location.pathname.split('/').filter(Boolean);
+    
+    // Detail pages have 3+ segments: /:boardId/:module/:id
+    if (pathSegments.length >= 3) {
+      const module = pathSegments[1]; // meetings, boards, users, etc.
+      const moduleTitle = getModuleDisplayName(module);
+      
+      // Special case for meeting room: go back to meeting details
+      if (pathSegments.includes('room')) {
+        return {
+          label: 'Back to Meeting Details',
+          action: () => navigate(`/${routePrefix}/meetings/${pathSegments[2]}`)
+        };
+      }
+      
+      return {
+        label: `Back to ${moduleTitle}`,
+        action: () => navigate(`/${routePrefix}/${module}`)
+      };
+    }
+    
+    // Create/edit pages have 3+ segments: /:boardId/:module/create or /:boardId/:module/:id/edit
+    if (pathSegments.some(seg => ['create', 'edit'].includes(seg))) {
+      const module = pathSegments[1];
+      const moduleTitle = getModuleDisplayName(module);
+      
+      return {
+        label: `Back to ${moduleTitle}`,
+        action: () => navigate(`/${routePrefix}/${module}`)
+      };
+    }
+    
+    // Default: use browser history for index pages or unknown routes
+    return {
+      label: 'Back',
+      action: () => navigate(-1)
+    };
+  };
+
+  const getModuleDisplayName = (module: string): string => {
+    const moduleNames: Record<string, string> = {
+      meetings: 'Meetings',
+      boards: 'Boards', 
+      users: 'Users',
+      documents: 'Documents',
+      approvals: 'Approvals',
+      notifications: 'Notifications',
+      reports: 'Reports',
+      roles: 'Roles',
+      permissions: 'Permissions',
+      settings: 'Settings'
+    };
+    
+    return moduleNames[module] || module.charAt(0).toUpperCase() + module.slice(1);
+  };
+
+  const { label: backButtonLabel, action: handleBackNavigation } = getBackNavigation();
+  
+  // Post-process breadcrumbs to replace "Board Details" with actual board names
+  const breadcrumbs = rawBreadcrumbs.map((crumb, index) => {
+    if (crumb.title === 'Board Details') {
+      // Extract board ID from current pathname (e.g., /ktda-ms/boards/2 or /ktda-ms/boards/2/details)
+      const pathParts = location.pathname.split('/').filter(Boolean);
+      const boardsIndex = pathParts.indexOf('boards');
+      if (boardsIndex !== -1 && pathParts[boardsIndex + 1]) {
+        const boardIdOrSlug = pathParts[boardsIndex + 1];
+        
+        // Look up board by numeric ID or slug
+        const board = allBoards.find(b =>
+          String(b.id) === boardIdOrSlug || b.slug === boardIdOrSlug
+        );
+        
+        if (board) {
+          return { ...crumb, title: board.name };
+        }
+      }
+    }
+    return crumb;
+  });
   
   // Hide committees row on non-index pages
   // Index pages have exactly 2 path segments: /:boardId/:module (e.g., /ktda-ms/meetings)
@@ -66,7 +150,7 @@ export const NavigationBar: React.FC = () => {
     { key: 'all', label: 'ALL BOARDS', icon: committeeIcons.all },
     { key: 'board', label: currentBoard.shortName.toUpperCase(), icon: committeeIcons.board },
     ...committees.map(c => ({
-      key: c.id,
+      key: c.id.toString(),
       label: c.shortName.toUpperCase(),
       icon: getCommitteeIcon(c.shortName),
     })),
@@ -96,7 +180,7 @@ export const NavigationBar: React.FC = () => {
       }}
     >
       {/* ROW 1: Breadcrumbs + Phase Indicator + Back Button */}
-      <Row align="middle" justify="space-between" style={{ paddingBottom: 12, borderBottom: '1px solid #dfdfe4' }}>
+      <Row align="middle" style={{ paddingBottom: 12, borderBottom: '1px solid #dfdfe4' }}>
         {/* LEFT: Breadcrumbs */}
         <Col flex="auto">
           <Breadcrumb
@@ -113,7 +197,7 @@ export const NavigationBar: React.FC = () => {
               {
                 title: (
                   <a
-                    href={`/${currentBoard.id}/dashboard`}
+                    href={`/${routePrefix}/dashboard`}
                     style={{
                       color: theme.textSecondary,
                       fontSize: isMobile ? 12 : 14,
@@ -159,20 +243,20 @@ export const NavigationBar: React.FC = () => {
           </Col>
         )}
 
-        {/* RIGHT: Back Button (hidden on mobile) */}
+        {/* RIGHT: Context-Aware Back Button (hidden on mobile) */}
         {!isMobile && (
-          <Col flex="none">
+          <Col flex="none" style={{ marginRight: -navMargin }}>
             <Button
               type="text"
               icon={<ArrowLeftOutlined />}
-              onClick={() => navigate(-1)}
+              onClick={handleBackNavigation}
               className="touch-target"
               style={{
                 color: theme.primaryColor,
                 height: responsiveHelpers.responsiveTouch.getTouchTargetSize(currentBreakpoint),
               }}
             >
-              Back
+              {backButtonLabel}
             </Button>
           </Col>
         )}

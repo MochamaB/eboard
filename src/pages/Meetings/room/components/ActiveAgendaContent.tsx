@@ -57,7 +57,7 @@ const ITEM_TYPE_LABELS: Record<string, string> = {
 
 const STATUS_LABELS: Record<string, string> = {
   pending: 'Pending',
-  in_progress: 'In Progress',
+  inprogress: 'In Progress',
   completed: 'Completed',
   skipped: 'Skipped',
   deferred: 'Deferred',
@@ -113,7 +113,7 @@ const EmptyText: React.FC<{ t: MeetingRoomTheme; children: React.ReactNode }> = 
 const StatusIndicator: React.FC<{ status: string; t: MeetingRoomTheme }> = ({ status, t }) => {
   const colorMap: Record<string, string> = {
     completed: t.successColor,
-    in_progress: t.infoColor,
+    inprogress: t.infoColor,
     skipped: t.textDisabled,
     deferred: t.warningColor,
     pending: t.textTertiary,

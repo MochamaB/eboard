@@ -1,6 +1,7 @@
 /**
  * Meetings API
  * API functions for meeting management
+ * Updated for backend integration with integer IDs
  */
 
 import apiClient from './client';
@@ -8,21 +9,19 @@ import { safeParseResponse } from '../utils/safeParseResponse';
 import { z } from 'zod';
 import {
   MeetingSchema,
-  MeetingListItemSchema,
   MeetingListResponseSchema,
   MeetingEventSchema,
+  MeetingParticipantSchema,
   type Meeting,
   type MeetingListItem,
   type MeetingFilterParams,
   type CreateMeetingPayload,
   type UpdateMeetingPayload,
-  type AddGuestPayload,
   type UpdateRSVPPayload,
   type CancelMeetingPayload,
   type RescheduleMeetingPayload,
   type MeetingEvent,
-  type MeetingStatus,
-  type RejectionReason,
+  type MeetingParticipant,
 } from '../types/meeting.types';
 import type { PaginatedResponse } from '../types/api.types';
 
@@ -30,25 +29,30 @@ import type { PaginatedResponse } from '../types/api.types';
 // RESPONSE SCHEMAS
 // ============================================================================
 
-const UpcomingMeetingsResponseSchema = z.object({
-  data: z.array(MeetingListItemSchema),
-  total: z.number(),
+const MeetingEventsResponseSchema = z.array(MeetingEventSchema);
+
+const ParticipantsResponseSchema = z.array(MeetingParticipantSchema);
+
+const AllowedTransitionsResponseSchema = z.array(z.object({
+  targetStatus: z.string(),
+  targetSubStatus: z.string().nullable().optional(),
+  label: z.string(),
+  description: z.string().nullable().optional(),
+  requiresReason: z.boolean(),
+  requiredPermission: z.string().nullable().optional(),
+}));
+
+const ValidationResultSchema = z.object({
+  isValid: z.boolean(),
+  errors: z.array(z.string()).optional(),
+  warnings: z.array(z.string()).optional(),
 });
 
-const MeetingEventsResponseSchema = z.object({
-  data: z.array(MeetingEventSchema),
-  total: z.number(),
-});
-
-const LatestEventResponseSchema = z.object({
-  data: MeetingEventSchema.nullable(),
-  message: z.string().optional(),
-});
-
-const ApprovalActionResponseSchema = z.object({
-  success: z.boolean(),
-  data: MeetingEventSchema.optional(),
+const TransitionResultSchema = z.object({
   message: z.string(),
+  status: z.string().optional(),
+  subStatus: z.string().nullable().optional(),
+  eventId: z.number().optional(),
 });
 
 // ============================================================================
@@ -61,19 +65,11 @@ export const meetingsApi = {
   // ==========================================================================
 
   /**
-   * Get meetings with filters
-   */
-  getMeetings: async (params?: MeetingFilterParams): Promise<PaginatedResponse<MeetingListItem>> => {
-    const response = await apiClient.get('/meetings', { params });
-    return safeParseResponse(MeetingListResponseSchema, response.data, 'getMeetings');
-  },
-
-  /**
-   * Get meetings for a specific board (including committees if specified)
+   * Get meetings for a specific board (paginated, filtered)
    */
   getBoardMeetings: async (
-    boardId: string,
-    params?: { includeCommittees?: boolean; page?: number; pageSize?: number }
+    boardId: number,
+    params?: MeetingFilterParams
   ): Promise<PaginatedResponse<MeetingListItem>> => {
     const response = await apiClient.get(`/boards/${boardId}/meetings`, { params });
     return safeParseResponse(MeetingListResponseSchema, response.data, 'getBoardMeetings');
@@ -82,7 +78,7 @@ export const meetingsApi = {
   /**
    * Get single meeting by ID
    */
-  getMeeting: async (id: string): Promise<Meeting> => {
+  getMeeting: async (id: number): Promise<Meeting> => {
     const response = await apiClient.get(`/meetings/${id}`);
     return safeParseResponse(MeetingSchema, response.data, 'getMeeting');
   },
@@ -91,43 +87,23 @@ export const meetingsApi = {
    * Create new meeting
    */
   createMeeting: async (payload: CreateMeetingPayload): Promise<Meeting> => {
-    const response = await apiClient.post('/meetings', payload);
+    const response = await apiClient.post(`/boards/${payload.boardId}/meetings`, payload);
     return safeParseResponse(MeetingSchema, response.data, 'createMeeting');
   },
 
   /**
    * Update existing meeting
    */
-  updateMeeting: async (id: string, payload: UpdateMeetingPayload): Promise<Meeting> => {
+  updateMeeting: async (id: number, payload: UpdateMeetingPayload): Promise<Meeting> => {
     const response = await apiClient.put(`/meetings/${id}`, payload);
     return safeParseResponse(MeetingSchema, response.data, 'updateMeeting');
   },
 
   /**
-   * Delete meeting
+   * Delete/cancel meeting
    */
-  deleteMeeting: async (id: string): Promise<void> => {
-    await apiClient.delete(`/meetings/${id}`);
-  },
-
-  // ==========================================================================
-  // MEETING STATUS WORKFLOW
-  // ==========================================================================
-
-  /**
-   * Cancel meeting
-   */
-  cancelMeeting: async (id: string, payload: CancelMeetingPayload): Promise<Meeting> => {
-    const response = await apiClient.post(`/meetings/${id}/cancel`, payload);
-    return safeParseResponse(MeetingSchema, response.data, 'cancelMeeting');
-  },
-
-  /**
-   * Reschedule meeting
-   */
-  rescheduleMeeting: async (id: string, payload: RescheduleMeetingPayload): Promise<Meeting> => {
-    const response = await apiClient.post(`/meetings/${id}/reschedule`, payload);
-    return safeParseResponse(MeetingSchema, response.data, 'rescheduleMeeting');
+  deleteMeeting: async (id: number, payload?: CancelMeetingPayload): Promise<void> => {
+    await apiClient.delete(`/meetings/${id}`, { data: payload });
   },
 
   // ==========================================================================
@@ -135,146 +111,327 @@ export const meetingsApi = {
   // ==========================================================================
 
   /**
-   * Update RSVP status
+   * Get meeting participants
    */
-  updateRSVP: async (id: string, payload: UpdateRSVPPayload): Promise<Meeting> => {
-    const response = await apiClient.put(`/meetings/${id}/rsvp`, payload);
-    return safeParseResponse(MeetingSchema, response.data, 'updateRSVP');
+  getParticipants: async (meetingId: number): Promise<MeetingParticipant[]> => {
+    const response = await apiClient.get(`/meetings/${meetingId}/participants`);
+    return safeParseResponse(ParticipantsResponseSchema, response.data, 'getParticipants');
   },
 
   /**
-   * Add guest/presenter to meeting
+   * Add participant to meeting
    */
-  addGuest: async (id: string, payload: AddGuestPayload): Promise<Meeting> => {
-    const response = await apiClient.post(`/meetings/${id}/guests`, payload);
-    return safeParseResponse(MeetingSchema, response.data, 'addGuest');
+  addParticipant: async (meetingId: number, payload: {
+    userId: number;
+    roleId?: number;
+    roleTitle?: string;
+    canVote?: boolean;
+    canUploadDocuments?: boolean;
+    canViewDocuments?: boolean;
+    canShareScreen?: boolean;
+    receiveMinutes?: boolean;
+    isRequired?: boolean;
+    presentationTopic?: string;
+    timeSlotStart?: string;
+    timeSlotEnd?: string;
+  }): Promise<MeetingParticipant> => {
+    const response = await apiClient.post(`/meetings/${meetingId}/participants`, payload);
+    return safeParseResponse(MeetingParticipantSchema, response.data, 'addParticipant');
   },
 
   /**
-   * Remove guest from meeting
+   * Update participant
    */
-  removeGuest: async (id: string, guestId: string): Promise<void> => {
-    await apiClient.delete(`/meetings/${id}/guests/${guestId}`);
+  updateParticipant: async (meetingId: number, participantId: number, payload: {
+    roleId?: number;
+    roleTitle?: string;
+    canVote?: boolean;
+    canUploadDocuments?: boolean;
+    canViewDocuments?: boolean;
+    canShareScreen?: boolean;
+    receiveMinutes?: boolean;
+    isRequired?: boolean;
+    presentationTopic?: string;
+    timeSlotStart?: string;
+    timeSlotEnd?: string;
+  }): Promise<void> => {
+    await apiClient.put(`/meetings/${meetingId}/participants/${participantId}`, payload);
+  },
+
+  /**
+   * Remove participant from meeting
+   */
+  removeParticipant: async (meetingId: number, participantId: number): Promise<void> => {
+    await apiClient.delete(`/meetings/${meetingId}/participants/${participantId}`);
+  },
+
+  /**
+   * Update RSVP status for current user
+   */
+  updateRSVP: async (meetingId: number, payload: UpdateRSVPPayload): Promise<{ message: string; rsvpStatus: string }> => {
+    const response = await apiClient.put(`/meetings/${meetingId}/rsvp`, {
+      rsvpStatus: payload.rsvpStatus,
+      note: (payload as { note?: string }).note,
+    });
+    return response.data;
   },
 
   // ==========================================================================
-  // SPECIALIZED QUERIES
+  // STATUS TRANSITIONS
   // ==========================================================================
 
   /**
-   * Get upcoming meetings (for dashboard)
+   * Get allowed status transitions for a meeting
    */
-  getUpcomingMeetings: async (limit: number = 5): Promise<{ data: MeetingListItem[]; total: number }> => {
-    const response = await apiClient.get('/meetings/upcoming', { params: { limit } });
-    return safeParseResponse(UpcomingMeetingsResponseSchema, response.data, 'getUpcomingMeetings');
+  getAllowedTransitions: async (meetingId: number): Promise<Array<{
+    targetStatus: string;
+    targetSubStatus?: string | null;
+    label: string;
+    description?: string | null;
+    requiresReason: boolean;
+    requiredPermission?: string | null;
+  }>> => {
+    const response = await apiClient.get(`/meetings/${meetingId}/allowed-transitions`);
+    return safeParseResponse(AllowedTransitionsResponseSchema, response.data, 'getAllowedTransitions');
   },
 
   /**
-   * Get meetings pending confirmation (for approvers)
+   * Transition meeting to a new status
    */
-  getPendingConfirmations: async (
-    boardId?: string,
-    includeCommittees?: boolean
-  ): Promise<{ data: MeetingListItem[]; total: number }> => {
-    const params: Record<string, string> = {};
-    if (boardId) params.boardId = boardId;
-    if (includeCommittees) params.includeCommittees = 'true';
-    
-    const response = await apiClient.get('/meetings/pending-confirmation', { params });
-    return safeParseResponse(UpcomingMeetingsResponseSchema, response.data, 'getPendingConfirmations');
+  transitionMeeting: async (meetingId: number, payload: {
+    targetStatus: string;
+    targetSubStatus?: string | null;
+    reason?: string;
+  }): Promise<{ message: string; status?: string; subStatus?: string | null; eventId?: number }> => {
+    const response = await apiClient.post(`/meetings/${meetingId}/transition`, payload);
+    return safeParseResponse(TransitionResultSchema, response.data, 'transitionMeeting');
+  },
+
+  /**
+   * Validate meeting configuration
+   */
+  validateMeeting: async (meetingId: number): Promise<{
+    isValid: boolean;
+    errors?: string[];
+    warnings?: string[];
+  }> => {
+    const response = await apiClient.get(`/meetings/${meetingId}/validate`);
+    return safeParseResponse(ValidationResultSchema, response.data, 'validateMeeting');
   },
 
   // ==========================================================================
-  // APPROVAL WORKFLOW
+  // MEETING EVENTS (AUDIT TRAIL)
   // ==========================================================================
 
   /**
-   * Get all meeting events (audit trail)
+   * Get meeting event history (audit trail)
    */
-  getMeetingEvents: async (meetingId: string): Promise<{ data: MeetingEvent[]; total: number }> => {
+  getMeetingEvents: async (meetingId: number): Promise<MeetingEvent[]> => {
     const response = await apiClient.get(`/meetings/${meetingId}/events`);
     return safeParseResponse(MeetingEventsResponseSchema, response.data, 'getMeetingEvents');
   },
 
+  // ==========================================================================
+  // LEGACY METHODS (for backwards compatibility with existing hooks)
+  // ==========================================================================
+
   /**
-   * Get latest approval event for a meeting
+   * @deprecated Use getBoardMeetings instead
    */
-  getLatestApprovalEvent: async (meetingId: string): Promise<{ data: MeetingEvent | null; message?: string }> => {
-    const response = await apiClient.get(`/meetings/${meetingId}/latest-approval-event`);
-    return safeParseResponse(LatestEventResponseSchema, response.data, 'getLatestApprovalEvent');
+  getMeetings: async (params?: MeetingFilterParams): Promise<PaginatedResponse<MeetingListItem>> => {
+    if (!params?.boardId) {
+      console.warn('getMeetings: boardId is required. Use getBoardMeetings instead.');
+      return { data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 };
+    }
+    return meetingsApi.getBoardMeetings(params.boardId, params);
   },
 
   /**
-   * Submit meeting for approval
+   * Cancel meeting
    */
-  submitForApproval: async (
-    meetingId: string, 
-    payload: { submittedBy: number; notes?: string }
-  ): Promise<{ success: boolean; data?: MeetingEvent; message: string }> => {
-    const response = await apiClient.post(`/meetings/${meetingId}/submit-for-approval`, payload);
-    return safeParseResponse(ApprovalActionResponseSchema, response.data, 'submitForApproval');
+  cancelMeeting: async (id: number, payload: CancelMeetingPayload): Promise<void> => {
+    // Use the transition endpoint to cancel
+    await meetingsApi.transitionMeeting(id, {
+      targetStatus: 'cancelled',
+      targetSubStatus: null,
+      reason: payload.reason,
+    });
   },
 
   /**
-   * Approve a meeting
+   * Reschedule meeting (update date/time)
    */
-  approveMeeting: async (
-    meetingId: string,
-    payload: { approvedBy: number; pin: string; signatureId?: string; signatureImage?: string }
-  ): Promise<{ success: boolean; data?: MeetingEvent; message: string }> => {
-    const response = await apiClient.post(`/meetings/${meetingId}/approve`, payload);
-    return safeParseResponse(ApprovalActionResponseSchema, response.data, 'approveMeeting');
+  rescheduleMeeting: async (id: number, payload: RescheduleMeetingPayload): Promise<Meeting> => {
+    const response = await apiClient.put(`/meetings/${id}`, {
+      startDate: payload.startDate,
+      startTime: payload.startTime,
+      duration: payload.duration,
+    });
+    return safeParseResponse(MeetingSchema, response.data, 'rescheduleMeeting');
   },
 
   /**
-   * Reject a meeting
+   * @deprecated Use addParticipant instead
    */
-  rejectMeeting: async (
-    meetingId: string,
-    payload: { rejectedBy: number; reason: RejectionReason; comments?: string }
-  ): Promise<{ success: boolean; data?: MeetingEvent; message: string }> => {
-    const response = await apiClient.post(`/meetings/${meetingId}/reject`, payload);
-    return safeParseResponse(ApprovalActionResponseSchema, response.data, 'rejectMeeting');
+  addGuest: async (id: number, payload: {
+    name: string;
+    email: string;
+    guestRole: string;
+    timeSlotStart?: string;
+    timeSlotEnd?: string;
+    presentationTopic?: string;
+    canViewDocuments?: boolean;
+    canShareScreen?: boolean;
+    receiveMinutes?: boolean;
+  }): Promise<Meeting> => {
+    // This would need a user ID - for now, return current meeting
+    console.warn('addGuest: This method needs to be updated to work with the new participant system');
+    return meetingsApi.getMeeting(id);
   },
 
   /**
-   * Resubmit meeting for approval (after rejection)
+   * @deprecated Use removeParticipant instead
    */
-  resubmitForApproval: async (
-    meetingId: string,
-    payload: { submittedBy: number; notes?: string }
-  ): Promise<{ success: boolean; data?: MeetingEvent; message: string }> => {
-    const response = await apiClient.post(`/meetings/${meetingId}/resubmit-for-approval`, payload);
-    return safeParseResponse(ApprovalActionResponseSchema, response.data, 'resubmitForApproval');
+  removeGuest: async (meetingId: number, guestId: number): Promise<void> => {
+    await meetingsApi.removeParticipant(meetingId, guestId);
   },
 
   /**
-   * Archive a completed meeting (completed.recent → completed.archived)
+   * Get upcoming meetings (for dashboard) - requires backend endpoint
    */
-  archiveMeeting: async (meetingId: string): Promise<Meeting> => {
-    const response = await apiClient.post(`/meetings/${meetingId}/archive`);
-    return safeParseResponse(MeetingSchema, response.data, 'archiveMeeting');
+  getUpcomingMeetings: async (_limit: number = 5): Promise<{ data: MeetingListItem[]; total: number }> => {
+    // This endpoint needs to be added to the backend
+    console.warn('getUpcomingMeetings: This endpoint is not yet implemented on the backend');
+    return { data: [], total: 0 };
   },
 
   /**
-   * Generic status transition (start, end, etc.)
+   * Get meetings pending confirmation
+   */
+  getPendingConfirmations: async (
+    boardId?: number,
+    includeCommittees?: boolean
+  ): Promise<{ data: MeetingListItem[]; total: number }> => {
+    if (!boardId) {
+      return { data: [], total: 0 };
+    }
+    // Use getBoardMeetings with pendingConfirmation filter
+    const result = await meetingsApi.getBoardMeetings(boardId, {
+      pendingConfirmation: true,
+      includeCommittees,
+    });
+    return { data: result.data, total: result.total };
+  },
+
+  /**
+   * Archive a completed meeting
+   */
+  archiveMeeting: async (meetingId: number): Promise<Meeting> => {
+    // Use transition endpoint
+    await meetingsApi.transitionMeeting(meetingId, {
+      targetStatus: 'completed',
+      targetSubStatus: 'archived',
+    });
+    return meetingsApi.getMeeting(meetingId);
+  },
+
+  /**
+   * Generic status transition - wrapper for transitionMeeting
    */
   transitionMeetingStatus: async (
-    meetingId: string,
-    payload: { status: MeetingStatus; subStatus?: string; reason?: string }
+    meetingId: number,
+    payload: { status: string; subStatus?: string; reason?: string }
   ): Promise<Meeting> => {
-    const response = await apiClient.post(`/meetings/${meetingId}/transition`, payload);
-    return safeParseResponse(MeetingSchema, response.data, 'transitionMeetingStatus');
+    await meetingsApi.transitionMeeting(meetingId, {
+      targetStatus: payload.status,
+      targetSubStatus: payload.subStatus || null,
+      reason: payload.reason,
+    });
+    return meetingsApi.getMeeting(meetingId);
   },
 
   /**
-   * Download meeting notice as PDF
+   * Download meeting notice as PDF - requires backend endpoint
    */
-  downloadNoticePDF: async (meetingId: string): Promise<Blob> => {
-    const response = await apiClient.get(`/meetings/${meetingId}/notice/pdf`, {
-      responseType: 'blob',
-    });
-    return response.data;
+  downloadNoticePDF: async (_meetingId: number): Promise<Blob> => {
+    console.warn('downloadNoticePDF: This endpoint is not yet implemented on the backend');
+    return new Blob();
+  },
+
+  // Approval workflow methods (for backwards compatibility)
+  getLatestApprovalEvent: async (meetingId: number): Promise<{ data: MeetingEvent | null; message?: string }> => {
+    const events = await meetingsApi.getMeetingEvents(meetingId);
+    const approvalEvents = events.filter(e =>
+      e.eventType === 'approved' ||
+      e.eventType === 'rejected' ||
+      e.eventType === 'submitted_for_approval'
+    );
+    return { data: approvalEvents[0] || null };
+  },
+
+  submitForApproval: async (
+    meetingId: number,
+    _payload: { submittedBy: number; notes?: string }
+  ): Promise<{ success: boolean; data?: MeetingEvent; message: string }> => {
+    try {
+      await meetingsApi.transitionMeeting(meetingId, {
+        targetStatus: 'scheduled',
+        targetSubStatus: 'pending_approval',
+      });
+      return { success: true, message: 'Meeting submitted for approval' };
+    } catch (error: unknown) {
+      const err = error as Error;
+      return { success: false, message: err.message || 'Failed to submit for approval' };
+    }
+  },
+
+  approveMeeting: async (
+    meetingId: number,
+    _payload: { approvedBy: number; pin: string; signatureId?: string; signatureImage?: string }
+  ): Promise<{ success: boolean; data?: MeetingEvent; message: string }> => {
+    try {
+      await meetingsApi.transitionMeeting(meetingId, {
+        targetStatus: 'scheduled',
+        targetSubStatus: 'approved',
+      });
+      return { success: true, message: 'Meeting approved' };
+    } catch (error: unknown) {
+      const err = error as Error;
+      return { success: false, message: err.message || 'Failed to approve meeting' };
+    }
+  },
+
+  rejectMeeting: async (
+    meetingId: number,
+    payload: { rejectedBy: number; reason: string; comments?: string }
+  ): Promise<{ success: boolean; data?: MeetingEvent; message: string }> => {
+    try {
+      await meetingsApi.transitionMeeting(meetingId, {
+        targetStatus: 'scheduled',
+        targetSubStatus: 'rejected',
+        reason: payload.comments || payload.reason,
+      });
+      return { success: true, message: 'Meeting rejected' };
+    } catch (error: unknown) {
+      const err = error as Error;
+      return { success: false, message: err.message || 'Failed to reject meeting' };
+    }
+  },
+
+  resubmitForApproval: async (
+    meetingId: number,
+    _payload: { submittedBy: number; notes?: string }
+  ): Promise<{ success: boolean; data?: MeetingEvent; message: string }> => {
+    try {
+      await meetingsApi.transitionMeeting(meetingId, {
+        targetStatus: 'scheduled',
+        targetSubStatus: 'pending_approval',
+      });
+      return { success: true, message: 'Meeting resubmitted for approval' };
+    } catch (error: unknown) {
+      const err = error as Error;
+      return { success: false, message: err.message || 'Failed to resubmit for approval' };
+    }
   },
 };
 

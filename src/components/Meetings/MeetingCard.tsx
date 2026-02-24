@@ -55,7 +55,7 @@ export const MeetingCard: React.FC<MeetingCardProps> = ({
   onClick,
 }) => {
   const navigate = useNavigate();
-  const { currentBoard, theme } = useBoardContext();
+  const { currentBoard, theme, routePrefix } = useBoardContext();
   
   const status = meeting.status;
   
@@ -79,7 +79,7 @@ export const MeetingCard: React.FC<MeetingCardProps> = ({
     switch (meetingStatus) {
       case 'draft': return theme.textDisabled || '#d9d9d9';
       case 'scheduled': return theme.primaryColor || '#13c2c2';
-      case 'in_progress': return theme.successColor || '#52c41a';
+      case 'inprogress': return theme.successColor || '#52c41a';
       case 'completed': return theme.successColor || '#52c41a';
       case 'cancelled': return theme.errorColor || '#ff4d4f';
       default: return theme.primaryColor || '#324721';
@@ -123,12 +123,12 @@ export const MeetingCard: React.FC<MeetingCardProps> = ({
   // Action handlers
   const handleView = (e?: React.MouseEvent) => {
     e?.stopPropagation();
-    navigate(`/${currentBoard?.id || meeting.boardId}/meetings/${meeting.id}`);
+    navigate(`/${routePrefix}/meetings/${meeting.id}`);
   };
 
   const handleEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
-    navigate(`/${currentBoard?.id || meeting.boardId}/meetings/${meeting.id}/edit`);
+    navigate(`/${routePrefix}/meetings/${meeting.id}/edit`);
   };
 
   const handleAction = (e: React.MouseEvent, actionName: string) => {
@@ -212,7 +212,7 @@ export const MeetingCard: React.FC<MeetingCardProps> = ({
           );
         }
         break;
-      case 'in_progress':
+      case 'inprogress':
         actions.push(
           <Tooltip title="End Meeting" key="end">
             <Button type="text" size="small" icon={<CheckCircleOutlined style={{ color: successColor }} />} onClick={(e) => handleAction(e, 'End')} />

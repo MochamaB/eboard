@@ -84,8 +84,8 @@ const getPhaseInfo = (meetingStatus: MeetingStatus, subStatus?: string | null): 
     return { phase: 'pre-meeting', status: 'active', canProceed: true };
   }
 
-  // Handle in_progress status
-  if (meetingStatus === 'in_progress') {
+  // Handle inprogress status
+  if (meetingStatus === 'inprogress') {
     return { 
       phase: 'during-meeting', 
       status: 'active', 

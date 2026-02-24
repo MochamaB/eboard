@@ -54,7 +54,7 @@ export const UserDetailsTab: React.FC<UserDetailsTabProps> = ({ user, themeColor
             <Card bordered={false} style={{ background: '#fafafa' }}>
               <Statistic
                 title="Board Memberships"
-                value={user.boardMemberships?.length || 0}
+                value={user.boardRoles?.length || 0}
                 prefix={<ApartmentOutlined />}
                 valueStyle={{ color: themeColor || '#324721' }}
               />

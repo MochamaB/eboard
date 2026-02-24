@@ -208,7 +208,7 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
           setHostInfo(computedHostInfo);
 
           // Determine initial attendance status based on meeting status + location type
-          const isAlreadyInProgress = meeting.status === 'in_progress';
+          const isAlreadyInProgress = meeting.status === 'inprogress';
           const isPhysical = meeting.locationType === 'physical';
           const isVirtual = meeting.locationType === 'virtual';
           // const isHybrid = meeting.locationType === 'hybrid';
@@ -216,7 +216,7 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
           const roomParticipants: RoomParticipant[] = (meeting.participants || []).map(p => {
             let attendance: 'expected' | 'waiting' | 'joined' = 'expected';
             let connection: 'in_room' | 'connected' | 'connecting' | 'disconnected' = 'in_room';
-            const accepted = p.rsvpStatus === 'accepted' || p.rsvpStatus === 'no_response';
+            const accepted = p.rsvpStatus === 'accepted' || p.rsvpStatus === 'noresponse';
 
             if (isAlreadyInProgress) {
               // Meeting already running — accepted participants are joined
@@ -257,7 +257,7 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
           
           // Set initial status based on meeting status
           if (isAlreadyInProgress) {
-            setStatus('in_progress');
+            setStatus('inprogress');
             setStartedAt(meeting.statusUpdatedAt);
           } else if (meeting.status === 'completed') {
             setStatus('ended');
@@ -295,9 +295,9 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
       setAgendaItems(agendaData.items);
       
       // For in_progress meetings, find the current item from mock data
-      // (the item with status 'in_progress', or the first non-completed item)
-      if (meeting?.status === 'in_progress' && !currentAgendaItemId) {
-        const inProgressItem = agendaData.items.find(item => item.status === 'in_progress');
+      // (the item with status 'inprogress', or the first non-completed item)
+      if (meeting?.status === 'inprogress' && !currentAgendaItemId) {
+        const inProgressItem = agendaData.items.find(item => item.status === 'inprogress');
         const firstPendingItem = agendaData.items.find(item => item.status === 'pending');
         const currentItem = inProgressItem || firstPendingItem;
         if (currentItem) {
@@ -314,7 +314,7 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | null = null;
     
-    if (status === 'in_progress' && startedAt) {
+    if (status === 'inprogress' && startedAt) {
       interval = setInterval(() => {
         const start = new Date(startedAt).getTime();
         const now = Date.now();
@@ -344,7 +344,7 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
       
       const now = new Date().toISOString();
       setStartedAt(now);
-      setStatus('in_progress');
+      setStatus('inprogress');
       
       // Mark all expected participants as joined (for demo)
       setParticipants(prev => prev.map(p => ({
@@ -383,7 +383,7 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
       })));
       
     } catch (err) {
-      setStatus('in_progress');
+      setStatus('inprogress');
       throw err;
     }
   }, []);
@@ -406,7 +406,7 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
       await new Promise(resolve => setTimeout(resolve, 300));
       
       setPausedAt(null);
-      setStatus('in_progress');
+      setStatus('inprogress');
     } catch (err) {
       throw err;
     }
@@ -420,7 +420,7 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
       // Update current user's participant status
       if (user) {
         setParticipants(prev => prev.map(p => 
-          String(p.userId) === String(user.id)
+          p.userId === user.id
             ? { ...p, attendanceStatus: 'left' as const, leftAt: new Date().toISOString() }
             : p
         ));
@@ -448,9 +448,9 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
       // Start time-tracking on the new item
       setAgendaItems(prev => prev.map(item =>
         item.id === itemId && !item.actualStartTime
-          ? { ...item, status: 'in_progress' as const, actualStartTime: now }
+          ? { ...item, status: 'inprogress' as const, actualStartTime: now }
           : item.id === itemId
-            ? { ...item, status: 'in_progress' as const }
+            ? { ...item, status: 'inprogress' as const }
             : item
       ));
 
@@ -488,9 +488,9 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
         setCurrentAgendaItemId(nextId);
         setAgendaItems(prev => prev.map(item =>
           item.id === nextId && !item.actualStartTime
-            ? { ...item, status: 'in_progress' as const, actualStartTime: now }
+            ? { ...item, status: 'inprogress' as const, actualStartTime: now }
             : item.id === nextId
-              ? { ...item, status: 'in_progress' as const }
+              ? { ...item, status: 'inprogress' as const }
               : item
         ));
       }
@@ -646,7 +646,7 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
     if (!user) return;
     
     setParticipants(prev => prev.map(p =>
-      String(p.userId) === String(user.id)
+      p.userId === user.id
         ? { ...p, hasRaisedHand: true, handRaisedAt: new Date().toISOString() }
         : p
     ));
@@ -656,7 +656,7 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
     if (!user) return;
     
     setParticipants(prev => prev.map(p =>
-      String(p.userId) === String(user.id)
+      p.userId === user.id
         ? { ...p, hasRaisedHand: false, handRaisedAt: null }
         : p
     ));
@@ -666,7 +666,7 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
     if (!user) return;
     
     setParticipants(prev => prev.map(p =>
-      String(p.userId) === String(user.id)
+      p.userId === user.id
         ? { ...p, isMuted: !p.isMuted }
         : p
     ));
@@ -676,7 +676,7 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
     if (!user) return;
     
     setParticipants(prev => prev.map(p =>
-      String(p.userId) === String(user.id)
+      p.userId === user.id
         ? { ...p, isVideoOn: !p.isVideoOn }
         : p
     ));
@@ -686,7 +686,7 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
     if (!user) return;
     
     setParticipants(prev => prev.map(p =>
-      String(p.userId) === String(user.id)
+      p.userId === user.id
         ? { ...p, isScreenSharing: true }
         : p
     ));
@@ -696,14 +696,14 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
     if (!user) return;
     
     setParticipants(prev => prev.map(p =>
-      String(p.userId) === String(user.id)
+      p.userId === user.id
         ? { ...p, isScreenSharing: false }
         : p
     ));
   }, [user]);
   
   // Host actions
-  const admitParticipant = useCallback(async (participantId: string) => {
+  const admitParticipant = useCallback(async (participantId: number) => {
     try {
       // TODO: API call
       setParticipants(prev => prev.map(p =>
@@ -730,7 +730,7 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
     }
   }, []);
   
-  const removeParticipant = useCallback(async (participantId: string) => {
+  const removeParticipant = useCallback(async (participantId: number) => {
     try {
       // TODO: API call
       setParticipants(prev => prev.map(p =>
@@ -743,7 +743,7 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
     }
   }, []);
   
-  const muteParticipant = useCallback(async (participantId: string) => {
+  const muteParticipant = useCallback(async (participantId: number) => {
     try {
       // TODO: API call
       setParticipants(prev => prev.map(p =>
@@ -754,7 +754,7 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
     }
   }, []);
   
-  const promoteToPresenter = useCallback(async (participantId: string) => {
+  const promoteToPresenter = useCallback(async (participantId: number) => {
     try {
       // TODO: API call
       console.log('Promoting participant to presenter:', participantId);
@@ -793,7 +793,7 @@ export const MeetingRoomProvider: React.FC<MeetingRoomProviderProps> = ({
    * This triggers mode recomputation (Physical ↔ Hybrid ↔ Virtual).
    * Used for testing/demo of dynamic mode transitions per Section 3 of 0308.
    */
-  const toggleParticipantLocation = useCallback((participantId: string) => {
+  const toggleParticipantLocation = useCallback((participantId: number) => {
     setParticipants(prev => prev.map(p => {
       if (p.id !== participantId) return p;
       const newConnectionStatus = p.connectionStatus === 'in_room' ? 'connected' as const : 'in_room' as const;

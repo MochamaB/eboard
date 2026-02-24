@@ -5,6 +5,7 @@ import type { UploadFile } from 'antd';
 
 import type { Board } from '../../../types/board.types';
 import { useBoardContext } from '../../../contexts';
+import { useLookups } from '../../../contexts/LookupsContext';
 
 const { Title, Text } = Typography;
 
@@ -14,6 +15,7 @@ interface BrandingTabProps {
 
 export const BrandingTab: React.FC<BrandingTabProps> = ({ board }) => {
   const { theme } = useBoardContext();
+  const { getBoardTypeByCode } = useLookups();
   const [form] = Form.useForm();
 
   // Initialize form with board branding
@@ -56,9 +58,9 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({ board }) => {
           message="Branding Customization"
           description={
             board.type === 'main'
-              ? 'Main board branding will be used as default for all subsidiary boards and committees unless overridden.'
+              ? `${getBoardTypeByCode('main')?.name || 'Main Board'} branding will be used as default for all subsidiary boards and committees unless overridden.`
               : board.type === 'subsidiary'
-              ? 'Subsidiary branding can be customized independently or inherit from the main board.'
+              ? `${getBoardTypeByCode('subsidiary')?.name || 'Subsidiary'} branding can be customized independently or inherit from the main board.`
               : 'Committees and factories inherit branding from their parent board.'
           }
           type="info"

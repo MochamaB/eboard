@@ -1,24 +1,126 @@
 /**
  * Auth Context
  * Provides authentication state and methods throughout the app
- * Enhanced with board-scoped permission checking
+ * All board access and permissions derived from user.boardRoles (from backend API)
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authApi, tokenManager } from '../api';
-import type { AuthUser, LoginPayload, LoginResponse } from '../types';
-import type { Board } from '../types/board.types';
-import {
-  getUserAccessibleBoards,
-  getUserPrimaryBoard,
-  canUserAccessBoard,
-  hasPermissionOnBoard,
-  hasMultiBoardAccess as checkMultiBoardAccess,
-  hasGlobalBoardAccess,
-  getUserBoardPermissions,
-} from '../mocks/db/queries/userBoardQueries';
-import { toBoardObject } from '../mocks/db/queries/boardQueries';
+import type { AuthUser, LoginPayload, LoginResponse, UserBoardRoleInfo } from '../types';
+
+// Global access role codes — these roles can see all boards
+const GLOBAL_ACCESS_ROLES = ['system_admin', 'group_chairman', 'group_company_secretary'];
+
+// ============================================================================
+// HELPER: Lightweight board info derived from boardRoles (no API call needed)
+// ============================================================================
+interface UserBoardInfo {
+  boardId: number;
+  boardSlug: string;
+  boardName: string;
+}
+
+/** Extract unique boards the user is assigned to from boardRoles */
+const getBoardsFromRoles = (boardRoles: UserBoardRoleInfo[]): UserBoardInfo[] => {
+  const seen = new Set<number>();
+  const boards: UserBoardInfo[] = [];
+  for (const br of boardRoles) {
+    if (br.boardId && br.boardSlug && !seen.has(br.boardId)) {
+      seen.add(br.boardId);
+      boards.push({
+        boardId: br.boardId,
+        boardSlug: br.boardSlug,
+        boardName: br.boardName || br.boardSlug,
+      });
+    }
+  }
+  return boards;
+};
+
+/** Get the default board slug from boardRoles */
+const getDefaultBoardSlug = (boardRoles: UserBoardRoleInfo[]): string | undefined => {
+  // First: explicitly marked default (board or board_leadership scope)
+  const defaultRole = boardRoles.find(br =>
+    br.isDefault &&
+    (br.scope === 'board' || br.scope === 'board_leadership') &&
+    br.boardSlug
+  );
+  if (defaultRole?.boardSlug) return defaultRole.boardSlug;
+
+  // For global users, return first board slug available
+  const globalRole = boardRoles.find(br => br.scope === 'global');
+  if (globalRole) {
+    const firstBoard = boardRoles.find(br => br.boardSlug);
+    return firstBoard?.boardSlug ?? undefined;
+  }
+
+  // Fallback: first board role with a slug
+  const first = boardRoles.find(br => br.boardSlug);
+  return first?.boardSlug ?? undefined;
+};
+
+/** Check if user has a global-scope role */
+const hasGlobalRole = (boardRoles: UserBoardRoleInfo[]): boolean => {
+  return boardRoles.some(br => br.scope === 'global');
+};
+
+/** Check if user has a global access role (system_admin, group_chairman, etc.) */
+const isGlobalAccessUser = (boardRoles: UserBoardRoleInfo[]): boolean => {
+  return boardRoles.some(
+    br => br.scope === 'global' && GLOBAL_ACCESS_ROLES.includes(br.roleCode)
+  );
+};
+
+/** Check if user can access a specific board (by slug) */
+const canAccessBoardBySlug = (boardRoles: UserBoardRoleInfo[], boardSlug: string): boolean => {
+  if (isGlobalAccessUser(boardRoles)) return true;
+  return boardRoles.some(br => br.boardSlug === boardSlug);
+};
+
+/** Check if user has a specific permission on a board (by slug) */
+const hasPermissionOnBoardBySlug = (
+  boardRoles: UserBoardRoleInfo[],
+  boardSlug: string,
+  permission: string
+): boolean => {
+  // Global access roles have all permissions
+  if (isGlobalAccessUser(boardRoles)) {
+    const globalPerms = boardRoles
+      .filter(br => br.scope === 'global')
+      .flatMap(br => br.permissions);
+    if (globalPerms.includes(permission)) return true;
+  }
+  // Check board-specific permissions
+  return boardRoles
+    .filter(br => br.boardSlug === boardSlug)
+    .some(br => br.permissions.includes(permission));
+};
+
+/** Get all permissions user has on a specific board (by slug) */
+const getPermissionsForBoard = (boardRoles: UserBoardRoleInfo[], boardSlug: string): string[] => {
+  const perms = new Set<string>();
+  // Add global role permissions
+  boardRoles
+    .filter(br => br.scope === 'global')
+    .forEach(br => br.permissions.forEach(p => perms.add(p)));
+  // Add board-specific permissions
+  boardRoles
+    .filter(br => br.boardSlug === boardSlug)
+    .forEach(br => br.permissions.forEach(p => perms.add(p)));
+  return Array.from(perms);
+};
+
+/** Aggregate all permissions from all roles */
+const getAllPermissions = (boardRoles: UserBoardRoleInfo[]): string[] => {
+  const perms = new Set<string>();
+  boardRoles.forEach(br => br.permissions.forEach(p => perms.add(p)));
+  return Array.from(perms);
+};
+
+// ============================================================================
+// CONTEXT
+// ============================================================================
 
 interface AuthContextValue {
   // State
@@ -31,16 +133,16 @@ interface AuthContextValue {
   logout: () => Promise<void>;
   verifyMfa: (code: string) => Promise<LoginResponse>;
   
-  // Global permission helpers (backward compatible)
-  hasPermission: (permission: string, boardId?: string) => boolean;
-  hasRole: (role: string) => boolean;
+  // Permission helpers
+  hasPermission: (permission: string, boardSlug?: string) => boolean;
+  hasRole: (roleCode: string) => boolean;
   refreshUser: () => Promise<void>;
   
-  // Board-scoped helpers (new)
-  getUserBoards: () => Board[];
-  getPrimaryBoard: () => Board | undefined;
-  canAccessBoard: (boardId: string) => boolean;
-  getBoardPermissions: (boardId: string) => string[];
+  // Board-scoped helpers
+  getUserBoardList: () => UserBoardInfo[];
+  getDefaultBoard: () => string | undefined;
+  canAccessBoard: (boardSlug: string) => boolean;
+  getBoardPermissions: (boardSlug: string) => string[];
   hasMultiBoardAccess: boolean;
   hasGlobalAccess: boolean;
 }
@@ -77,12 +179,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = useCallback(async (payload: LoginPayload): Promise<LoginResponse> => {
     const response = await authApi.login(payload);
-    
-    // If MFA is required, don't set user yet
-    if (response.user.mfaRequired) {
-      return response;
-    }
-    
     setUser(response.user);
     return response;
   }, []);
@@ -102,22 +198,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return response;
   }, []);
 
-  // Enhanced hasPermission - supports optional boardId for board-scoped checks
-  const hasPermission = useCallback((permission: string, boardId?: string): boolean => {
+  // Permission check — supports optional boardSlug for board-scoped checks
+  const hasPermission = useCallback((permission: string, boardSlug?: string): boolean => {
     if (!user) return false;
-    
-    // If boardId provided, check board-scoped permission
-    if (boardId) {
-      return hasPermissionOnBoard(user.id, boardId, permission);
+    if (boardSlug) {
+      return hasPermissionOnBoardBySlug(user.boardRoles, boardSlug, permission);
     }
-    
-    // Otherwise check global permissions from user object
-    return user.permissions.includes(permission);
+    // Check aggregated permissions across all roles
+    return getAllPermissions(user.boardRoles).includes(permission);
   }, [user]);
 
-  const hasRole = useCallback((role: string): boolean => {
+  const hasRole = useCallback((roleCode: string): boolean => {
     if (!user) return false;
-    return user.globalRole?.code === role;
+    return user.boardRoles.some(br => br.roleCode === roleCode);
   }, [user]);
 
   const refreshUser = useCallback(async () => {
@@ -125,49 +218,44 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const userData = await authApi.getCurrentUser();
       setUser(userData);
     } catch {
-      // If refresh fails, logout
       await logout();
     }
   }, [logout]);
 
-  // Get all boards user can access
-  const getUserBoards = useCallback((): Board[] => {
+  // Get lightweight board list from boardRoles
+  const getUserBoardList = useCallback((): UserBoardInfo[] => {
     if (!user) return [];
-    const boardRows = getUserAccessibleBoards(user.id);
-    return boardRows.map(toBoardObject);
+    return getBoardsFromRoles(user.boardRoles);
   }, [user]);
 
-  // Get user's primary/default board
-  const getPrimaryBoard = useCallback((): Board | undefined => {
+  // Get user's default board slug
+  const getDefaultBoard = useCallback((): string | undefined => {
     if (!user) return undefined;
-    const boardRow = getUserPrimaryBoard(user.id);
-    return boardRow ? toBoardObject(boardRow) : undefined;
+    return getDefaultBoardSlug(user.boardRoles);
   }, [user]);
 
-  // Check if user can access a specific board
-  const canAccessBoard = useCallback((boardId: string): boolean => {
+  // Check if user can access a board (by slug)
+  const canAccessBoard = useCallback((boardSlug: string): boolean => {
     if (!user) return false;
-    // Global access users can access all boards
-    if (hasGlobalBoardAccess(user.id)) return true;
-    return canUserAccessBoard(user.id, boardId);
+    return canAccessBoardBySlug(user.boardRoles, boardSlug);
   }, [user]);
 
-  // Get all permissions user has on a specific board
-  const getBoardPermissions = useCallback((boardId: string): string[] => {
+  // Get permissions on a specific board
+  const getBoardPermissions = useCallback((boardSlug: string): string[] => {
     if (!user) return [];
-    return getUserBoardPermissions(user.id, boardId);
+    return getPermissionsForBoard(user.boardRoles, boardSlug);
   }, [user]);
 
-  // Check if user has access to multiple boards
+  // Multiple board access
   const hasMultiBoardAccess = useMemo((): boolean => {
     if (!user) return false;
-    return checkMultiBoardAccess(user.id);
+    return getBoardsFromRoles(user.boardRoles).length > 1;
   }, [user]);
 
-  // Check if user has global board access (can see all boards)
+  // Global access
   const hasGlobalAccess = useMemo((): boolean => {
     if (!user) return false;
-    return hasGlobalBoardAccess(user.id);
+    return isGlobalAccessUser(user.boardRoles);
   }, [user]);
 
   const value: AuthContextValue = useMemo(() => ({
@@ -180,14 +268,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     hasPermission,
     hasRole,
     refreshUser,
-    // Board-scoped helpers
-    getUserBoards,
-    getPrimaryBoard,
+    getUserBoardList,
+    getDefaultBoard,
     canAccessBoard,
     getBoardPermissions,
     hasMultiBoardAccess,
     hasGlobalAccess,
-  }), [user, isLoading, login, logout, verifyMfa, hasPermission, hasRole, refreshUser, getUserBoards, getPrimaryBoard, canAccessBoard, getBoardPermissions, hasMultiBoardAccess, hasGlobalAccess]);
+  }), [user, isLoading, login, logout, verifyMfa, hasPermission, hasRole, refreshUser, getUserBoardList, getDefaultBoard, canAccessBoard, getBoardPermissions, hasMultiBoardAccess, hasGlobalAccess]);
 
   return (
     <AuthContext.Provider value={value}>

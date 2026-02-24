@@ -10,6 +10,7 @@ import type {
   UserListItem,
   CreateUserPayload,
   UpdateUserPayload,
+  UpdateUserBoardAssignmentsPayload,
   UserFilterParams,
   UserActivity,
   UserSession,
@@ -36,6 +37,22 @@ export const useUsers = (params?: UserFilterParams) => {
   return useQuery<PaginatedResponse<UserListItem>>({
     queryKey: userKeys.list(params),
     queryFn: () => usersApi.getUsers(params),
+  });
+};
+
+/**
+ * Hook to update a user's board assignments
+ */
+export const useUpdateUserBoardAssignments = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: UpdateUserBoardAssignmentsPayload }) =>
+      usersApi.updateUserBoardAssignments(id, payload),
+    onSuccess: (data, variables) => {
+      queryClient.setQueryData(userKeys.detail(variables.id), data);
+      queryClient.invalidateQueries({ queryKey: userKeys.lists() });
+    },
   });
 };
 

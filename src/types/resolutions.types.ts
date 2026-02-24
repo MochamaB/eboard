@@ -17,18 +17,21 @@ export const ResolutionDecisionSchema = z.enum([
   'consensus',  // Approved by consensus (no formal vote)
 ]);
 
-export type ResolutionDecision = z.infer<typeof ResolutionDecisionSchema>;
-
-export const ResolutionCategorySchema = z.enum([
-  'policy',       // Policy decisions
-  'financial',    // Financial approvals
-  'operational',  // Operational matters
-  'strategic',    // Strategic initiatives
-  'governance',   // Governance matters
-  'other',        // Other resolutions
+export const ImplementationStatusSchema = z.enum([
+  'pending',      // Not started yet
+  'inprogress',   // Implementation in progress
+  'completed',    // Implementation completed
+  'cancelled',    // Implementation cancelled
 ]);
 
-export type ResolutionCategory = z.infer<typeof ResolutionCategorySchema>;
+export type ResolutionDecision = z.infer<typeof ResolutionDecisionSchema>;
+export type ImplementationStatus = z.infer<typeof ImplementationStatusSchema>;
+
+// Resolution category - Dynamic lookup from backend (use useLookups context)
+// Values: 'governance', 'financial', 'operational', 'strategic', 'compliance', 'hr', 'other'
+export const ResolutionCategorySchema = z.string();
+
+export type ResolutionCategory = string;
 
 // ============================================================================
 // RESOLUTION SCHEMA
@@ -63,7 +66,7 @@ export const ResolutionSchema = z.object({
   followUpNotes: z.string().nullable().optional(),
 
   // Implementation tracking
-  implementationStatus: z.enum(['pending', 'in_progress', 'completed', 'cancelled']).optional().default('pending'),
+  implementationStatus: z.enum(['pending', 'inprogress', 'completed', 'cancelled']).optional().default('pending'),
   implementedAt: z.string().nullable().optional(),
 
   // Metadata
@@ -121,7 +124,7 @@ export type UpdateResolutionPayload = z.infer<typeof UpdateResolutionPayloadSche
 
 // Update Implementation Status
 export const UpdateImplementationStatusPayloadSchema = z.object({
-  implementationStatus: z.enum(['pending', 'in_progress', 'completed', 'cancelled']),
+  implementationStatus: z.enum(['pending', 'inprogress', 'completed', 'cancelled']),
   implementedAt: z.string().optional(),
 });
 
@@ -137,7 +140,7 @@ export const ResolutionFiltersSchema = z.object({
   decision: ResolutionDecisionSchema.optional(),
   category: ResolutionCategorySchema.optional(),
   requiresFollowUp: z.boolean().optional(),
-  implementationStatus: z.enum(['pending', 'in_progress', 'completed', 'cancelled']).optional(),
+  implementationStatus: z.enum(['pending', 'inprogress', 'completed', 'cancelled']).optional(),
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
 });
@@ -216,14 +219,14 @@ export const RESOLUTION_CATEGORY_ICONS: Record<ResolutionCategory, string> = {
 
 export const IMPLEMENTATION_STATUS_LABELS = {
   pending: 'Pending',
-  in_progress: 'In Progress',
+  inprogress: 'In Progress',
   completed: 'Completed',
   cancelled: 'Cancelled',
 };
 
 export const IMPLEMENTATION_STATUS_COLORS = {
   pending: 'default',
-  in_progress: 'processing',
+  inprogress: 'processing',
   completed: 'success',
   cancelled: 'error',
 };

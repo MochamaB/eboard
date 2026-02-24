@@ -5,6 +5,7 @@
 
 export * from './api';
 export { useTabNavigation } from './useTabNavigation';
+export { useBoardRoleValidation } from './useBoardRoleValidation';
 
 // Responsive hooks - now using Context pattern for better performance
 // Import from contexts for the optimized version

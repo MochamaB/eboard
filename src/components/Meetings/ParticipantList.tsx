@@ -46,7 +46,7 @@ export const ParticipantList: React.FC<ParticipantListProps> = ({
     const accepted = participants.filter(p => p.rsvpStatus === 'accepted').length;
     const declined = participants.filter(p => p.rsvpStatus === 'declined').length;
     const tentative = participants.filter(p => p.rsvpStatus === 'tentative').length;
-    const noResponse = participants.filter(p => p.rsvpStatus === 'no_response').length;
+    const noResponse = participants.filter(p => p.rsvpStatus === 'noresponse').length;
     const guests = participants.filter(p => p.isGuest).length;
 
     const quorumAchieved = accepted >= quorumRequired;

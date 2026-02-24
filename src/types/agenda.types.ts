@@ -15,16 +15,13 @@ export const AgendaStatusSchema = z.enum([
   'archived',
 ]);
 
-export const AgendaItemTypeSchema = z.enum([
-  'discussion',       // Topic for discussion, no vote
-  'decision',         // Requires vote or resolution
-  'information',      // Report or update, no discussion
-  'committee_report', // Report from committee
-]);
+// Agenda item type - Dynamic lookup from backend (use useLookups context)
+// Values: 'regular', 'approval', 'discussion', 'information', 'presentation', 'election', 'procedural'
+export const AgendaItemTypeSchema = z.string();
 
 export const AgendaItemStatusSchema = z.enum([
   'pending',      // Not started yet
-  'in_progress',  // Currently being discussed
+  'inprogress',   // Currently being discussed
   'completed',    // Discussion completed
   'skipped',      // Skipped/postponed
 ]);
@@ -258,14 +255,14 @@ export const AGENDA_ITEM_TYPE_COLORS: Record<AgendaItemType, string> = {
 
 export const AGENDA_ITEM_STATUS_LABELS: Record<AgendaItemStatus, string> = {
   pending: 'Pending',
-  in_progress: 'In Progress',
+  inprogress: 'In Progress',
   completed: 'Completed',
   skipped: 'Skipped',
 };
 
 export const AGENDA_ITEM_STATUS_COLORS: Record<AgendaItemStatus, string> = {
   pending: 'default',
-  in_progress: 'processing',
+  inprogress: 'processing',
   completed: 'success',
   skipped: 'warning',
 };

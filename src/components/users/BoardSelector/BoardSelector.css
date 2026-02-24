@@ -1,0 +1,30 @@
+.board-selector-input {
+  font-size: 13px !important;
+}
+
+.board-selector-input.ant-input,
+.board-selector-input .ant-input {
+  font-size: 13px !important;
+  padding: 6px 10px !important;
+}
+
+.board-selector-input .ant-select-selector {
+  font-size: 13px !important;
+  padding: 4px 8px !important;
+  min-height: 36px;
+}
+
+.board-selector-input .ant-select-selection-search-input,
+.board-selector-input .ant-select-selection-item,
+.board-selector-input .ant-select-selection-placeholder {
+  font-size: 13px !important;
+}
+
+.board-selector-input.ant-picker,
+.board-selector-input .ant-picker-input > input {
+  font-size: 13px !important;
+}
+
+.board-selector-input.ant-picker .ant-picker-input > input {
+  padding: 4px 0 !important;
+}

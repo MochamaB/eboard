@@ -217,7 +217,7 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) =
                   {user?.fullName || 'Guest'}
                 </div>
                 <div style={{ color: colors.textSecondary, fontSize: 11 }}>
-                  {user?.jobTitle || ''}
+                 {user?.boardRoles?.[0]?.roleName || ''} 
                 </div>
               </div>
             )}

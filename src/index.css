@@ -97,6 +97,19 @@ body {
   background: transparent !important;
 }
 
+        .ant-input,
+        .ant-input::placeholder,
+        .ant-input-number-input,
+        .ant-input-number-input::placeholder,
+        .ant-picker-input input,
+        .ant-picker-input input::placeholder,
+        .ant-select-selection-item,
+        .ant-select-selection-placeholder,
+        .ant-select .ant-select-content input {
+          font-size: 13px;
+        }
+
+
 /* ======================================== */
 /* RESPONSIVE DESIGN SYSTEM                 */
 /* ======================================== */

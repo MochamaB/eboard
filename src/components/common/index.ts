@@ -51,3 +51,7 @@ export { SignatureCanvas } from './SignatureCanvas';
 
 // DocumentUpload
 export { DocumentUpload, type DocumentUploadProps } from './DocumentUpload';
+
+// VerticalTabsLayout
+export { VerticalTabsLayout } from './VerticalTabsLayout';
+export type { VerticalTabsLayoutProps, VerticalTabItem } from './VerticalTabsLayout';
